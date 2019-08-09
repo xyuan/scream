@@ -193,7 +193,7 @@ contains
   end function was_init_homme2_called_f90
 
   subroutine run_homme_f90 (dt) bind(c)
-    use control_mod,     only: restartfreq
+    use control_mod,     only: restartfreq, rsplit
     use dimensions_mod,  only: nelemd
     use prim_driver_mod, only: prim_run_subcycle
     use time_mod,        only: tstep
@@ -215,6 +215,7 @@ contains
       call abortmp ("Error! Homme was not initialized yet (or was already finalized).\n")
     endif
 
+    if(par%masterproc) print *,"nstep: ", tl%nstep/rsplit
     ! Set dt in the time mod
     tstep = dt
 
