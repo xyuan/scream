@@ -194,7 +194,7 @@ contains
 
   subroutine run_homme_f90 (dt) bind(c)
     use control_mod,     only: restartfreq, rsplit
-    use dimensions_mod,  only: nelemd
+    use dimensions_mod,  only: nelemd, qsize, np
     use prim_driver_mod, only: prim_run_subcycle
     use time_mod,        only: tstep
 #ifdef VERTICAL_INTERPOLATION
@@ -215,7 +215,7 @@ contains
       call abortmp ("Error! Homme was not initialized yet (or was already finalized).\n")
     endif
 
-    if(par%masterproc) print *,"nstep: ", tl%nstep/rsplit
+    if(par%masterproc) print *,"nstep: ", tl%nstep/rsplit, "nets,nete: ", nets, nete, "np: ", np
     ! Set dt in the time mod
     tstep = dt
 
