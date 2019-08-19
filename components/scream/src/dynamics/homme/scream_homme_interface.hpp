@@ -16,7 +16,7 @@ void init_homme1_f90 (const int& f_comm);
 void init_homme2_f90 ();
 bool was_init_homme1_called_f90 ();
 bool was_init_homme2_called_f90 ();
-void run_homme_f90 (const double& dt);
+void run_homme_f90 (const double& dt, Real* qdp);
 void finalize_homme_f90 ();
 
 void get_elem_cols_gids_f90 (const int& ie, int* const& gids);

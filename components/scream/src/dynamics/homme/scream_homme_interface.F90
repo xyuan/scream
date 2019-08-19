@@ -192,9 +192,9 @@ contains
     is_it = is_half_inited
   end function was_init_homme2_called_f90
 
-  subroutine run_homme_f90 (dt) bind(c)
+  subroutine run_homme_f90 (dt,qdp) bind(c)
     use control_mod,     only: restartfreq, rsplit
-    use dimensions_mod,  only: nelemd, qsize, np
+    use dimensions_mod,  only: nelemd, qsize, np, nlev, nelemd
     use prim_driver_mod, only: prim_run_subcycle
     use time_mod,        only: tstep
 #ifdef VERTICAL_INTERPOLATION
@@ -210,6 +210,10 @@ contains
     ! Input(s)
     !
     real (kind=c_double), intent(in) :: dt
+    real (kind=c_double), intent(inout) :: qdp(nelemd,2,qsize,np,np,nlev)
+    real (kind=c_double)                :: qdp_temp
+
+    qdp_temp = sum(qdp)
 
     if (.not. is_inited) then
       call abortmp ("Error! Homme was not initialized yet (or was already finalized).\n")
@@ -220,6 +224,8 @@ contains
     tstep = dt
 
     call prim_run_subcycle(elem,hybrid,nets,nete,tstep,.false.,tl,hvcoord,1)
+
+    if(par%masterproc) write(*,'(A15,3E16.8)') 'QDP test: ', qdp_temp, sum(qdp), sum(elem(1)%derived%FQ)
 
     if (tl%nstep .ge. next_output_step) then
 #ifdef VERTICAL_INTERPOLATION

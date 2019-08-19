@@ -210,8 +210,10 @@ void HommeDynamics::register_fields (FieldRepository<Real, device_type>& field_r
 
 void HommeDynamics::run (const double dt)
 {
+  auto qdp_ptr = m_dyn_fields_out.at("qdp").get_view().data();
+
   try {
-    run_homme_f90 (dt);
+    run_homme_f90 (dt,qdp_ptr);
 
     m_current_ts += dt;
 
