@@ -48,6 +48,7 @@ set(SHARE_HEADERS
   util/scream_lin_interp.hpp
   util/time_stamp.hpp
   scream_workspace.hpp
+  simpleio/simple_io_mod.hpp
 )
 
 add_library(scream_share ${SHARE_SRC})
