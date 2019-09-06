@@ -1,6 +1,7 @@
 #include "share/scream_assert.hpp"
 #include "physics/p3/scream_p3_interface.hpp"
 #include "physics/p3/atmosphere_microphysics.hpp"
+#include "share/simpleio/simple_io_mod.hpp"
 
 namespace scream
 {
@@ -31,7 +32,7 @@ void P3Microphysics::set_grids(const std::shared_ptr<const GridsManager> grids_m
 
   auto grid = grids_manager->get_grid("Physics");
   const int num_dofs = grid->num_dofs();
-  const int nc = num_dofs;
+  const int nc = 24; //num_dofs;
 
   auto VL = FieldTag::VerticalLevel;
   auto CO = FieldTag::Column;
@@ -40,39 +41,50 @@ void P3Microphysics::set_grids(const std::shared_ptr<const GridsManager> grids_m
 
   FieldLayout scalar3d_layout { {CO,VL}, {nc,NVL} }; // Note that C++ and Fortran read array dimensions in reverse
   FieldLayout scalar3d_layout_int { {CO,VL}, {nc,NVL+1} }; // Note that C++ and Fortran read array dimensions in reverse
-  FieldLayout vector3d_layout { {CO,VR,VL}, {nc,QSZ,NVL} };
+  FieldLayout vector3d_layout { {CO,VL, VR}, {nc, NVL, QSZ} };
   FieldLayout tracers_state_layout { {CO,TL,VR,VL}, {nc,2,4,NVL} };
   FieldLayout scalar_state_3d_mid_layout { {CO,TL,VL} , {nc,2,NVL}};
   FieldLayout q_forcing_layout  { {CO,VR,VL}, {nc,4,NVL} };
 
   // set requirements
-//  m_required_fields.emplace("P3_req_test",  scalar3d_layout,   units::one, "Physics");
-//  m_required_fields.emplace("ASD_req_test",  scalar3d_layout,   units::one, "Physics");
   // Inputs from Dynamics
   m_required_fields.emplace("dp", scalar_state_3d_mid_layout,    Pa,             "Physics");
   m_required_fields.emplace("qdp", tracers_state_layout,        Qdp,          grid->name());  
+  // Inputs from Physics 
+  m_required_fields.emplace("ast",    scalar3d_layout,            A,           "Physics");
+  m_required_fields.emplace("naai",   scalar3d_layout,   pow(kg,-1),           "Physics");
+  m_required_fields.emplace("npccn",  scalar3d_layout,   pow(kg,-1)*pow(s,-1), "Physics");
+  // Inputs that are STATE variables
+  m_required_fields.emplace("pmid",  scalar3d_layout,    Pa,                   "Physics");
+  m_required_fields.emplace("pdel",  scalar3d_layout,    Pa,                   "Physics");
+  m_required_fields.emplace("zi",    scalar3d_layout_int, m,                   "Physics");
+  m_required_fields.emplace("T",   scalar3d_layout,      K,         "Physics");
+  m_required_fields.emplace("q",   vector3d_layout,      Q,         "Physics");
+  m_required_fields.emplace("FQ", q_forcing_layout,      Q,      grid->name());
+
+  // set computed
   // Inputs from Physics  NOTE: Making them "computed" fields now because we will initialize them in P3 for testing purposes.
-  m_computed_fields.emplace("ast",    scalar3d_layout,            A,             "Physics");
+  m_computed_fields.emplace("ast",    scalar3d_layout,            A,           "Physics");
   m_computed_fields.emplace("naai",   scalar3d_layout,   pow(kg,-1),           "Physics");
   m_computed_fields.emplace("npccn",  scalar3d_layout,   pow(kg,-1)*pow(s,-1), "Physics");
-  // Inputs that are STATE variables
   m_computed_fields.emplace("pmid",  scalar3d_layout,    Pa,                   "Physics");
   m_computed_fields.emplace("pdel",  scalar3d_layout,    Pa,                   "Physics");
   m_computed_fields.emplace("zi",    scalar3d_layout_int, m,                   "Physics");
-
-  // set computed
-//  m_computed_fields.emplace("P3_comq_test", scalar3d_layout, units::one, "Physics");
+  // Fields changed by P3, not state variables 
   m_computed_fields.emplace("FQ", q_forcing_layout,      Q,      grid->name());
   // INPUT/OUTPUT from STATE
   m_computed_fields.emplace("T",   scalar3d_layout,      K,         "Physics");
+  m_computed_fields.emplace("th",  scalar3d_layout,      K,         "Physics");
   m_computed_fields.emplace("q",   vector3d_layout,      Q,         "Physics");
 
 }
 // =========================================================================================
 void P3Microphysics::initialize (const util::TimeStamp& t0)
 {
+  using namespace simpleio;
   m_current_ts = t0;
-  auto q_ptr = m_p3_fields_out.at("q").get_view().data();
+  //auto q_ptr = m_p3_fields_out.at("q").get_view().data();
+  auto q_ptr = m_p3_fields_out.at("q").get_reshaped_view<Real[9][72][24]>();
   auto ast_ptr = m_p3_fields_out.at("ast").get_view().data();
   auto naai_ptr = m_p3_fields_out.at("naai").get_view().data();
   auto npccn_ptr = m_p3_fields_out.at("npccn").get_view().data();
@@ -80,18 +92,84 @@ void P3Microphysics::initialize (const util::TimeStamp& t0)
   auto pdel_ptr = m_p3_fields_out.at("pdel").get_view().data();
   auto zi_ptr = m_p3_fields_out.at("zi").get_view().data();
   auto T_ptr = m_p3_fields_out.at("T").get_view().data();
-  const std::string dimnames[2] = {"column", "level"};
-  const std::string filename = "p3_output";
-  const int  dimrng[2]   = {218,72}; // TODO make this based on actual col,levels data
-  const int  dimnum = 2;
 
-  p3_init_f90 (q_ptr,T_ptr,zi_ptr,pmid_ptr,pdel_ptr,
-     ast_ptr, naai_ptr, npccn_ptr);
+  // Read input file information
+  int rerr;
+  int flen  = 1728;
+  int fleni = 1752;
+  int time_lev = 1;
+  char *filename;
+  filename = "data/p3_convergence.nc";
+  rerr = init_input(&filename);
+  char *fieldname;
+  char *units;
+  // universal constants
+  double uni_cnsts[12];
+  fieldname = "universal_constants";
+  rerr = readfield(&fieldname, time_lev, 12, uni_cnsts); 
+  // zi
+  fieldname = "state%zi_in";
+  rerr = readfield(&fieldname, time_lev, fleni, zi_ptr); 
+  // T
+  fieldname = "state%T_in";
+  rerr = readfield(&fieldname, time_lev, flen, T_ptr); 
+  // PMID
+  fieldname = "state%pmid_in";
+  rerr = readfield(&fieldname, time_lev, flen, pmid_ptr);
+  // pdel
+  fieldname = "state%pdel_in";
+  rerr = readfield(&fieldname, time_lev, flen, pdel_ptr); 
+  // ast
+  fieldname = "ast_in";
+  rerr = readfield(&fieldname, time_lev, flen, ast_ptr); 
+  // naai 
+  fieldname = "naai_in";
+  rerr = readfield(&fieldname, time_lev, flen, naai_ptr); 
+  // npccn
+  fieldname = "npccn_in";
+  rerr = readfield(&fieldname, time_lev, flen, npccn_ptr); 
+  // Q is a bit more involved
+  int ind;
+  double *temp_ptr[9];
+  char *q_list[9]= {"qv_in","cldliq_in","ice_in","numliq_in","numice_in","rain_in","numrain_in","qirim_in","rimvol_in"};
+  for (int r=0;r<9;r++) {
+    temp_ptr[r] = new double[flen];
+    fieldname = q_list[r];
+    rerr = readfield(&fieldname, time_lev, flen, temp_ptr[r]);
+    ind = 0;
+    for (int k=0;k<72;k++) {
+      for (int i=0;i<24;i++) {
+        q_ptr(r,k,i) = temp_ptr[r][ind];
+        ind++;
+      } 
+    }
+  }
+
+  rerr = finalize_input();
+
+  std::string dimnames[] = {"column","level","ilevel"};
+  const int ndims_output = sizeof(dimnames)/sizeof(dimnames[0]);
+  int dimrng[] = {24,72,73};
+  std::string vec_3d_state[] = {"level","column"};
+  std::string vec_3d_inter[] = {"ilevel","column"};
+  int werr, ftype;
+
+  filename = "data/p3_output.nc";
+  werr = init_output1(&filename,ndims_output,dimnames,dimrng);
+  // Register fields for output
+  fieldname = "th_out";
+  units = "K";
+  ftype = NC_REAL;
+  werr = regfield(&fieldname,ftype,2,vec_3d_state,&units);
+  werr = init_output2();
+
+  p3_init_f90 (uni_cnsts);
 }
 
 // =========================================================================================
 void P3Microphysics::run (const double dt)
 {
+  using namespace simpleio;
   auto q_ptr = m_p3_fields_out.at("q").get_view().data();
   auto FQ_ptr = m_p3_fields_out.at("FQ").get_view().data();
   auto dp_ptr = m_p3_fields_in.at("dp").get_view().data();
@@ -103,19 +181,40 @@ void P3Microphysics::run (const double dt)
   auto pdel_ptr = m_p3_fields_out.at("pdel").get_view().data();
   auto zi_ptr = m_p3_fields_out.at("zi").get_view().data();
   auto T_ptr = m_p3_fields_out.at("T").get_view().data();
+  auto th_ptr = m_p3_fields_out.at("th").get_view().data();
 
   p3_main_f90 (dt,q_ptr,FQ_ptr,qdp_ptr,T_ptr,zi_ptr,pmid_ptr,pdel_ptr,
-     ast_ptr, naai_ptr, npccn_ptr);
+     ast_ptr, naai_ptr, npccn_ptr, th_ptr);
 
   m_current_ts += dt;
   m_p3_fields_out.at("q").get_header().get_tracking().update_time_stamp(m_current_ts);
   m_p3_fields_out.at("FQ").get_header().get_tracking().update_time_stamp(m_current_ts);
   m_p3_fields_out.at("T").get_header().get_tracking().update_time_stamp(m_current_ts);
+  m_p3_fields_out.at("th").get_header().get_tracking().update_time_stamp(m_current_ts);
+
+  char *fieldname;
+  int ftype, werr, ind;
+  int dim3d[]  = {72,24};
+  int dim3di[]  = {73,24};
+  double tmp2d[72][24];
+
+  fieldname = "th_out";
+  ind = 0;
+  for (int j=0;j<72;j++) {
+    for (int i=0;i<24;i++) {
+      tmp2d[j][i] = th_ptr[ind];
+      ind++;
+    }
+  }
+  werr = writefield(&fieldname,1,dim3d,tmp2d);
+
 }
 // =========================================================================================
 void P3Microphysics::finalize()
 {
+  using namespace simpleio;
   p3_finalize_f90 ();
+  int werr = finalize_output();
 }
 // =========================================================================================
 

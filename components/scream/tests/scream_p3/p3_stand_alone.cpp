@@ -29,8 +29,8 @@ TEST_CASE("p3-stand-alone", "") {
   using namespace scream;
   using namespace scream::control;
 
-  constexpr int num_iters = 10;
-  constexpr int num_cols  = 32;
+  constexpr int num_iters = 1;
+  constexpr int num_cols  = 24;
 
   // Create a parameter list for inputs
   ParameterList ad_params("Atmosphere Driver");

@@ -72,14 +72,15 @@ contains
     return
   end subroutine simple_in_finalize
 !======================================================================
-  subroutine simple_io_get_field_size(fieldname_in,ndims,ldims) bind(c)
+  subroutine simple_io_get_field_size(fieldname_in,ndims,ldims,ndim_local) bind(c)
 
     type(c_ptr), intent(in)          :: fieldname_in
     integer(kind=c_int), value, intent(in)  :: ndims
     integer(kind=c_int), intent(out) :: ldims(ndims)
+    integer(kind=c_int), intent(out) :: ndim_local
 
-    character(len=256) :: fieldname
-    integer :: varid, ndim_local, dimids(ndims)
+    character(len=256) :: fieldname, dimname
+    integer :: varid, dimids(ndims)
     integer :: n
   
     call convert_c_string(fieldname_in,fieldname)
@@ -87,9 +88,12 @@ contains
     call check( nf90_inq_varid(ncid_in, fieldname, varid), "get VAR Id" )
     call check( nf90_inquire_variable(ncid_in, varid, dimids=dimids, ndims=ndim_local), "get VAR-Dim Ids" )
 
-    ldims(:) = 1
+    ldims(:) = 0
     do n = 1,ndim_local
-      call check( nf90_inquire_dimension(ncid_in, dimids(n), len=ldims(n)), "get Var-Dim Len's" )
+      call check( nf90_inquire_dimension(ncid_in, dimids(n), len=ldims(n), name=dimname), "get Var-Dim Len's" )
+      if (trim(dimname)=='Time'.or.trim(dimname)=='time') then
+        ldims(n) = -999
+      end if
     end do
     
     return
@@ -198,7 +202,7 @@ contains
 
    call convert_c_string(field_name_in,field_name)
 
-   call check( nf90_inq_varid(ncid_out, trim(field_name), varid), 'Get variable ID' )
+   call check( nf90_inq_varid(ncid_in, trim(field_name), varid), 'Get variable ID' )
    call check( nf90_inquire_variable(ncid_in,varid,ndims = ndims,dimids=dimids), 'Get variable DIMS' )
    
    dimprod = 1 ! Check that flen and dim lens match

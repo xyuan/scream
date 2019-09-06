@@ -13,11 +13,10 @@ extern "C"
 {
 
 // Fortran routines to be called from C
-void p3_init_f90     (Real* q, Real* T, Real* zi, Real* pmid, Real* pdel,
-                      Real* ast, Real* naai, Real* npccn );
+void p3_init_f90     (const Real* uni_cnsts);
 void p3_main_f90     (const Real& dtime, Real* q, Real* FQ, const Real* qdp,
                       Real* T, const Real* zi, const Real* pmid, const Real* pdel,
-                      const Real* ast, const Real* naai, const Real* npccn);
+                      const Real* ast, const Real* naai, const Real* npccn, Real* th);
 void p3_finalize_f90 ();
 
 } // extern "C"

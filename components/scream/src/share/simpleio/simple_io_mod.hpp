@@ -31,6 +31,7 @@ int writefield(char** field_name, int time_dim, int  data_dim, double* field_dat
 int writefield(char** field_name, int time_dim, int* data_dim, double  field_data[data_dim[0]][data_dim[1]]);
 int writefield(char** field_name, int time_dim, int* data_dim, double  field_data[data_dim[0]][data_dim[1]][data_dim[2]]);
 // Overload read functions to accomodate varying size of arrays
+int readfield(char** field_name, int tim_dim, int len, double* res);
 int readfield(char** field_name, int tim_dim, dbl_vector& res);
 int readfield(char** field_name, int tim_dim, std::vector< std::vector<double> >& res);
 int readfield(char** field_name, int tim_dim, std::vector< std::vector< std::vector <double> > >& res);

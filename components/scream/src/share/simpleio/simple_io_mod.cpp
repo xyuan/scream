@@ -17,7 +17,7 @@ extern "C" {
   void io_writefield_3d_real(char** field_name, Int time_dim, Int* data_dim, Real field_data[data_dim[0]][data_dim[1]][data_dim[2]]);
   void simple_in_init(char** field_name);
   void simple_in_finalize();
-  void simple_io_get_field_size(char** field_name, Int ndims, Int* ldims);
+  void simple_io_get_field_size(char** field_name, Int ndims, Int* ldims, Int* nspatial_dims);
   void io_readfield_real(char** field_name, Int time_dim[2], Int data_dim,  Real field_data[data_dim]);
   void io_readfield_1d_real(char** field_name, Int time_dim, Int data_dim,  Real field_data[data_dim]);
   //void io_readfield_2d_real(char** field_name, Int time_dim, Int* data_dim, Real field_data[data_dim[0]][data_dim[1]]);
@@ -68,13 +68,74 @@ int init_output1(char** filename, int ndims, std::string (&dimnames)[ndims],
 //  return 0;
 //}
 /* ----------------------------------------------------------------- */
+int readfield(char** field_name, int time_dim, int dlen, double* res)
+{
+
+  int ndims = 10;
+  int nspatial_dims=0;
+  int len[ndims];
+  int time_in[] = {1,1};
+  simple_io_get_field_size(field_name,ndims,len,&nspatial_dims);
+  if (len[ndims-1]==-999) {
+    time_in[0] = ndims;
+    time_in[1] = time_dim;
+    nspatial_dims = ndims-1;
+  }
+  int flen = 1;
+  for (int i=0;i<nspatial_dims;i++) {
+    flen *=len[i];
+  }
+//  scream::scream_require_msg(flen=dlen,
+//                     "Error! Inconsistency in field lengths when loading data. \n"
+//                     "Check field info for: " + field_name + "\n");
+  
+  double field_data[flen];
+
+  io_readfield_real(field_name,time_in,flen,field_data);
+
+  // unwrap fortran field data to match C++ format
+
+  int src_ind = 0;
+  int tgt_ind = 0;
+  if (nspatial_dims==3) {
+    for (int k=0; k<len[2]; k++) {
+      for (int j=0; j<len[1]; j++) {
+        for (int i=0; i<len[0]; i++) {
+          src_ind = i + j*len[1]+k*len[1]*len[2];
+          res[tgt_ind] = field_data[src_ind];
+          tgt_ind +=1;
+        }
+      }
+    }
+  } else if (nspatial_dims==2) {
+    for (int j=0; j<len[0]; j++) {
+      for (int i=0; i<len[1]; i++) {
+        src_ind = i + j*len[1];
+        res[tgt_ind] = field_data[src_ind];
+        tgt_ind +=1;
+      }
+    }
+  } else if (nspatial_dims==1) {
+    for (int i=0; i<len[0]; i++) {
+      src_ind = i;
+      res[tgt_ind] = field_data[src_ind];
+      tgt_ind +=1;
+    }
+  } else {
+    std::cout << "n-spatial-dims = " << nspatial_dims << " not supported.\n";
+  }
+
+  return 0;
+}
+/* ----------------------------------------------------------------- */
 int readfield(char** field_name, int time_dim, dbl_3dmatrix& res)
 {
 
   int ndims = 4;
+  int nspatial_dims;
   int len[]={1,1,1,1};
   int time_in[] = {1,1};
-  simple_io_get_field_size(field_name,ndims,len);
+  simple_io_get_field_size(field_name,ndims,len,&nspatial_dims);
   if (len[ndims-1]>1) {
     time_in[0] = ndims;
     time_in[1] = time_dim;
@@ -108,9 +169,10 @@ int readfield(char** field_name, int time_dim, dbl_2dmatrix& res)
 {
 
   int ndims = 3;
+  int nspatial_dims;
   int len[]={1,1,1};
   int time_in[] = {1,1};
-  simple_io_get_field_size(field_name,ndims,len);
+  simple_io_get_field_size(field_name,ndims,len,&nspatial_dims);
   if (len[ndims-1]>1) {
     time_in[0] = ndims;
     time_in[1] = time_dim;
@@ -140,9 +202,10 @@ int readfield(char** field_name, int time_dim, dbl_vector& res)
 {
 
   int ndims = 2;
+  int nspatial_dims;
   int len[]={1,1};
   int time_in[] = {1,1};
-  simple_io_get_field_size(field_name,ndims,len);
+  simple_io_get_field_size(field_name,ndims,len,&nspatial_dims);
   if (len[ndims-1]>1) {
     time_in[0] = ndims;
     time_in[1] = time_dim;
