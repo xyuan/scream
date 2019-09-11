@@ -10,20 +10,6 @@ namespace {
 
 TEST_CASE("simple_out_mod", "test_simple_out") {
 
-  SECTION("Hello World") {
-/* TODO: Delete
- * Simple hello_world to test input/output and c-binding
- */
-  int myint = 1;
-  double myreal = 3.14;
-  char* mychar = "Aaron";
-  std::string planets[] = {"Mercury", "Venus", "Earth", "Mars", "Saturn", "Jupiter", "Neptune", "Uranus"};
-  const int len_planet = sizeof(planets)/sizeof(planets[0]);
-
-  // Simple Hello World - TODO delete
-  int nerr = scream::simpleio::hello_world(myint, myreal, &mychar,len_planet,planets);
-  REQUIRE (nerr==0);
-  } // Hello world
   SECTION("Test Output") {
 /* ====================================================================
  * Create sample output for simple_io test 
@@ -31,20 +17,18 @@ TEST_CASE("simple_out_mod", "test_simple_out") {
   // Create sample output:
   double lats[6]={0,0,0,0,0,0};
   double lons[12];
-  double pres[2][6][12], temp[2][6][12];
+  double pres[12][6][2], temp[12][6][2];
   for (int n=0; n<6; n++) {
     lats[n] = 25.0 + (n) * 5.0;
   }
   for (int n=0; n<12; n++) {
     lons[n] = -125.0 + (n) * 5.0;
   }
-  int n = 0;
   for (int k=0; k<2;k++) {
     for (int i=0; i<6; i++) {
       for (int j=0; j<12; j++) {
-        pres[k][i][j] = 900.0 + float(n);
-        temp[k][i][j] = 9.0   + float(n);
-        n = n+1;
+        pres[j][i][k] = j*100.+i*10.+k;
+        temp[j][i][k] = j+i+k;
       }
     }
   }
@@ -110,23 +94,23 @@ TEST_CASE("simple_out_mod", "test_simple_out") {
  int wrt=0, wrt1;
  int timelev = 1;
  fieldname = "latitude";
- wrt1 = scream::simpleio::writefield(&fieldname,timelev,dimrng[1],lats);
+ wrt1 = scream::simpleio::writefield(&fieldname,timelev,&dimrng[1],lats);
  wrt = std::max(wrt,wrt1);
  fieldname = "longitude";
- wrt1 = scream::simpleio::writefield(&fieldname,timelev,dimrng[0],lons);
+ wrt1 = scream::simpleio::writefield(&fieldname,timelev,&dimrng[0],lons);
  wrt = std::max(wrt,wrt1);
  fieldname = "pressure";
- wrt1 = scream::simpleio::writefield(&fieldname,timelev,dim3d,pres);
+ wrt1 = scream::simpleio::writefield(&fieldname,timelev,dim3d,**pres);
  wrt = std::max(wrt,wrt1);
  fieldname = "temperature";
- wrt1 = scream::simpleio::writefield(&fieldname,timelev,dim3d,temp);
+ wrt1 = scream::simpleio::writefield(&fieldname,timelev,dim3d,**temp);
  wrt = std::max(wrt,wrt1);
  timelev++;
  fieldname = "pressure";
- wrt1 = scream::simpleio::writefield(&fieldname,timelev,dim3d,pres);
+ wrt1 = scream::simpleio::writefield(&fieldname,timelev,dim3d,**pres);
  wrt = std::max(wrt,wrt1);
  fieldname = "temperature";
- wrt1 = scream::simpleio::writefield(&fieldname,timelev,dim3d,temp);
+ wrt1 = scream::simpleio::writefield(&fieldname,timelev,dim3d,**temp);
  wrt = std::max(wrt,wrt1);
 
  REQUIRE(wrt==0);
@@ -144,9 +128,6 @@ TEST_CASE("simple_out_mod", "test_simple_out") {
   SECTION("Test Input") {
 
   // Open the test file
-  typedef std::vector<double> dbl_vector;
-  typedef std::vector<dbl_vector> dbl_2dmatrix;
-  typedef std::vector<dbl_2dmatrix> dbl_3dmatrix;
   char* filename = "pres_temp_4D.nc";
   char* fieldname;
   int rd;
@@ -154,26 +135,34 @@ TEST_CASE("simple_out_mod", "test_simple_out") {
   rd = scream::simpleio::init_input(&filename);
 
   int time_dim = 1;
+  int dlen[3];
 
   fieldname  = "latitude";
-  dbl_vector lat;
-  rd = scream::simpleio::readfield(&fieldname,time_dim,lat);
+  double lat[6];
+  dlen[0] = 6;
+  rd = scream::simpleio::readfield(&fieldname,time_dim,dlen,lat);
+  std::cout << "LAT READ\n";
   for (double n : lat){
     std::cout << n << "\n";
   }
 
   fieldname = "pressure";
-  dbl_3dmatrix pres;
-  rd = scream::simpleio::readfield(&fieldname,time_dim,pres);
-  for (dbl_2dmatrix n1 : pres){
-    for (dbl_vector n2 : n1) {
-      for (double n3 : n2) {
-        std::cout << n3 << " ";
+  double pres[12][6][2];
+  dlen[0] = 12;
+  dlen[1] = 6;
+  dlen[2] = 2;
+  rd = scream::simpleio::readfield(&fieldname,time_dim,dlen,**pres);
+  std::cout << "PRES READ\n";
+  for (int k=0;k<2;k++) {
+    for (int j=0;j<6;j++) {
+      for (int i=0;i<12;i++) {
+        std::cout << pres[i][j][k] << "\t";
       }
       std::cout << "\n";
     }
     std::cout << "\n";
   }
+  std::cout << "\n";
 
   rd = scream::simpleio::finalize_input();
   REQUIRE(rd==0);
