@@ -1126,7 +1126,9 @@ end subroutine micro_p3_readnl
     write(981,'(2I8)') state%ncol, pver
     write(981,'(12E16.8)') cpair,rair,rh2o,rhoh2o,mwh2o,mwdry,gravit,latvap,latice,cpliq,tmelt,pi
     p3_main_inputs(:,:,:) = -999._rtype
+    print *, '=== Pmid ==='
     do k = 1,pver
+      print *, k, state%pmid(1,k)
       p3_main_inputs(1,k,1)  = ast(1,k)
       p3_main_inputs(1,k,2)  = naai(1,k)
       p3_main_inputs(1,k,3)  = npccn(1,k)

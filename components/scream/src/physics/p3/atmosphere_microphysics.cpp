@@ -95,6 +95,7 @@ void P3Microphysics::initialize (const util::TimeStamp& t0)
 
   // Read input file information
   int rerr;
+  int dlen[3];
   int flen  = 1728;
   int fleni = 1752;
   int time_lev = 1;
@@ -105,29 +106,33 @@ void P3Microphysics::initialize (const util::TimeStamp& t0)
   char *units;
   // universal constants
   double uni_cnsts[12];
+  dlen[0] = 12;
   fieldname = "universal_constants";
-  rerr = readfield(&fieldname, time_lev, 12, uni_cnsts); 
+  rerr = readfield(&fieldname, time_lev, dlen, uni_cnsts); 
   // zi
   fieldname = "state%zi_in";
-  rerr = readfield(&fieldname, time_lev, fleni, zi_ptr); 
+  dlen[0] = 24;
+  dlen[1] = 73;
+  rerr = readfield(&fieldname, time_lev, dlen, zi_ptr); 
   // T
   fieldname = "state%T_in";
-  rerr = readfield(&fieldname, time_lev, flen, T_ptr); 
+  dlen[1] = 72;
+  rerr = readfield(&fieldname, time_lev, dlen, T_ptr); 
   // PMID
   fieldname = "state%pmid_in";
-  rerr = readfield(&fieldname, time_lev, flen, pmid_ptr);
+  rerr = readfield(&fieldname, time_lev, dlen, pmid_ptr);
   // pdel
   fieldname = "state%pdel_in";
-  rerr = readfield(&fieldname, time_lev, flen, pdel_ptr); 
+  rerr = readfield(&fieldname, time_lev, dlen, pdel_ptr); 
   // ast
   fieldname = "ast_in";
-  rerr = readfield(&fieldname, time_lev, flen, ast_ptr); 
+  rerr = readfield(&fieldname, time_lev, dlen, ast_ptr); 
   // naai 
   fieldname = "naai_in";
-  rerr = readfield(&fieldname, time_lev, flen, naai_ptr); 
+  rerr = readfield(&fieldname, time_lev, dlen, naai_ptr); 
   // npccn
   fieldname = "npccn_in";
-  rerr = readfield(&fieldname, time_lev, flen, npccn_ptr); 
+  rerr = readfield(&fieldname, time_lev, dlen, npccn_ptr); 
   // Q is a bit more involved
   int ind;
   double *temp_ptr[9];
@@ -135,7 +140,7 @@ void P3Microphysics::initialize (const util::TimeStamp& t0)
   for (int r=0;r<9;r++) {
     temp_ptr[r] = new double[flen];
     fieldname = q_list[r];
-    rerr = readfield(&fieldname, time_lev, flen, temp_ptr[r]);
+    rerr = readfield(&fieldname, time_lev, dlen, temp_ptr[r]);
     ind = 0;
     for (int k=0;k<72;k++) {
       for (int i=0;i<24;i++) {
@@ -150,8 +155,8 @@ void P3Microphysics::initialize (const util::TimeStamp& t0)
   std::string dimnames[] = {"column","level","ilevel"};
   const int ndims_output = sizeof(dimnames)/sizeof(dimnames[0]);
   int dimrng[] = {24,72,73};
-  std::string vec_3d_state[] = {"level","column"};
-  std::string vec_3d_inter[] = {"ilevel","column"};
+  std::string vec_3d_state[] = {"column","level"};
+  std::string vec_3d_inter[] = {"column","ilevel"};
   int werr, ftype;
 
   filename = "data/p3_output.nc";
@@ -194,19 +199,19 @@ void P3Microphysics::run (const double dt)
 
   char *fieldname;
   int ftype, werr, ind;
-  int dim3d[]  = {72,24};
-  int dim3di[]  = {73,24};
-  double tmp2d[72][24];
+  int dim3d[]  = {24,72};
+  int dim3di[] = {24,73};
+//  double tmp2d[72][24];
 
   fieldname = "th_out";
-  ind = 0;
-  for (int j=0;j<72;j++) {
-    for (int i=0;i<24;i++) {
-      tmp2d[j][i] = th_ptr[ind];
-      ind++;
-    }
-  }
-  werr = writefield(&fieldname,1,dim3d,tmp2d);
+//  ind = 0;
+//  for (int j=0;j<72;j++) {
+//    for (int i=0;i<24;i++) {
+//      tmp2d[j][i] = th_ptr[ind];
+//      ind++;
+//    }
+//  }
+  werr = writefield(&fieldname,1,dim3d,th_ptr);
 
 }
 // =========================================================================================
