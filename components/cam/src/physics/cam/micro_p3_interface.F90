@@ -1124,7 +1124,7 @@ end subroutine micro_p3_readnl
     open(unit=981,file='p3_RICO_SCM.inp',status='replace',action='write')
     write(981,'(A100)') 'RICO Input for p3-stand-alone case'
     write(981,'(2I8)') state%ncol, pver
-    write(981,'(12E16.8)') cpair,rair,rh2o,rhoh2o,mwh2o,mwdry,gravit,latvap,latice,cpliq,tmelt,pi
+    write(981,'(12E32.16)') cpair,rair,rh2o,rhoh2o,mwh2o,mwdry,gravit,latvap,latice,cpliq,tmelt,pi
     p3_main_inputs(:,:,:) = -999._rtype
     print *, '=== Pmid ==='
     do k = 1,pver
