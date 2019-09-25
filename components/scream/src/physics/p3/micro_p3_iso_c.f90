@@ -225,4 +225,26 @@ contains
     call access_lookup_table_coll(dumjj,dumii,dumj,dumi,index,dum1,dum3,dum4,dum5,proc)
   end subroutine access_lookup_table_coll_c
 
+  subroutine  update_prognostic_ice_c(qcheti,qccol,qcshd,nccol,ncheti,ncshdc,qrcol,nrcol,qrheti,nrheti,nrshdr, &
+       qimlt,nimlt,qisub,qidep,qinuc,ninuc,nislf,nisub,qiberg,exner,xxls,xlf,log_predictNc,log_wetgrowth, &
+       dt,nmltratio,rhorime_c,th,qv,qitot,nitot,qirim,birim,qc,nc,qr,nr) bind(C)
+    use micro_p3, only: update_prognostic_ice
+    
+    ! arguments
+    real(kind=c_real), value, intent(in) :: qcheti, qccol, qcshd, nccol, ncheti, ncshdc, qrcol, nrcol, &
+         qrheti, nrheti, nrshdr, qimlt, nimlt, qisub, qidep, qinuc, ninuc, nislf, nisub, qiberg, exner, &
+         xlf, xxls, dt, nmltratio, rhorime_c
+
+    logical, intent(in) :: log_predictNc
+    logical, intent(in) :: log_wetgrowth
+
+    real(kind=c_real), intent(inout) :: th, qv, qc, nc, qr, nr, qitot, nitot, qirim, birim
+
+    call update_prognostic_ice_c(qcheti,qccol,qcshd,nccol,ncheti,ncshdc,qrcol,nrcol,qrheti,nrheti,nrshdr, &
+         qimlt,nimlt,qisub,qidep,qinuc,ninuc,nislf,nisub,qiberg,exner,xxls,xlf,log_predictNc,log_wetgrowth, &
+         dt,nmltratio,rhorime_c,th,qv,qitot,nitot,qirim,birim,qc,nc,qr,nr)
+
+  end subroutine update_prognostic_ice_c
+
+
 end module micro_p3_iso_c

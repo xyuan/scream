@@ -49,6 +49,23 @@ interface
     real(kind=c_real),   intent(out) :: proc
   end subroutine access_lookup_table_coll_f
 
+  subroutine  update_prognostic_ice_f(qcheti,qccol,qcshd,nccol,ncheti,ncshdc,qrcol,nrcol,qrheti,nrheti,nrshdr, &
+       qimlt,nimlt,qisub,qidep,qinuc,ninuc,nislf,nisub,qiberg,exner,xxls,xlf,log_predictNc,log_wetgrowth, &
+       dt,nmltratio,rhorime_c,th,qv,qitot,nitot,qirim,birim,qc,nc,qr,nr) bind(C)
+    use iso_c_binding
+
+    ! arguments
+    real(kind=c_real), value, intent(in) :: qcheti, qccol, qcshd, nccol, ncheti, ncshdc, qrcol, nrcol, &
+         qrheti, nrheti, nrshdr, qimlt, nimlt, qisub, qidep, qinuc, ninuc, nislf, nisub, qiberg, exner, &
+         xlf, xxls, dt, nmltratio, rhorime_c
+ 
+    logical, intent(in) :: log_predictNc
+    logical, intent(in) :: log_wetgrowth
+
+    real(kind=c_real), intent(inout) :: th, qv, qc, nc, qr, nr, qitot, nitot, qirim, birim
+    
+  end subroutine update_prognostic_ice_f
+
 end interface
 
 end module micro_p3_iso_f
