@@ -91,45 +91,112 @@ contains
        vap_ice_exchange, vap_cld_exchange) bind(C)
     use micro_p3, only : p3_main
 
-    real(kind=c_real), intent(inout), dimension(its:ite,kts:kte) :: qc, nc, qr, nr, qv, th
-    real(kind=c_real), intent(inout), dimension(its:ite,kts:kte) :: qitot, qirim, nitot, birim
-    real(kind=c_real), intent(in), dimension(its:ite,kts:kte) :: pres, dzq
-    real(kind=c_real), intent(in), dimension(its:ite,kts:kte) :: npccn,naai
-    real(kind=c_real), value, intent(in) :: dt
-    real(kind=c_real), intent(out), dimension(its:ite) :: prt_liq, prt_sol
-    real(kind=c_real), intent(out), dimension(its:ite,kts:kte) :: diag_ze, diag_effc
-    real(kind=c_real), intent(out), dimension(its:ite,kts:kte) :: diag_effi, diag_vmi, diag_di, diag_rhoi
-    integer(kind=c_int), value, intent(in) :: its,ite, kts,kte, it
+    integer(kind=c_int),  value, intent(in) :: its,ite, kts,kte, it
     logical(kind=c_bool), value, intent(in) :: log_predictNc_in
+    real(kind=c_real),    value, intent(in) :: dt
 
-    real(kind=c_real), intent(in),    dimension(its:ite,kts:kte)      :: pdel
-    real(kind=c_real), intent(in),    dimension(its:ite,kts:kte)      :: exner
-    real(kind=c_real), intent(out),   dimension(its:ite,kts:kte)      :: cmeiout
-    real(kind=c_real), intent(out),   dimension(its:ite,kts:kte)      :: prain
-    real(kind=c_real), intent(out),   dimension(its:ite,kts:kte)      :: nevapr
-    real(kind=c_real), intent(out),   dimension(its:ite,kts:kte)      :: prer_evap
-    real(kind=c_real), intent(out),   dimension(its:ite,kts:kte+1)    :: rflx
-    real(kind=c_real), intent(out),   dimension(its:ite,kts:kte+1)    :: sflx
-    real(kind=c_real), intent(in),    dimension(its:ite,kts:kte)      :: icldm, lcldm, rcldm
-    real(kind=c_real), intent(out),   dimension(its:ite,kts:kte)      :: pratot,prctot
-    real(kind=c_real), intent(out),   dimension(its:ite,kts:kte,49)   :: p3_tend_out
-    real(kind=c_real), intent(out),   dimension(its:ite,kts:kte)      :: mu_c,lamc
-    real(kind=c_real), intent(out),   dimension(its:ite,kts:kte)      :: liq_ice_exchange
-    real(kind=c_real), intent(out),   dimension(its:ite,kts:kte)      :: vap_liq_exchange
-    real(kind=c_real), intent(out),   dimension(its:ite,kts:kte)      :: vap_ice_exchange
-    real(kind=c_real), intent(out),   dimension(its:ite,kts:kte)      :: vap_cld_exchange
+    real(kind=c_real), intent(inout), dimension(its:ite,kts:kte)   :: qc, nc, qr, nr, qv, th
+    real(kind=c_real), intent(inout), dimension(its:ite,kts:kte)   :: qitot, qirim, nitot, birim
+    real(kind=c_real), intent(in),    dimension(its:ite,kts:kte)   :: pres, dzq
+    real(kind=c_real), intent(in),    dimension(its:ite,kts:kte)   :: npccn,naai
+    real(kind=c_real), intent(out),   dimension(its:ite,kts:kte)   :: diag_ze, diag_effc
+    real(kind=c_real), intent(out),   dimension(its:ite,kts:kte)   :: diag_effi, diag_vmi, diag_di, diag_rhoi
+
+    real(kind=c_real), intent(in),    dimension(its:ite,kts:kte)   :: pdel
+    real(kind=c_real), intent(in),    dimension(its:ite,kts:kte)   :: exner
+    real(kind=c_real), intent(out),   dimension(its:ite,kts:kte)   :: cmeiout
+    real(kind=c_real), intent(out),   dimension(its:ite,kts:kte)   :: prain
+    real(kind=c_real), intent(out),   dimension(its:ite,kts:kte)   :: nevapr
+    real(kind=c_real), intent(out),   dimension(its:ite,kts:kte)   :: prer_evap
+    real(kind=c_real), intent(out),   dimension(its:ite,kts:kte+1) :: rflx
+    real(kind=c_real), intent(out),   dimension(its:ite,kts:kte+1) :: sflx
+    real(kind=c_real), intent(in),    dimension(its:ite,kts:kte)   :: icldm, lcldm, rcldm
+    real(kind=c_real), intent(out),   dimension(its:ite,kts:kte)   :: pratot,prctot
+    real(kind=c_real), intent(out),   dimension(its:ite,kts:kte)   :: mu_c,lamc
+    real(kind=c_real), intent(out),   dimension(its:ite,kts:kte)   :: liq_ice_exchange
+    real(kind=c_real), intent(out),   dimension(its:ite,kts:kte)   :: vap_liq_exchange
+    real(kind=c_real), intent(out),   dimension(its:ite,kts:kte)   :: vap_ice_exchange
+    real(kind=c_real), intent(out),   dimension(its:ite,kts:kte)   :: vap_cld_exchange
+
+    real(kind=c_real), intent(out),   dimension(its:ite,kts:kte,49) :: p3_tend_out 
+    real(kind=c_real), intent(out),   dimension(its:ite) :: prt_liq, prt_sol
+
+!    real(kind=c_real), intent(inout), dimension(its:ite,kts:kte)   :: qc, nc, qr, nr, qv, th
+!    real(kind=c_real), intent(inout), dimension(its:ite,kts:kte)   :: qitot, qirim, nitot, birim
+!    real(kind=c_real), intent(in),    dimension(its:ite,kts:kte)   :: pres, dzq
+!    real(kind=c_real), intent(in),    dimension(its:ite,kts:kte)   :: npccn,naai
+!    real(kind=c_real), intent(out),   dimension(its:ite,kts:kte)   :: diag_ze, diag_effc
+!    real(kind=c_real), intent(out),   dimension(its:ite,kts:kte)   :: diag_effi, diag_vmi, diag_di, diag_rhoi
+!
+!    real(kind=c_real), intent(in),    dimension(its:ite,kts:kte)   :: pdel
+!    real(kind=c_real), intent(in),    dimension(its:ite,kts:kte)   :: exner
+!    real(kind=c_real), intent(out),   dimension(its:ite,kts:kte)   :: cmeiout
+!    real(kind=c_real), intent(out),   dimension(its:ite,kts:kte)   :: prain
+!    real(kind=c_real), intent(out),   dimension(its:ite,kts:kte)   :: nevapr
+    real(kind=c_real),   dimension(its:ite,kts:kte)   :: prer_evap_in
+!    real(kind=c_real), intent(out),   dimension(its:ite,kts:kte+1) :: rflx
+!    real(kind=c_real), intent(out),   dimension(its:ite,kts:kte+1) :: sflx
+!    real(kind=c_real), intent(in),    dimension(its:ite,kts:kte)   :: icldm, lcldm, rcldm
+!    real(kind=c_real), intent(out),   dimension(its:ite,kts:kte)   :: pratot,prctot
+!    real(kind=c_real), intent(out),   dimension(its:ite,kts:kte)   :: mu_c,lamc
+!    real(kind=c_real), intent(out),   dimension(its:ite,kts:kte)   :: liq_ice_exchange
+!    real(kind=c_real), intent(out),   dimension(its:ite,kts:kte)   :: vap_liq_exchange
+!    real(kind=c_real), intent(out),   dimension(its:ite,kts:kte)   :: vap_ice_exchange
+!    real(kind=c_real), intent(out),   dimension(its:ite,kts:kte)   :: vap_cld_exchange
+    real(kind=c_real),   dimension(its:ite,kts:kte,49) :: p3_tend_out_in 
+
+    integer :: fi
 
     logical :: log_predictNc
 
     log_predictNc = log_predictNc_in
 
+    prer_evap_in = transpose(prer_evap)
+    do fi = 1,49
+      p3_tend_out_in(:,:,fi) = transpose(p3_tend_out(fi,:,:))
+    end do
+
+!    call reshape2_c_to_f90(its,ite,kts,kte,prer_evap,prer_evap_in)
+!    call reshape3_c_to_f90(its,ite,kts,kte,1,49,p3_tend_out,p3_tend_out_in)
+
     call p3_main(qc,nc,qr,nr,th,qv,dt,qitot,qirim,nitot,birim,   &
          pres,dzq,npccn,naai,it,prt_liq,prt_sol,its,ite,kts,kte,diag_ze,diag_effc,     &
          diag_effi,diag_vmi,diag_di,diag_rhoi,log_predictNc, &
          pdel,exner,cmeiout,prain,nevapr,prer_evap,rflx,sflx,rcldm,lcldm,icldm, &
-         pratot,prctot,p3_tend_out,mu_c,lamc,liq_ice_exchange,vap_liq_exchange, &
+         pratot,prctot,p3_tend_out_in,mu_c,lamc,liq_ice_exchange,vap_liq_exchange, &
          vap_ice_exchange, vap_cld_exchange)
+
+    prer_evap = transpose(prer_evap_in)
+    do fi = 1,49
+      p3_tend_out(fi,:,:) = transpose(p3_tend_out_in(:,:,fi))
+    end do
+!    call reshape2_f90_to_c(its,ite,kts,kte,prer_evap_in,prer_evap)
+!    call reshape3_f90_to_c(its,ite,kts,kte,1,49,p3_tend_out_in,p3_tend_out)
+
   end subroutine p3_main_c
+
+!  subroutine reshape2_c_to_f90(its,ite,kts,kte,src,tgt)
+!    integer, intent(in) :: its,ite,kts,kte
+!    real(king=c_real), intent(in), dimension(kts:kte,its:ite) :: src
+!    real(king=c_real), intent(out), dimension(its:ite,kts:kte) :: tgt
+!    integer :: i,k
+!    do i = its,ite
+!    do k = kts,kte
+!      tgt(i,k) = src(k,i)
+!    end do
+!    end do
+!  end subroutine
+!  subroutine reshape2_f90_to_c(its,ite,kts,kte,src,tgt)
+!    integer, intent(in) :: its,ite,kts,kte
+!    real(king=c_real), intent(in), dimension(its:ite,kts:kte) :: src
+!    real(king=c_real), intent(out), dimension(kts:kte,its:ite) :: tgt
+!    integer :: i,k
+!    do i = its,ite
+!    do k = kts,kte
+!      tgt(k,i) = src(i,k)
+!    end do
+!    end do
+!  end subroutine
 
   subroutine p3_use_cxx_c(arg_use_cxx) bind(C)
     use micro_p3, only: use_cxx

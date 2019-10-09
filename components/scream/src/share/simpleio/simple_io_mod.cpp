@@ -120,7 +120,9 @@ void field_io(int ncid,std::string field_name, double &data, int time_dim, const
     scream_require_msg(nc_err==0,"NC Write Data Error! \n");
   } else if (flag=="write") {  
     nc_err = nc_put_vara(ncid,varid, start, count, &data);
+    if (nc_err != 0) {
     scream_require_msg(nc_err==0,"NC Write Data Error! \n");
+    }
   } else {
     scream_require_msg(0==1,"Error in IO, incorrect flag: " << flag);
   }

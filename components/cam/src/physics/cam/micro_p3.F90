@@ -1312,7 +1312,14 @@ contains
 
 
     ! end of main microphysics routine
-
+    do i = its,ite
+    do k = kts,kte
+      prer_evap(i,k) = float(i) + float(k)/100.
+    do dumj = 1,49
+      p3_tend_out(i,k,dumj) = float(it)+float(i)/100.+float(k)/10000.+float(dumj)/1000000.
+    end do
+    end do
+    end do
 
     return
 

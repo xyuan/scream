@@ -61,13 +61,22 @@ Int compare (const std::string& label, const double& tol,
 
 struct Baseline {
   Baseline () {
-    std::string setname = "";
     Int myit = 0;
     for (const bool log_predictNc : {true, false}) {
       for (const int it : {1, 2}) {
+        std::string setname = "";
         params_.push_back({ic::Factory::mixed, 1800, it, log_predictNc, setname + std::to_string(myit)});
         myit+=1;
       }
+    }
+    for (const Real dt : {1.,2.,4.,6.,10.,20.,30.,60.,100.,150.,300.}) {
+      int it = static_cast<int>(300/dt);
+      // left pad setname
+      std::string setname = "";
+      char tmp[5];
+      std::snprintf(tmp, sizeof(tmp), "%04d", static_cast<int>(dt));
+      setname.append(tmp);
+      convergence_params_.push_back({ic::Factory::mixed, dt, it, true, setname});
     }
   }
 
@@ -78,12 +87,15 @@ struct Baseline {
       const auto d = ic::Factory::create(ps.ic, ic_ncol);
       set_params(ps, *d);
       p3_init(use_fortran);
-      p3_main(*d);
+      for (int ii=0, n=ps.it; ii<n; ii++) {
+        p3_main(*d);
+      }
       // Add simple io stuff
       std::string mode("baseline_");
       int ncid = open_nc_file(filename,mode + ps.setname,"write");
       reg_fields_nc(ncid,d);
-      write_fields_nc(ncid,d);
+      write_fields_nc(ncid,d,-1);
+      finalize_io(ncid);
     }
     
     return nerr;
@@ -98,13 +110,16 @@ struct Baseline {
       std::string mode("baseline_");
       auto ncid_in = open_nc_file(filename,mode + ps.setname,"read");
       read_fields_nc(ncid_in,d_ref);
+      finalize_io(ncid_in);
       // Now run a sequence of other impls. This includes the reference
       // implementation b/c it's likely we'll want to change it as we go.
       {
         const auto d = ic::Factory::create(ps.ic, ic_ncol);
         set_params(ps, *d);
         p3_init(use_fortran);
-        p3_main(*d);
+        for (int ii=0, n=ps.it; ii<n; ii++) {
+          p3_main(*d);
+        }
         ne = compare("ref", tol, d_ref, d);
         if (ne) std::cout << "Ref impl failed.\n";
         nerr += ne;
@@ -112,9 +127,46 @@ struct Baseline {
         std::string mode("test_");
         auto ncid = open_nc_file(filename,mode + ps.setname,"write");
         reg_fields_nc(ncid,d);
-        write_fields_nc(ncid,d);
+        write_fields_nc(ncid,d,-1);
+        finalize_io(ncid);
       }
     }
+    return nerr;
+  }
+
+  Int convergence_testing(const std::string& filename, bool use_fortran) {
+    Int nerr = 0;
+    for (auto ps : convergence_params_) {
+      {
+        ic_ncol = 24;
+        // TODO: create void function that will load netcdf file and populate d
+        const auto d = ic::Factory::create(ps.ic, ic_ncol);
+        const auto d_ref = ic::Factory::create(ps.ic, ic_ncol);
+        set_params(ps, *d);
+        set_params(ps, *d_ref);
+        // Read ncid
+        auto ncid_in = open_nc_file("p3_convergence.nc","","read");
+        read_fields_nc(ncid_in,d);
+        read_fields_nc(ncid_in,d_ref);
+        finalize_io(ncid_in);
+        // Write ncid
+        std::string mode("convergence_test_");
+        auto ncid = open_nc_file(filename,mode + ps.setname,"write");
+        reg_fields_nc(ncid,d);
+//        ncid_in = open_nc_file("p3_convergence.nc","","read");
+        std::cout << "Running convergence test for dt = " << ps.dt << ", " << ps.it << " iterations.\n";
+        p3_init(use_fortran);
+        for (int ii=0, n=ps.it; ii<n; ii++) {
+          update_it (*d);
+          p3_main(*d);
+          write_fields_nc(ncid,d,ii);
+        }
+        int ne = compare("ref", 0.0, d_ref, d);
+        if (ne) std::cout << "Ref impl failed.\n";
+        finalize_io(ncid);
+      }
+    }
+
     return nerr;
   }
 
@@ -131,23 +183,30 @@ private:
 
   static void set_params (const ParamSet& ps, FortranData& d) {
     d.dt = ps.dt;
-    d.it = ps.it;
+    d.it = 0; //ps.it;
     d.log_predictNc = ps.log_predictNc;
   }
 
+  static void update_it (FortranData& d) {
+    d.it += 1;
+  }
+
   std::vector<ParamSet> params_;
+  std::vector<ParamSet> convergence_params_;
 
   /*----------------------------------------------------------------------*/
   // Simple io routines:
   int  open_nc_file(const std::string filename, const std::string runtype, const std::string mode) {
-      const int ndims = 4;
-      std::string dimnames[] = {"column","level","ilevel","fields"};
+      const int ndims = 5;
+      std::string dimnames[] = {"time","column","level","ilevel","fields"};
       std::string nc_filename = "";
       nc_filename.append(filename.c_str());
-      nc_filename.append("_");
-      nc_filename.append(runtype);
-      nc_filename.append(".nc");
-      int dimrng[] = {ic_ncol,72,73,49};
+      if (runtype != "") {
+        nc_filename.append("_");
+        nc_filename.append(runtype);
+        nc_filename.append(".nc");
+      }
+      int dimrng[] = {0,ic_ncol,72,73,49};
       int ncid = -999;
       if (mode == "write") {
         ncid = init_output1(nc_filename, ndims, dimnames, dimrng);
@@ -159,41 +218,44 @@ private:
   }
   static void reg_fields_nc (const Int ncid, const FortranData::Ptr& d) {
     FortranDataIterator fdi(d);
-    std::string dimnames[] = {"column","level","ilevel","fields"};
+    std::string dimnames[] = {"time","column","level","ilevel","fields"};
     std::string units="unitless";
     for (Int i = 0, n = fdi.nfield(); i < n; ++i) {
       const auto& f = fdi.getfield(i);
       if ( (f.extent[1]==72) && (f.extent[2]>1) ) {
-        dimnames[1] = "level";
-        dimnames[2] = "fields";
-        regfield(ncid,f.name,NC_REAL,3,dimnames,units);
+        dimnames[2] = "level";
+        dimnames[3] = "fields";
+        regfield(ncid,f.name,NC_REAL,4,dimnames,units);
       } else if (f.extent[1]==72) {
-        dimnames[1] = "level";
-        regfield(ncid,f.name,NC_REAL,2,dimnames,units);
+        dimnames[2] = "level";
+        regfield(ncid,f.name,NC_REAL,3,dimnames,units);
       } else if (f.extent[1]==73) {
-        dimnames[1] = "ilevel";
-        regfield(ncid,f.name,NC_REAL,2,dimnames,units);
+        dimnames[2] = "ilevel";
+        regfield(ncid,f.name,NC_REAL,3,dimnames,units);
       } else {
-        regfield(ncid,f.name,NC_REAL,1,dimnames,units);
+        regfield(ncid,f.name,NC_REAL,2,dimnames,units);
       }
     }
     init_output2(ncid);
   }
-  static void write_fields_nc (const Int ncid, const FortranData::Ptr& d) {
+  static void write_fields_nc (const Int ncid, const FortranData::Ptr& d, const Int tstep) {
     FortranDataIterator fdi(d);
     for (Int i = 0, n = fdi.nfield(); i < n; ++i) {
       const auto& f = fdi.getfield(i);
-      writefield(ncid,f.name,*f.data,-1);
+      writefield(ncid,f.name,*f.data,tstep);
     }
-    finalize_io(ncid);
+ //   finalize_io(ncid);
   }
   static void read_fields_nc (const Int ncid, const FortranData::Ptr& d) {
+    // TODO: Make a case here where if the field doesn't exist it populates with -999
+    // and skips to the next field.  This should make it possible to use this for the
+    // convergence testing too.
     FortranDataIterator fdi(d);
     for (Int i = 0, n = fdi.nfield(); i < n; ++i) {
       const auto& f = fdi.getfield(i);
       readfield(ncid,f.name,*f.data,-1);
     }
-    finalize_io(ncid);
+//    finalize_io(ncid);
   }
   /*----------------------------------------------------------------------*/
   static void write (const FILEPtr& fid, const FortranData::Ptr& d) {
@@ -243,15 +305,17 @@ int main (int argc, char** argv) {
       "Options:\n"
       "  -g        Generate baseline file.\n"
       "  -f        Use fortran impls instead of c++.\n"
+      "  -c        Run convergence tests.\n"
       "  -t <tol>  Tolerance for relative error.\n";
     return 1;
   }
 
-  bool generate = false, use_fortran = false;
+  bool generate = false, use_fortran = false, convergence_test = false;
   scream::Real tol = 0;
   for (int i = 1; i < argc-1; ++i) {
     if (util::eq(argv[i], "-g", "--generate")) generate = true;
     if (util::eq(argv[i], "-f", "--fortran")) use_fortran = true;
+    if (util::eq(argv[i], "-c", "--convergence")) convergence_test = true;
     if (util::eq(argv[i], "-t", "--tol")) {
       expect_another_arg(i, argc);
       ++i;
@@ -268,7 +332,10 @@ int main (int argc, char** argv) {
     if (generate) {
       std::cout << "Generating to " << baseline_fn << "\n";
       nerr += bln.generate_baseline(baseline_fn, use_fortran);
-    } else {
+    } else if (convergence_test) {
+      printf("Running convergence tests. \n");
+      nerr += bln.convergence_testing(baseline_fn,use_fortran);
+    } else  {
       printf("Comparing with %s at tol %1.1e\n", baseline_fn.c_str(), tol);
       nerr += bln.run_and_cmp(baseline_fn, tol, use_fortran);
     }

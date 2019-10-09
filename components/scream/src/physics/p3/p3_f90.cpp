@@ -154,6 +154,7 @@ void p3_main (const FortranData& d) {
             d.rcldm.data(), d.lcldm.data(), d.icldm.data(),d.pratot.data(),d.prctot.data(),
             d.p3_tend_out.data(),d.mu_c.data(),d.lamc.data(),d.liq_ice_exchange.data(),
             d.vap_liq_exchange.data(),d.vap_ice_exchange.data(),d.vap_cld_exchange.data());
+ std::cout << d.prer_evap.data()[d.ncol-1,10] << ", " <<  d.prer_evap.data()[d.ncol-1,d.nlev-1] << "\n";
 }
 
 int test_FortranData () {

@@ -492,7 +492,7 @@ end subroutine micro_p3_readnl
    call addfld('UMR', (/ 'lev' /), 'A',   'm/s', 'Mass-weighted rain  fallspeed'              )
 
    ! Record of inputs/outputs from p3_main
-   call add_hist_coord('P3_input_dim',  16, 'Input field dimension for p3_main subroutine',  'N/A', (/ 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16 /))
+   call add_hist_coord('P3_input_dim',  19, 'Input field dimension for p3_main subroutine',  'N/A', (/ 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19 /))
    call add_hist_coord('P3_output_dim', 32, 'Output field dimension for p3_main subroutine', 'N/A', (/ 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32 /))
    call addfld('P3_input', (/ 'ilev', 'P3_input_dim' /),  'I', 'N/A', 'Inputs for p3_main subroutine')
    call addfld('P3_output', (/ 'ilev', 'P3_output_dim' /), 'I', 'N/A', 'Outputs for p3_main subroutine')
@@ -889,7 +889,7 @@ end subroutine micro_p3_readnl
     real(rtype), pointer :: lambdac(:,:)      ! Size distribution slope parameter for radiation
     ! DONE PBUF
     ! For recording inputs/outputs to p3_main
-    real(rtype) :: p3_main_inputs(pcols,pver+1,16) ! Record of inputs for p3_main
+    real(rtype) :: p3_main_inputs(pcols,pver+1,19) ! Record of inputs for p3_main
     real(rtype) :: p3_main_outputs(pcols,pver+1,32) ! Record of outputs for p3_main
 
     ! Derived Variables
@@ -1135,25 +1135,30 @@ end subroutine micro_p3_readnl
     !end do
     close(981)
     p3_main_inputs(:,:,:) = -999._rtype
+    do icol = 1,ncol
     do k = 1,pver
-      p3_main_inputs(1,k,1)  = ast(1,k)
-      p3_main_inputs(1,k,2)  = naai(1,k)
-      p3_main_inputs(1,k,3)  = npccn(1,k)
-      p3_main_inputs(1,k,4)  = state%pmid(1,k)
-      p3_main_inputs(1,k,5)  = state%zi(1,k)
-      p3_main_inputs(1,k,6)  = state%T(1,k)
-      p3_main_inputs(1,k,7)  = qv(1,k)
-      p3_main_inputs(1,k,8)  = cldliq(1,k)
-      p3_main_inputs(1,k,9)  = ice(1,k)
-      p3_main_inputs(1,k,10) = numliq(1,k)
-      p3_main_inputs(1,k,11) = numice(1,k)
-      p3_main_inputs(1,k,12) = rain(1,k)
-      p3_main_inputs(1,k,13) = numrain(1,k)
-      p3_main_inputs(1,k,14) = qirim(1,k)
-      p3_main_inputs(1,k,15) = rimvol(1,k)
-      p3_main_inputs(1,k,16) = state%pdel(1,k)
+      p3_main_inputs(icol,k,1)  = cldliq(icol,k)  !qc
+      p3_main_inputs(icol,k,2)  = numliq(icol,k)  !nc
+      p3_main_inputs(icol,k,3)  = rain(icol,k)    !qr
+      p3_main_inputs(icol,k,4)  = numrain(icol,k) !nr
+      p3_main_inputs(icol,k,5)  = ice(icol,k)     !qitot
+      p3_main_inputs(icol,k,6)  = numice(icol,k)  !nitot
+      p3_main_inputs(icol,k,7)  = qirim(icol,k)
+      p3_main_inputs(icol,k,8)  = rimvol(icol,k)  !birim
+      p3_main_inputs(icol,k,9)  = qv(icol,k)
+      p3_main_inputs(icol,k,10) = pres(icol,k)
+      p3_main_inputs(icol,k,11) = state%pdel(icol,k)
+      p3_main_inputs(icol,k,12) = exner(icol,k)
+      p3_main_inputs(icol,k,13) = icldm(icol,k)
+      p3_main_inputs(icol,k,14) = lcldm(icol,k)
+      p3_main_inputs(icol,k,15) = rcldm(icol,k)
+      p3_main_inputs(icol,k,16) = th(icol,k)
+      p3_main_inputs(icol,k,17) = dzq(icol,k)
+      p3_main_inputs(icol,k,18) = npccn(icol,k)
+      p3_main_inputs(icol,k,19) = naai(icol,k)
     end do
-    p3_main_inputs(1,pver+1,5) = state%zi(1,pver+1)
+    end do
+    call outfld('P3_input',  p3_main_inputs,  pcols, lchnk)
 
     ! CALL P3
     !==============
@@ -1249,7 +1254,6 @@ end subroutine micro_p3_readnl
     p3_main_outputs(1,1,12) = prt_sol(1)
     p3_main_outputs(1,pver+1,23) = rflx(1,pver+1)
     p3_main_outputs(1,pver+1,24) = sflx(1,pver+1)
-    call outfld('P3_input',  p3_main_inputs,  pcols, lchnk)
     call outfld('P3_output', p3_main_outputs, pcols, lchnk)
 
     !MASSAGE OUTPUT TO FIT E3SM EXPECTATIONS
