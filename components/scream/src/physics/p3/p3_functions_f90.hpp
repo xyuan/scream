@@ -139,6 +139,62 @@ void access_lookup_table_coll_f(Int dumjj, Int dumii, Int dumj, Int dumi, Int in
 
 }
 
+struct UpdatePrognosticIce
+{
+//inputs
+  Real qcheti;
+  Real qccol;
+  Real qcshd;
+  Real nccol;
+  Real ncheti;
+  Real ncshdc;
+  Real qrcol;
+  Real nrcol;
+  Real qrheti;
+  Real nrheti;
+  Real nrshdr;
+  Real qimlt;
+  Real nimlt;
+  Real qisub;
+  Real qidep;
+  Real qinuc;
+  Real ninuc;
+  Real nislf;
+  Real nisub;
+  Real qiberg;
+  Real exner;
+  Real xxls;
+  Real xlf;
+  bool log_predictNc;
+  bool log_wetgrowth;
+  Real dt;
+  Real nmltratio;
+  Real rhorime_c;
+
+  //output
+  Real th;
+  Real qv;
+  Real qitot;
+  Real nitot;
+  Real qirim;
+  Real birim;
+  Real qc;
+  Real nc;
+  Real qr;
+  Real nr;
+};
+
+void update_prognostic_ice(UpdatePrognosticIce& d);
+
+extern "C"{
+
+void update_prognostic_ice_f( Real qcheti,Real qccol, Real qcshd,  Real nccol,  Real ncheti, Real ncshdc,
+Real qrcol,  Real nrcol, Real qrheti, Real nrheti, Real nrshdr, Real qimlt, Real nimlt, Real qisub, 
+Real qidep, Real qinuc, Real ninuc, Real nislf, Real nisub, Real qiberg, Real exner, Real xxls, Real xlf,
+bool log_predictNc, bool log_wetgrowth, Real dt, Real nmltratio, Real rhorime_c, Real* th, Real* qv, 
+Real* qitot, Real* nitot, Real* qirim, Real* birim, Real* qc, Real* nc, Real* qr, Real* nr);
+
+}
 
 }  // namespace p3
 }  // namespace scream
