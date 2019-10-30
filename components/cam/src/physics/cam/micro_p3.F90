@@ -1093,7 +1093,7 @@ contains
           p3_tend_out(i,k,31) = nrheti    ! immersion freezing rain
           p3_tend_out(i,k,32) = nrshdr    ! source for rain number from collision of rain/ice above freezing and shedding
           p3_tend_out(i,k,33) = qcshd     ! source for rain mass due to cloud water/ice collision above freezing and shedding or wet growth and shedding
-          p3_tend_out(i,k,34) = 0._rtype  ! used to be qcmul, but that has been removed.  Kept at 0.0 as placeholder.
+          p3_tend_out(i,k,34) = float(i) + float(k)/100!0._rtype  ! used to be qcmul, but that has been removed.  Kept at 0.0 as placeholder.
           p3_tend_out(i,k,35) = ncshdc    ! source for rain number due to cloud water/ice collision above freezing  and shedding (combined with NRSHD in the paper)
           ! measure microphysics processes tendency output
           p3_tend_out(i,k,42) = ( qc(i,k)    - p3_tend_out(i,k,42) ) * odt ! Liq. microphysics tendency, measure
@@ -1312,14 +1312,6 @@ contains
 
 
     ! end of main microphysics routine
-    do i = its,ite
-    do k = kts,kte
-      prer_evap(i,k) = float(i) + float(k)/100.
-    do dumj = 1,49
-      p3_tend_out(i,k,dumj) = float(it)+float(i)/100.+float(k)/10000.+float(dumj)/1000000.
-    end do
-    end do
-    end do
 
     return
 

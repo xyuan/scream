@@ -133,7 +133,7 @@ contains
 !    real(kind=c_real), intent(out),   dimension(its:ite,kts:kte)   :: cmeiout
 !    real(kind=c_real), intent(out),   dimension(its:ite,kts:kte)   :: prain
 !    real(kind=c_real), intent(out),   dimension(its:ite,kts:kte)   :: nevapr
-    real(kind=c_real),   dimension(its:ite,kts:kte)   :: prer_evap_in
+!    real(kind=c_real),   dimension(its:ite,kts:kte)   :: prer_evap_in
 !    real(kind=c_real), intent(out),   dimension(its:ite,kts:kte+1) :: rflx
 !    real(kind=c_real), intent(out),   dimension(its:ite,kts:kte+1) :: sflx
 !    real(kind=c_real), intent(in),    dimension(its:ite,kts:kte)   :: icldm, lcldm, rcldm
@@ -143,7 +143,7 @@ contains
 !    real(kind=c_real), intent(out),   dimension(its:ite,kts:kte)   :: vap_liq_exchange
 !    real(kind=c_real), intent(out),   dimension(its:ite,kts:kte)   :: vap_ice_exchange
 !    real(kind=c_real), intent(out),   dimension(its:ite,kts:kte)   :: vap_cld_exchange
-    real(kind=c_real),   dimension(its:ite,kts:kte,49) :: p3_tend_out_in 
+!    real(kind=c_real),   dimension(its:ite,kts:kte,49) :: p3_tend_out_in 
 
     integer :: fi
 
@@ -151,10 +151,10 @@ contains
 
     log_predictNc = log_predictNc_in
 
-    prer_evap_in = transpose(prer_evap)
-    do fi = 1,49
-      p3_tend_out_in(:,:,fi) = transpose(p3_tend_out(fi,:,:))
-    end do
+!    prer_evap_in = transpose(prer_evap)
+!    do fi = 1,49
+!      p3_tend_out_in(:,:,fi) = transpose(p3_tend_out(fi,:,:))
+!    end do
 
 !    call reshape2_c_to_f90(its,ite,kts,kte,prer_evap,prer_evap_in)
 !    call reshape3_c_to_f90(its,ite,kts,kte,1,49,p3_tend_out,p3_tend_out_in)
@@ -163,13 +163,13 @@ contains
          pres,dzq,npccn,naai,it,prt_liq,prt_sol,its,ite,kts,kte,diag_ze,diag_effc,     &
          diag_effi,diag_vmi,diag_di,diag_rhoi,log_predictNc, &
          pdel,exner,cmeiout,prain,nevapr,prer_evap,rflx,sflx,rcldm,lcldm,icldm, &
-         pratot,prctot,p3_tend_out_in,mu_c,lamc,liq_ice_exchange,vap_liq_exchange, &
+         pratot,prctot,p3_tend_out,mu_c,lamc,liq_ice_exchange,vap_liq_exchange, &
          vap_ice_exchange, vap_cld_exchange)
 
-    prer_evap = transpose(prer_evap_in)
-    do fi = 1,49
-      p3_tend_out(fi,:,:) = transpose(p3_tend_out_in(:,:,fi))
-    end do
+!    prer_evap = transpose(prer_evap_in)
+!    do fi = 1,49
+!      p3_tend_out(fi,:,:) = transpose(p3_tend_out_in(:,:,fi))
+!    end do
 !    call reshape2_f90_to_c(its,ite,kts,kte,prer_evap_in,prer_evap)
 !    call reshape3_f90_to_c(its,ite,kts,kte,1,49,p3_tend_out_in,p3_tend_out)
 

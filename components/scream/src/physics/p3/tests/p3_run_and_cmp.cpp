@@ -94,7 +94,7 @@ struct Baseline {
       std::string mode("baseline_");
       int ncid = open_nc_file(filename,mode + ps.setname,"write");
       reg_fields_nc(ncid,d);
-      write_fields_nc(ncid,d,-1);
+      write_fields_nc(ncid,d,0);
       finalize_io(ncid);
     }
     
@@ -127,7 +127,7 @@ struct Baseline {
         std::string mode("test_");
         auto ncid = open_nc_file(filename,mode + ps.setname,"write");
         reg_fields_nc(ncid,d);
-        write_fields_nc(ncid,d,-1);
+        write_fields_nc(ncid,d,0);
         finalize_io(ncid);
       }
     }
@@ -223,14 +223,20 @@ private:
     for (Int i = 0, n = fdi.nfield(); i < n; ++i) {
       const auto& f = fdi.getfield(i);
       if ( (f.extent[1]==72) && (f.extent[2]>1) ) {
+        dimnames[0] = "time";
+        dimnames[1] = "fields";
         dimnames[2] = "level";
-        dimnames[3] = "fields";
+        dimnames[3] = "column";
         regfield(ncid,f.name,NC_REAL,4,dimnames,units);
       } else if (f.extent[1]==72) {
-        dimnames[2] = "level";
+        dimnames[0] = "time";
+        dimnames[1] = "level";
+        dimnames[2] = "column";
         regfield(ncid,f.name,NC_REAL,3,dimnames,units);
       } else if (f.extent[1]==73) {
-        dimnames[2] = "ilevel";
+        dimnames[0] = "time";
+        dimnames[1] = "ilevel";
+        dimnames[2] = "column";
         regfield(ncid,f.name,NC_REAL,3,dimnames,units);
       } else {
         regfield(ncid,f.name,NC_REAL,2,dimnames,units);
