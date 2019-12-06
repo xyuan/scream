@@ -84,7 +84,7 @@ void access_lookup_table_coll(AccessLookupTableCollData& d)
                              d.lid.dum1, d.lidb.dum3, d.lid.dum4, d.lid.dum5, &d.proc);
 }
 
-  void  update_prognostic_ice(UpdatePrognosticIce& d){
+  void  update_prognostic_ice(P3UpdatePrognosticIceData& d){
     p3_init(true);
     update_prognostic_ice_c(d.qcheti, d.qccol, d.qcshd,  d.nccol,  d.ncheti, d.ncshdc, 
 			    d.qrcol,  d.nrcol, d.qrheti, d.nrheti, d.nrshdr, 
