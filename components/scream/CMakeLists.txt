@@ -48,6 +48,10 @@ STRING(TOLOWER "${CMAKE_BUILD_TYPE}" CMAKE_BUILD_TYPE_ci)
 enable_testing()
 include(CTest)
 
+option(SCREAM_USE_SCORPIO "Whether or not SCREAM will use SCORPIO for I/O" TRUE)
+IF (SCREAM_USE_SCORPIO)
+  include(scorpio)  # Note, this has to happen before include(Kokkos) because there is a conflict with a custom target of the same name in both.  Kokkos has a check for this, scorpio does not.
+ENDIF()
 include(Kokkos)
 
 set (CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -cpp")
@@ -140,6 +144,11 @@ set (SCREAM_INCLUDE_DIRS ${SCREAM_SRC_DIR} ${CMAKE_BINARY_DIR}/src)
 set (SCREAM_TPL_INCLUDE_DIRS ${Kokkos_INCLUDE_DIR})
 set (SCREAM_TPL_LIBRARY_DIRS ${Kokkos_LIBRARY_DIR})
 set (SCREAM_TPL_LIBRARIES ${KOKKOS_LIBS})
+
+set (PIO_F90_MODULES "")
+IF (SCREAM_USE_SCORPIO)
+  set (PIO_F90_MODULES ${SCORPIO_F90_DIR})
+ENDIF()
 
 if (${SCREAM_DOUBLE_PRECISION})
   if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")

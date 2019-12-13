@@ -32,3 +32,6 @@ CreateUnitTest(tridiag "tridiag_tests.cpp;tridiag_tests_correctness.cpp;tridiag_
 
 # Test units framework
 CreateUnitTest(units "units.cpp" scream_share)
+
+# Test pio
+CreateUnitTest(scream_pio "pio_tests.cpp" scream_share)

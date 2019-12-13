@@ -16,6 +16,12 @@ set(SHARE_SRC
   util/scream_tridiag_bfb.cpp
   util/scream_tridiag_bfb_mod.F90
 )
+IF (SCREAM_USE_SCORPIO)
+  set(SHARE_SRC ${SHARE_SRC} 
+   pio/scorpio/scream_scorpio_utils.cpp 
+   pio/scorpio/scream_scorpio_utils.F90
+  )
+ENDIF()
 
 # So far this is pointless, since we are not installing the library
 set(SHARE_HEADERS
@@ -54,7 +60,7 @@ set(SHARE_HEADERS
 )
 
 add_library(scream_share ${SHARE_SRC})
-target_include_directories(scream_share PUBLIC ${SCREAM_INCLUDE_DIRS} ${SCREAM_TPL_INCLUDE_DIRS})
+target_include_directories(scream_share PUBLIC ${SCREAM_INCLUDE_DIRS} ${SCREAM_TPL_INCLUDE_DIRS}i ${PIO_F90_MODULES})
 set_target_properties(scream_share PROPERTIES
   Fortran_MODULE_DIRECTORY ${SCREAM_F90_MODULES})
 # link_directories(${SCREAM_TPL_LIBRARY_DIRS})
