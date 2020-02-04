@@ -98,7 +98,4 @@
 <prescribed_aero_file>mam4_0.9x1.2_L128_2000clim_c191106.nc</prescribed_aero_file>
 <prescribed_aero_cycle_yr>01</prescribed_aero_cycle_yr>
 
-<!-- Initial condition file -->
-<ncdata    >atm/cam/inic/homme/ifs_oper_T1279_2016080100_mod_subset_to_e3sm_ne1024np4_topoadj_L128_v20191116.nc</ncdata>
-
 </namelist_defaults>
