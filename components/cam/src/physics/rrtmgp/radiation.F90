@@ -1374,8 +1374,8 @@ contains
                          col_indices=day_indices(1:nday))
 
       ! Make sure temperatures are inside bounds of absorption coefficient tables
-      call clip_values(tmid, k_dist_sw%get_temp_min(), k_dist_sw%get_temp_max(), 'tmid', warn=.true.)
-      call clip_values(tint, k_dist_sw%get_temp_min(), k_dist_sw%get_temp_max(), 'tint', warn=.true.)
+      call clip_values(tmid(1:nday,1:nlev_rad), k_dist_sw%get_temp_min(), k_dist_sw%get_temp_max(), 'tmid', warn=.true.)
+      call clip_values(tint(1:nday,1:nlev_rad+1), k_dist_sw%get_temp_min(), k_dist_sw%get_temp_max(), 'tint', warn=.true.)
 
       ! Get albedo. This uses CAM routines internally and just provides a
       ! wrapper to improve readability of the code here.

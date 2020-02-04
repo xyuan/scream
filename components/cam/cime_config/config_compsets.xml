@@ -347,6 +347,16 @@
     <lname>2000_CAM5%SCREAM-HR_CLM45%SPBC_CICE%PRES_DOCN%DOM_SROF_SGLC_SWAV</lname>
   </compset> 
 
+  <compset>
+    <alias>FSCREAM-LR-AQP1</alias>
+    <lname>2000_CAM5%SCREAM-LR-AQUA_SLND_SICE_DOCN%AQP1_SROF_SGLC_SWAV</lname>
+  </compset>
+
+  <compset>
+    <alias>FSCREAM-HR-AQP1</alias>
+    <lname>2000_CAM5%SCREAM-HR-AQUA_SLND_SICE_DOCN%AQP1_SROF_SGLC_SWAV</lname>
+  </compset>
+
   <!-- *********************************** -->
   <!-- idealized / adiabatic -->
   <!-- *********************************** -->
