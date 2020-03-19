@@ -308,9 +308,9 @@ contains
       do iz = 1,size(v, 2)
          do ix = 1,size(v, 1)
             if (v(ix,iz) < vmin .or. v(ix,iz) > vmax) then
-               print *, 'WARNING: ' // trim(vname) // &
-                        ' out of range; value = ', v(ix,iz), &
-                        '; lat, lon, lev = ', lat(ix), lon(ix), iz
+               write(*,'(a70,f8.4,a2,f8.4,a2,i8,a2,f8.4)') &
+                     '** WARNING IN RADIATION -- lon, lat, lev, ' // trim(vname) // ': ', &
+                     lon(ix), ', ', lat(ix), ', ',  iz, ', ', v(ix,iz)
                if (clip_values_local) then
                   if (v(ix,iz) < vmin) v(ix,iz) = vmin
                   if (v(ix,iz) > vmax) v(ix,iz) = vmax
@@ -345,9 +345,9 @@ contains
          do iy = 1,size(v,2)
             do ix = 1,size(v, 1)
                if (v(ix,iy,iz) < vmin .or. v(ix,iy,iz) > vmax) then
-                  print *, 'WARNING: ' // trim(vname) // &
-                           ' out of range; value = ', v(ix,iy,iz), &
-                           '; lat, lon, lev = ', lat(ix), lon(ix), iz
+                  write(*,'(a70,f8.4,a2,f8.4,a2,i8,a2,f8.4)') &
+                        '** WARNING IN RADIATION -- lon, lat, lev, ' // trim(vname) // ': ', &
+                        lon(ix), ', ', lat(ix), ', ',  iz, ', ', v(ix,iy,iz)
                   if (clip_values_local) then
                      if (v(ix,iy,iz) < vmin) v(ix,iy,iz) = vmin
                      if (v(ix,iy,iz) > vmax) v(ix,iy,iz) = vmax
