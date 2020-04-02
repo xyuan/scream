@@ -23,6 +23,9 @@ include (${CMAKE_CURRENT_SOURCE_DIR}/cmake/ScreamMpiUtils.cmake)
 # (for openpmi; -lmpicxx for mpich) flag.
 DisableMpiCxxBindings()
 
+if (${CIME_BUILD})
+  include(${CMAKE_SOURCE_DIR}/cmake/common_setup.cmake)
+endif()
 
 if (KOKKOS_ENABLE_CUDA)
   SetMpiCxxBackendCompilerVarName()
@@ -161,8 +164,9 @@ set(SCREAM_TEST_THREAD_INC 1 CACHE STRING "Thread count increment for threaded t
 # Set compiler-specific flags
 include(SetCompilerFlags)
 
+##set(INC_MPI ${MPI_PATH}/include)
 set (SCREAM_LINK_FLAGS ${KOKKOS_LDFLAGS_STR})
-set (SCREAM_INCLUDE_DIRS ${SCREAM_SRC_DIR} ${CMAKE_CURRENT_BINARY_DIR}/src)
+set (SCREAM_INCLUDE_DIRS ${SCREAM_SRC_DIR} ${CMAKE_CURRENT_BINARY_DIR}/src ${INC_MPI} ${PIO_MODDIR})
 
 set (SCREAM_TPL_INCLUDE_DIRS ${Kokkos_INCLUDE_DIR})
 set (SCREAM_TPL_LIBRARY_DIRS ${Kokkos_LIBRARY_DIR})

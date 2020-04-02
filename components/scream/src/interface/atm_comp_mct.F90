@@ -1,7 +1,7 @@
 module atm_comp_mct
 
   ! !USES:
-
+  use pioExample ! AaronDonahue - example PIO code, to use temporarily until a "real" PIO interface can be built
   use esmf
   use mct_mod
   use perf_mod
@@ -17,6 +17,14 @@ module atm_comp_mct
   use seq_flds_mod    , only: seq_flds_a2x_fields, seq_flds_x2a_fields
   use seq_timemgr_mod , only: seq_timemgr_EClockGetData
   use iso_c_binding   , only: c_int, c_double
+#ifdef SPMD
+  use spmd_utils       , only: spmdinit, masterproc, iam, npes, nsmps, &
+                               proc_smp_map
+  use mpishorthand     , only: mpicom
+#else
+  use spmd_utils       , only: spmdinit, masterproc, mpicom, iam, npes, nsmps, &
+                               proc_smp_map
+#endif
 
   ! !PUBLIC TYPES:
   implicit none
@@ -31,6 +39,7 @@ module atm_comp_mct
   public :: atm_run_mct
   public :: atm_final_mct
 
+  type(pioExampleClass), public :: pioExInst ! AaronDonahue - example pio structure to hold on important PIO information
   !--------------------------------------------------------------------------
   ! Private module data
   !--------------------------------------------------------------------------
@@ -155,6 +164,15 @@ CONTAINS
     call shr_file_getLogUnit (shrlogunit)
     call shr_file_getLogLevel(shrloglev)
     call shr_file_setLogUnit (logunit)
+
+    !----------------------------------------------------------------------------
+    ! Initialize pio
+    !----------------------------------------------------------------------------
+   
+    call pioExInst%init()
+    call pioExInst%createDecomp()
+    call pioExInst%createFile()
+    call pioExInst%defineVar()
 
   end subroutine atm_init_mct
 
