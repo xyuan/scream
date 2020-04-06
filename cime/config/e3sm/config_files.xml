@@ -183,6 +183,7 @@
       <value component="allactive">$CIMEROOT/config/$MODEL/allactive/testlist_allactive.xml</value>
       <value component="drv"      >$CIMEROOT/src/drivers/$COMP_INTERFACE/cime_config/testdefs/testlist_drv.xml</value>
       <value component="cam"      >$SRCROOT/components/cam/cime_config/testdefs/testlist_cam.xml</value>
+      <value component="scream"   >$SRCROOT/components/scream/cime_config/testdefs/testlist_scream.xml</value>
       <value component="clm"      >$SRCROOT/components/clm/cime_config/testdefs/testlist_clm.xml</value>
       <value component="cice"     >$SRCROOT/components/cice/cime_config/testdefs/testlist_cice.xml</value>
       <value component="mosart"   >$SRCROOT/components/mosart/cime_config/testdefs/testlist_mosart.xml</value>
@@ -199,6 +200,7 @@
       <value component="allactive">$CIMEROOT/config/$MODEL/testmods_dirs</value>
       <value component="drv"      >$CIMEROOT/src/drivers/$COMP_INTERFACE/cime_config/testdefs/testmods_dirs</value>
       <value component="cam"      >$SRCROOT/components/cam/cime_config/testdefs/testmods_dirs</value>
+      <value component="scream"   >$SRCROOT/components/scream/cime_config/testdefs/testmods_dirs</value>
       <value component="clm"      >$SRCROOT/components/clm/cime_config/testdefs/testmods_dirs</value>
       <value component="cice"     >$SRCROOT/components/cice/cime_config/testdefs/testmods_dirs</value>
       <value component="mosart"   >$SRCROOT/components/mosart/cime_config/testdefs/testmods_dirs</value>

@@ -53,7 +53,7 @@ contains
     !-------------------------------------------------------------------------------
 
     ! read the input parms (used to configure model)
-    nxg            =  48602 !-9999
+    nxg            =  866 !-9999
     nyg            =  1     !-9999
     nproc_x        =  0     !-9999
     seg_len        =  0     !-9999

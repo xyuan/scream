@@ -40,7 +40,7 @@ link_directories(${SCREAM_TPL_LIBRARY_DIRS})
 
 add_library(atm ${ATM_SRC})
 target_include_directories(atm PUBLIC ${SCREAM_INCLUDE_DIRS})
-target_include_directories(atm SYSTEM PUBLIC ${SCREAM_TPL_INCLUDE_DIRS} ${CSM_SHARE} ${INSTALL_SHAREDPATH}/include ${PIO_MODDIR} ${INCLUDE_NETCDF_FORTRAN})
+target_include_directories(atm SYSTEM PUBLIC ${SCREAM_TPL_INCLUDE_DIRS} ${CSM_SHARE} ${INSTALL_SHAREDPATH}/include)
 set_target_properties(atm PROPERTIES
   Fortran_MODULE_DIRECTORY ${CMAKE_BINARY_DIR}/cmake/atm)
-target_link_libraries(atm scream_share scream_control p3 shoc ${SCREAM_TPL_LIBRARIES} ${PIOLIB})
+target_link_libraries(atm scream_share scream_control p3 shoc ${SCREAM_TPL_LIBRARIES})

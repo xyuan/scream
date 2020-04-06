@@ -1,3 +1,4 @@
 #!/bin/bash
 ./xmlchange PIO_VERSION=2
 ./xmlchange DEBUG=TRUE
+./xmlchange STOP_N=1
