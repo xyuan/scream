@@ -1792,7 +1792,7 @@ subroutine shoc_tke(&
       a_diss=Cee/shoc_mix(i,k)*tke(i,k)**1.5
 
       ! March equation forward one timestep
-      tke(i,k)=max(mintke,tke(i,k)+dtime*(max(0._r8,a_prod_sh+a_prod_bu)-a_diss))
+      tke(i,k)=max(mintke,tke(i,k)+dtime*(max(0._rtype,a_prod_sh+a_prod_bu)-a_diss))
 
       tke(i,k)=min(tke(i,k),maxtke)
 
