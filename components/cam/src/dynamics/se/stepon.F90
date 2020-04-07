@@ -26,7 +26,8 @@ module stepon
    use edge_mod,       only: edge_g, edgeVpack_nlyr, edgeVunpack_nlyr
    use parallel_mod,   only : par
    use scamMod,        only: use_iop, doiopupdate, single_column, &
-                             setiopupdate, readiopdata, iop_mode
+                             setiopupdate, readiopdata, iop_mode, &
+			     iop_mode_test
    use element_mod,    only: element_t
    use shr_const_mod,       only: SHR_CONST_PI
    use se_single_column_mod, only: scm_broadcast
@@ -264,7 +265,7 @@ subroutine stepon_run2(phys_state, phys_tend, dyn_in, dyn_out )
 
    call t_startf('stepon_bndry_exch')
    ! do boundary exchange
-   if (.not. single_column .or. iop_mode) then
+   if (.not. single_column .or. (iop_mode .and. .not. iop_mode_test)) then
       do ie=1,nelemd
 
          if (fv_nphys>0) then
@@ -305,7 +306,7 @@ subroutine stepon_run2(phys_state, phys_tend, dyn_in, dyn_out )
 
    do ie=1,nelemd
   
-      if (.not. single_column .or. iop_mode) then 
+      if (.not. single_column .or. (iop_mode .and. .not. iop_mode_test)) then 
 
          kptr=0
 
@@ -544,6 +545,21 @@ subroutine stepon_run3(dtime, cam_out, phys_state, dyn_in, dyn_out)
      endif   
 
    endif   
+   
+   do ie=1,nelemd
+!     do k=1,nlev
+       do j=1,np
+         do i=1,np
+	 
+!	 if (ie .eq. 1 .and. i .eq. 1 .and. j .eq. 1) then
+!	   write(*,*) 'VIN1 ', dyn_in%elem(ie)%state%v(i,j,2,:,1)
+!	   write(*,*) 'VIN2 ', dyn_in%elem(ie)%state%v(i,j,2,:,2)
+!	 endif
+	 
+	 enddo
+       enddo
+!     enddo
+   enddo
 
    call t_barrierf('sync_dyn_run', mpicom)
    call t_startf ('dyn_run')

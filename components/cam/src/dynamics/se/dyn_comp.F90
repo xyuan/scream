@@ -337,7 +337,8 @@ CONTAINS
   subroutine dyn_run( dyn_state, rc )
 
     ! !USES:
-    use scamMod,          only: single_column, iop_mode, use_3dfrc
+    use scamMod,          only: single_column, iop_mode, &
+                                iop_mode_test, use_3dfrc
     use se_single_column_mod, only: apply_SC_forcing
     use parallel_mod,     only : par
     use prim_driver_mod,  only: prim_run_subcycle
@@ -393,6 +394,13 @@ CONTAINS
        !   in that forcing)
        if (single_column .and. .not. iop_mode) then
          if (use_3dfrc) do_prim_run = .false.
+       endif
+       
+       ! if IOP mode but in testing, then do not call dycore.
+       !  Purpose is to test IOP mode with no horizontal advection
+       !  to see if SCM cases can be replicated
+       if (iop_mode_test) then
+         do_prim_run = .false. 
        endif
        
        if (do_prim_run) then

@@ -1769,7 +1769,7 @@ subroutine shoc_tke(&
       ! Compute buoyant production term
       a_prod_bu=(ggr/basetemp)*wthv_sec(i,k)
 
-      tke(i,k)=max(0._r8,tke(i,k))
+      tke(i,k)=max(mintke,tke(i,k))
 
       ! Shear production term
       a_prod_sh=shear_prod_zt(i,k)
@@ -1778,7 +1778,7 @@ subroutine shoc_tke(&
       a_diss=Cee/shoc_mix(i,k)*tke(i,k)**1.5
 
       ! March equation forward one timestep
-      tke(i,k)=max(0._r8,tke(i,k)+dtime*(max(0._r8,a_prod_sh+a_prod_bu)-a_diss))
+      tke(i,k)=max(mintke,tke(i,k)+dtime*(max(0._r8,a_prod_sh+a_prod_bu)-a_diss))
 
       tke(i,k)=min(tke(i,k),maxtke)
 
@@ -1799,6 +1799,10 @@ subroutine shoc_tke(&
 
       ! Compute the return to isotropic timescale
       isotropy(i,k)=min(maxiso,tscale1/(1._r8+lambda*buoy_sgs_save*tscale1**2))
+
+ !     if (isotropy(i,k) .eq. 0._r8) then
+!        write(*,*) 'ZEROISO ', i, k, tscale1, lambda, buoy_sgs_save, tke(i,k), a_diss, shoc_mix(i,k)
+!      endif
 
       ! Define the eddy coefficients for heat and momentum
       tkh(i,k)=Ckh*isotropy(i,k)*tke(i,k)

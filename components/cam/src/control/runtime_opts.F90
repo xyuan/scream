@@ -165,6 +165,7 @@ logical  :: swrad_off
 logical  :: lwrad_off
 logical  :: precip_off
 logical  :: iop_mode
+logical  :: iop_mode_test
 
 contains
 
@@ -317,7 +318,8 @@ contains
    namelist /cam_inparm/ iopfile,scm_iop_srf_prop,scm_relaxation, &
                          scm_relaxation_low, scm_relaxation_high, &
                          scm_diurnal_avg,scm_crm_mode,scm_clubb_iop_name, &
-                         scm_observed_aero,swrad_off,lwrad_off, precip_off
+                         scm_observed_aero,swrad_off,lwrad_off, precip_off, &
+			 iop_mode_test
 
 !-----------------------------------------------------------------------
 
@@ -362,6 +364,7 @@ contains
         lwrad_off_out=lwrad_off, &
         precip_off_out=precip_off, &
         iop_mode_out=iop_mode, &
+        iop_mode_test_out=iop_mode_test, &
         scm_clubb_iop_name_out=scm_clubb_iop_name)
    end if
 
@@ -440,6 +443,7 @@ contains
                             lwrad_off_in=lwrad_off, &
                             precip_off_in=precip_off, &
                             iop_mode_in=iop_mode,&
+                            iop_mode_test_in=iop_mode_test,&
                             scm_clubb_iop_name_in=scm_clubb_iop_name)
       end if
    endif

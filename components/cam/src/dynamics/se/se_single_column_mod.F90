@@ -82,9 +82,9 @@ subroutine scm_setinitial(elem)
             enddo
 
             do k=1,PLEV
-              if (have_ps) elem(ie)%state%ps_v(i,j,1) = psobs
-              if (have_u) elem(ie)%state%v(i,j,1,k,1) = uobs(k)
-              if (have_v) elem(ie)%state%v(i,j,2,k,1) = vobs(k)
+              if (have_ps) elem(ie)%state%ps_v(i,j,:) = psobs
+              if (have_u) elem(ie)%state%v(i,j,1,k,:) = uobs(k)
+              if (have_v) elem(ie)%state%v(i,j,2,k,:) = vobs(k)
               if (have_numliq) elem(ie)%state%Q(i,j,k,inumliq) = numliqobs(k)
               if (have_cldliq) elem(ie)%state%Q(i,j,k,icldliq) = cldliqobs(k)
               if (have_numice) elem(ie)%state%Q(i,j,k,inumice) = numiceobs(k)

@@ -186,6 +186,7 @@ end function shoc_implements_cnst
     
 #ifdef SHOC_SGS
     if (trim(name) == trim('SHOC_TKE')) q = tke_tol
+!    if (trim(name) == trim('SHOC_TKE')) q = 0.4_r8
 #endif  
 
   end subroutine shoc_init_cnst
@@ -435,7 +436,7 @@ end function shoc_implements_cnst
     use constituents,   only: cnst_get_ind
     use camsrfexch,     only: cam_in_t
     use ref_pres,       only: top_lev => trop_cloud_top_lev  
-    use time_manager,   only: is_first_step   
+    use time_manager,   only: is_first_step, get_nstep   
     use cam_abortutils, only: endrun
     use wv_saturation,  only: qsat
     use micro_mg_cam,   only: micro_mg_version  
@@ -706,7 +707,6 @@ end function shoc_implements_cnst
        
    !  At each SHOC call, initialize mean momentum  and thermo SHOC state 
    !  from the E3SM state
-   
    do k=1,pver   ! loop over levels
      do i=1,ncol ! loop over columns
      
@@ -720,7 +720,13 @@ end function shoc_implements_cnst
        thv(i,k) = state1%t(i,k)*exner(i,k)*(1.0_r8+zvir*state1%q(i,k,ixq)-state1%q(i,k,ixcldliq)) 
  
        tke(i,k) = max(tke_tol,state1%q(i,k,ixtke))
-     
+       
+!       if (is_first_step()) then
+!         if (state1%zm(i,k) .le. 250._r8) then
+!           tke(i,k) = 0.4_r8*(1._r8 - (state1%zm(i,k)/250._r8))
+!	 endif
+!       endif
+       
      enddo
    enddo         
    

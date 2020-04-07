@@ -4442,6 +4442,12 @@ Turn off microphysics computation.
 Default: FALSE
 </entry>
 
+<entry id="iop_mode_test" type="logical" category="scm"
+       group="cam_inparm" valid_values="">
+Test IOP mode with no horizontal advection.
+Default: FALSE
+</entry>
+
 <!-- Solar Parameters -->
 
 <entry id="solar_const" type="real" category="solar"
