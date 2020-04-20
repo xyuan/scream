@@ -25,6 +25,8 @@ contains
 
 subroutine scm_setinitial(elem)
 
+  use kinds, only : real_kind
+
   implicit none
 
   type(element_t), intent(inout) :: elem(:)
@@ -83,8 +85,13 @@ subroutine scm_setinitial(elem)
 
             do k=1,PLEV
               if (have_ps) elem(ie)%state%ps_v(i,j,:) = psobs
-              if (have_u) elem(ie)%state%v(i,j,1,k,:) = uobs(k)
-              if (have_v) elem(ie)%state%v(i,j,2,k,:) = vobs(k)
+              if (.not. iop_mode) then
+	        if (have_u) elem(ie)%state%v(i,j,1,k,:) = 0.0_real_kind
+                if (have_v) elem(ie)%state%v(i,j,2,k,:) = 0.0_real_kind	      
+	      else
+	        if (have_u) elem(ie)%state%v(i,j,1,k,:) = uobs(k)
+                if (have_v) elem(ie)%state%v(i,j,2,k,:) = vobs(k)	        
+	      endif   
               if (have_numliq) elem(ie)%state%Q(i,j,k,inumliq) = numliqobs(k)
               if (have_cldliq) elem(ie)%state%Q(i,j,k,icldliq) = cldliqobs(k)
               if (have_numice) elem(ie)%state%Q(i,j,k,inumice) = numiceobs(k)
