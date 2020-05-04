@@ -30,79 +30,70 @@ contains
       real(r8), intent(in) :: x(:)
       real(r8), intent(in) :: x1, x2
       character(len=*), intent(in) :: varname
-      integer :: i
-
-      do i = 1,size(x)
-         if (x(i) < x1 .or. x(i) > x2) then
-            print *, varname // ' outside range at i = ', i, ': x(i) = ', x(i)
-            call endrun(varname // ' outside valid range')
-         end if
-      end do
+      character(len=512) :: err
+      if (any(x < x1)) then
+         write(err,*) varname // ': ', count(x < x1), ' values < ', x1, '; minval = ', minval(x)
+         call endrun(err)
+      else if (any(x > x2)) then
+         write(err,*) varname // ': ', count(x > x2), ' values > ', x2, '; maxval = ', maxval(x)
+         call endrun(err)
+      end if
    end subroutine assert_range_real_1d
    !-------------------------------------------------------------------------------
    subroutine assert_range_real_2d(x, x1, x2, varname)
       real(r8), intent(in) :: x(:,:)
       real(r8), intent(in) :: x1, x2
       character(len=*), intent(in) :: varname
-      integer :: i, j
-
-      do i = 1,size(x, 1)
-         do j = 1, size(x, 2)
-            if (x(i,j) < x1 .or. x(i,j) > x2) then
-               print *, varname // ' outside range at i,j = ', i, j, '; x(i,j) = ', x(i,j)
-               call endrun(varname // ' outside valid range')
-            end if
-         end do
-      end do
+      character(len=512) :: err
+      if (any(x < x1)) then
+         write(err,*) varname // ': ', count(x < x1), ' values < ', x1, '; minval = ', minval(x)
+         call endrun(err)
+      else if (any(x > x2)) then
+         write(err,*) varname // ': ', count(x > x2), ' values > ', x2, '; maxval = ', maxval(x)
+         call endrun(err)
+      end if
    end subroutine assert_range_real_2d
    !-------------------------------------------------------------------------------
    subroutine assert_range_real_3d(x, x1, x2, varname)
       real(r8), intent(in) :: x(:,:,:)
       real(r8), intent(in) :: x1, x2
       character(len=*), intent(in) :: varname
-      integer :: i, j, k
-
-      do i = 1,size(x, 1)
-         do j = 1,size(x, 2)
-            do k = 1,size(x, 3)
-               if (x(i,j,k) < x1 .or. x(i,j,k) > x2) then
-                  print *, varname // ' outside range at i,j,k = ', i, j, k, &
-                        '; x(i,j,k) = ', x(i,j,k)
-                  call endrun(varname // ' outside valid range')
-               end if
-            end do
-         end do
-      end do
+      character(len=512) :: err
+      if (any(x < x1)) then
+         write(err,*) varname // ': ', count(x < x1), ' values < ', x1, '; minval = ', minval(x)
+         call endrun(err)
+      else if (any(x > x2)) then
+         write(err,*) varname // ': ', count(x > x2), ' values > ', x2, '; maxval = ', maxval(x)
+         call endrun(err)
+      end if
    end subroutine assert_range_real_3d
    !-------------------------------------------------------------------------------
    subroutine assert_range_integer_1d(x, x1, x2, varname)
       integer, intent(in) :: x(:)
       integer, intent(in) :: x1, x2
       character(len=*), intent(in) :: varname
-      integer :: i
-
-      do i = 1,size(x)
-         if (x(i) < x1 .or. x(i) > x2) then
-            print *, varname // ' outside range at i = ', i, ': x(i) = ', x(i)
-            call endrun(varname // ' outside valid range')
-         end if
-      end do
+      character(len=512) :: err
+      if (any(x < x1)) then
+         write(err,*) varname // ': ', count(x < x1), ' values < ', x1, '; minval = ', minval(x)
+         call endrun(err)
+      else if (any(x > x2)) then
+         write(err,*) varname // ': ', count(x > x2), ' values > ', x2, '; maxval = ', maxval(x)
+         call endrun(err)
+      end if
    end subroutine assert_range_integer_1d
    !-------------------------------------------------------------------------------
    subroutine assert_range_integer_2d(x, x1, x2, varname)
       integer, intent(in) :: x(:,:)
       integer, intent(in) :: x1, x2
       character(len=*), intent(in) :: varname
-      integer :: i, j
-
-      do i = 1,size(x, 1)
-         do j = 1, size(x, 2)
-            if (x(i,j) < x1 .or. x(i,j) > x2) then
-               print *, varname // ' outside range at i,j = ', i, j, '; x(i,j) = ', x(i,j)
-               call endrun(varname // ' outside valid range')
-            end if
-         end do
-      end do
+      character(len=512) :: err
+      if (any(x < x1)) then
+         write(err,*) varname // ': ', count(x < x1), ' values < ', x1, '; minval = ', minval(x)
+         call endrun(err)
+      else if (any(x > x2)) then
+         write(err,*) varname // ': ', count(x > x2), ' values > ', x2, '; maxval = ', maxval(x)
+         call endrun(err)
+      end if
    end subroutine assert_range_integer_2d
    !-------------------------------------------------------------------------------
 
