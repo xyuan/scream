@@ -1268,11 +1268,11 @@ contains
          call t_startf('rrtmgp_check_temperatures')
          call check_range( &
             tmid(1:ncol,1:nlev_rad), k_dist_lw%get_temp_min(), k_dist_lw%get_temp_max(), &
-            trim(subroutine_name) // ' tmid', lat, lon, clip_values=rrtmgp_clip_temperatures &
+            'tmid', lat, lon, clip_values=rrtmgp_clip_temperatures &
          )
          call check_range( &
             tint(1:ncol,1:nlev_rad+1), k_dist_lw%get_temp_min(), k_dist_lw%get_temp_max(), &
-            trim(subroutine_name) // ' tint', lat, lon, clip_values=rrtmgp_clip_temperatures &
+            'tint', lat, lon, clip_values=rrtmgp_clip_temperatures &
          )
          call t_stopf('rrtmgp_check_temperatures')
 

@@ -308,7 +308,7 @@ contains
       do iz = 1,size(v, 2)
          do ix = 1,size(v, 1)
             if (v(ix,iz) < vmin .or. v(ix,iz) > vmax) then
-               write(*,'(a70,f8.4,a2,f8.4,a2,i8,a2,f8.4)') &
+               write(*,'(a,f8.4,a2,f8.4,a2,i8,a2,f8.4)') &
                      '** WARNING IN RADIATION -- lon, lat, lev, ' // trim(vname) // ': ', &
                      lon(ix), ', ', lat(ix), ', ',  iz, ', ', v(ix,iz)
                if (clip_values_local) then
@@ -345,7 +345,7 @@ contains
          do iy = 1,size(v,2)
             do ix = 1,size(v, 1)
                if (v(ix,iy,iz) < vmin .or. v(ix,iy,iz) > vmax) then
-                  write(*,'(a70,f8.4,a2,f8.4,a2,i8,a2,f8.4)') &
+                  write(*,'(a,f8.4,a2,f8.4,a2,i8,a2,f8.4)') &
                         '** WARNING IN RADIATION -- lon, lat, lev, ' // trim(vname) // ': ', &
                         lon(ix), ', ', lat(ix), ', ',  iz, ', ', v(ix,iy,iz)
                   if (clip_values_local) then
