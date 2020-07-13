@@ -23,6 +23,7 @@ namespace scorpio {
 
   void eam_init_pio_subsystem(const int mpicom, const int compid, const bool local);
   void eam_pio_finalize();
+  void eam_pio_closefile(const std::string& filename);
   void register_outfile(const std::string& filename);
   void register_infile(const std::string& filename);
   void sync_outfile(const std::string& filename);

@@ -34,6 +34,7 @@ extern "C" {
   void eam_pio_finalize_c();
   void register_outfile_c(const char*&& filename);
   void sync_outfile_c(const char*&& filename);
+  void eam_pio_closefile_c(const char*&& filename);
   void pio_update_time_c(const char*&& filename,const Real time);
   void register_dimension_c(const char*&& filename, const char*&& shortname, const char*&& longname, const int length);
   void register_variable_c(const char*&& filename,const char*&& shortname, const char*&& longname, const int numdims, const char** var_dimensions, const int dtype, const char*&& pio_decomp_tag);
@@ -55,6 +56,11 @@ void eam_pio_finalize() {
 void register_outfile(const std::string& filename) {
 
   register_outfile_c(filename.c_str());
+}
+/* ----------------------------------------------------------------- */
+void eam_pio_closefile(const std::string& filename) {
+
+  eam_pio_closefile_c(filename.c_str());
 }
 /* ----------------------------------------------------------------- */
 void register_infile(const std::string& filename) {

@@ -62,6 +62,16 @@ contains
 
   end subroutine sync_outfile_c
 !=====================================================================!
+  subroutine eam_pio_closefile_c(filename_in) bind(c)
+    use scream_scorpio_interface, only : eam_pio_closefile
+    type(c_ptr), intent(in) :: filename_in
+    character(len=256)      :: filename
+
+    call convert_c_string(filename_in,filename)
+    call eam_pio_closefile(trim(filename))
+
+  end subroutine eam_pio_closefile_c
+!=====================================================================!
   subroutine pio_update_time_c(filename_in,time) bind(c)
     use scream_scorpio_interface, only : eam_update_time
     type(c_ptr), intent(in) :: filename_in

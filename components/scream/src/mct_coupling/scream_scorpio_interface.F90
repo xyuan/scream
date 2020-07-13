@@ -72,6 +72,7 @@ module scream_scorpio_interface
 #include "scream_config.f"
                      
   public :: & 
+            eam_pio_closefile,      & ! Close a specfic pio file.
             eam_pio_enddef,         & ! Register variables and dimensions with PIO files
             eam_init_pio_subsystem, & ! Gather pio specific data from the component coupler
             eam_pio_finalize,       & ! Run any final PIO commands
@@ -479,6 +480,7 @@ contains
 
     mode = pio_clobber ! Set to CLOBBER for now, TODO: fix to allow for optional mode type like in CAM
     retval = pio_createfile(pio_subsystem,File,pio_iotype,fname,mode) 
+    call errorHandle("PIO ERROR: unable to create file: "//trim(fname),retval)
 
   end subroutine eam_pio_createfile
 !=====================================================================!
@@ -491,9 +493,23 @@ contains
     integer                          :: mode             ! Mode for how to handle the new file
 
     mode = 0 ! TODO: make sure this is correct. 
-    retval = pio_openfile(pio_subsystem,File,pio_iotype,fname,mode) ! TODO, add error check to use retval, also for createfile below
+    retval = pio_openfile(pio_subsystem,File,pio_iotype,fname,mode)
+    call errorHandle("PIO ERROR: unable to open file: "//trim(fname),retval)
 
   end subroutine eam_pio_openfile
+!=====================================================================!
+  subroutine eam_pio_closefile(fname)
+
+    character(len=*),  intent(in)    :: fname            ! Pio file name
+    !--
+    type(pio_atm_file_t),pointer     :: pio_atm_file
+
+
+    ! Find the pointer for this file
+    call get_pio_atm_file(trim(fname),pio_atm_file)
+    call PIO_closefile(pio_atm_file%pioFileDesc)
+
+  end subroutine eam_pio_closefile
 !=====================================================================!
   subroutine eam_pio_finalize()
     ! May not be needed, possibly handled by PIO directly.
