@@ -80,6 +80,8 @@ module scream_scorpio_interface
             register_infile,        & ! Open a pio input file
             register_variable,      & ! Register a variable with a particular pio output file  
             register_dimension,     & ! Register a dimension with a particular pio output file
+            set_decomp,             & ! Set the pio decomposition for all variables in file.
+            set_dof,                & ! Set the pio dof decomposition for specific variable in file.
             grid_write_data_array,  & ! Write gridded data to a pio managed netCDF file
             grid_read_data_array,   & ! Read gridded data from a pio managed netCDF file
             eam_sync_piofile,       & ! Syncronize the piofile, to be done after all output is written during a single timestep
@@ -120,6 +122,7 @@ module scream_scorpio_interface
   type, public :: hist_var_t
     character(len=max_hvarname_len) :: name   ! coordinate name
     character(len=max_chars) :: long_name     ! 'long_name' attribute
+    character(len=max_chars) :: pio_decomp_tag ! PIO decomposition label used by this variable.
     character(len=max_chars) :: units         ! 'units' attribute
     type(var_desc_t) :: piovar                ! netCDF variable ID
     integer          :: dtype                 ! data type
@@ -128,6 +131,7 @@ module scream_scorpio_interface
     integer, allocatable :: compdof(:)        ! Global locations in output array for this process
     integer, allocatable :: dimid(:)          ! array of PIO dimension id's for this variable
     integer, allocatable :: dimlen(:)         ! array of PIO dimension lengths for this variable
+    logical              :: has_t_dim         ! true, if variable has a time dimension
   end type hist_var_t
 !----------------------------------------------------------------------
   ! The iodesc_list allows us to cache existing PIO decompositions
@@ -244,8 +248,15 @@ contains
     logical :: found
     type(pio_atm_file_t), pointer :: current_atm_file => null()
     integer                       :: ierr
+    type(hist_var_list), pointer  :: curr     ! Used to cycle through recursive list of variables
+    type(hist_var_t), pointer     :: hist_var ! Pointer to the variable structure
+    integer                       :: loc_len
 
     call get_pio_atm_file(filename,current_atm_file,found=found)
+
+    ! Gather the pio decomposition for all variables in this file, and assign them pointers.
+    call set_decomp(trim(filename))
+    ! Officially close the definition step for this file.
     if (.not.found) call errorHandle("PIO ERROR: issue arose with PIO_enddef for file"//trim(filename)//", not found",-999)
     ierr = PIO_enddef(current_atm_file%pioFileDesc)
     call errorHandle("PIO ERROR: issue arose with PIO_enddef for file"//trim(current_atm_file%filename),ierr)
@@ -315,8 +326,8 @@ contains
     integer                      :: ierr
     integer, allocatable         :: dimlen(:)
     integer                      :: my_dof_len
+    integer, allocatable         :: compdof(:)
     integer                      :: ii, istart, istop
-    logical                      :: has_t_dim  ! Logical to flag whether this variable has a time-dimension.  This is important for the decomposition step.
 
     type(hist_var_list), pointer :: curr => null(), prev => null()
  
@@ -343,29 +354,31 @@ contains
     hist_var%long_name = trim(longname)
     hist_var%numdims   = numdims
     hist_var%dtype     = dtype
+    hist_var%pio_decomp_tag = trim(pio_decomp_tag) 
     ! Determine the dimension id's saved in the netCDF file and associated with
     ! this variable, check if variable has a time dimension
-    has_t_dim = .false.
+    hist_var%has_t_dim = .false.
     allocate(hist_var%dimid(numdims),hist_var%dimlen(numdims))
     do dim_ii = 1,numdims
       ierr = pio_inq_dimid(pio_atm_file%pioFileDesc,trim(var_dimensions(dim_ii)),hist_var%dimid(dim_ii))
       call errorHandle("EAM_PIO ERROR: Unable to find dimension id for "//trim(var_dimensions(dim_ii)),ierr)
       ierr = pio_inq_dimlen(pio_atm_file%pioFileDesc,hist_var%dimid(dim_ii),hist_var%dimlen(dim_ii))
       call errorHandle("EAM_PIO ERROR: Unable to determine length for dimension "//trim(var_dimensions(dim_ii)),ierr)
-      if (hist_var%dimlen(dim_ii).eq.0) has_t_dim = .true.
+      if (hist_var%dimlen(dim_ii).eq.0) hist_var%has_t_dim = .true.
     end do
 
     ! Distribute responsibility for writing cores over all PIO ranks
     ! i.e. compute the degrees of freedom that this rank will contribute to PIO
     ! TODO: Possible todo would be to allow for a subset of cores to be assigned
     ! PIO.
-    if (has_t_dim) then
+    if (hist_var%has_t_dim) then
       call get_compdof(numdims-1,hist_var%dimlen(:numdims-1),my_dof_len,istart,istop)
     else
       call get_compdof(numdims,hist_var%dimlen(:numdims),my_dof_len,istart,istop)
     end if
-    allocate( hist_var%compdof(my_dof_len) )
-    hist_var%compdof(:my_dof_len) = (/ (ii, ii=istart,istop, 1) /)
+    allocate( compdof(my_dof_len) )
+    compdof(:my_dof_len) = (/ (ii, ii=istart,istop, 1) /)
+    call set_dof(trim(pio_atm_filename),trim(hist_var%name),my_dof_len,compdof)
 
     ! Register Variable with PIO
     ! check to see if variable already is defined with file (for use with input)
@@ -374,14 +387,6 @@ contains
     ! if ierr is not pio_noerror then the variable needs to be defined
     if (ierr.ne.pio_noerr) ierr = PIO_def_var(pio_atm_file%pioFileDesc, trim(shortname), hist_var%dtype, hist_var%dimid(:numdims), hist_var%piovar)
     call errorHandle("PIO ERROR: could not define variable "//trim(shortname),ierr)
-
-    ! Gather the pio decomposition for this variable, and assign the pointer.
-    if (has_t_dim) then
-      loc_len = max(1,numdims-1)
-      call get_decomp(pio_decomp_tag,hist_var%dtype,hist_var%dimlen(:loc_len),hist_var%compdof,hist_var%iodesc)
-    else
-      call get_decomp(pio_decomp_tag,hist_var%dtype,hist_var%dimlen,hist_var%compdof,hist_var%iodesc)
-    end if
 
     return
   end subroutine register_variable
@@ -645,6 +650,51 @@ contains
     end if 
 
   end subroutine get_decomp
+!=====================================================================!
+  subroutine set_dof(filename,varname,dof_len,dof_vec)
+    character(len=*), intent(in)            :: filename
+    character(len=*), intent(in)            :: varname
+    integer, intent(in)                     :: dof_len
+    integer, intent(in), dimension(dof_len) :: dof_vec
+
+    type(pio_atm_file_t),pointer            :: pio_atm_file
+    type(hist_var_t), pointer               :: var
+
+    call get_pio_atm_file(trim(filename),pio_atm_file)
+    call get_var(pio_atm_file,varname,var)
+    if (allocated(var%compdof)) deallocate(var%compdof)
+    allocate( var%compdof(dof_len) )
+    var%compdof(:dof_len) = dof_vec 
+ 
+  end subroutine set_dof
+!=====================================================================!
+  subroutine set_decomp(filename)
+
+    character(len=*)              :: filename  ! Name of the pio file to set decomp for
+
+    logical :: found
+    type(pio_atm_file_t), pointer :: current_atm_file => null()
+    type(hist_var_list), pointer  :: curr     ! Used to cycle through recursive list of variables
+    type(hist_var_t), pointer     :: hist_var ! Pointer to the variable structure that has been found
+    integer                       :: loc_len
+
+    call get_pio_atm_file(filename,current_atm_file,found=found)
+    curr => current_atm_file%var_list_top
+    do while (associated(curr))
+      if (associated(curr%var)) then
+        hist_var => curr%var
+        ! Assign decomp
+        if (hist_var%has_t_dim) then
+          loc_len = max(1,hist_var%numdims-1)
+          call get_decomp(hist_var%pio_decomp_tag,hist_var%dtype,hist_var%dimlen(:loc_len),hist_var%compdof,hist_var%iodesc)
+        else
+          call get_decomp(hist_var%pio_decomp_tag,hist_var%dtype,hist_var%dimlen,hist_var%compdof,hist_var%iodesc)
+        end if
+      end if
+      curr => curr%next
+    end do
+
+  end subroutine set_decomp
 !=====================================================================!
   ! Query the hist_var_t pointer for a specific variable on a specific file.
   subroutine get_var(pio_file,varname,var)
