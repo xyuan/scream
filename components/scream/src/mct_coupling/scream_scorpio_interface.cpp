@@ -34,6 +34,7 @@ extern "C" {
   void pio_update_time_c(const char*&& filename,const Real time);
   void register_dimension_c(const char*&& filename, const char*&& shortname, const char*&& longname, const int length);
   void register_variable_c(const char*&& filename,const char*&& shortname, const char*&& longname, const int numdims, const char** var_dimensions, const int dtype, const char*&& pio_decomp_tag);
+  void get_variable_c(const char*&& filename,const char*&& shortname, const char*&& longname, const int numdims, const char** var_dimensions, const int dtype, const char*&& pio_decomp_tag);
   void eam_pio_enddef_c(const char*&& filename);
 
 } // extern C
@@ -87,6 +88,11 @@ void pio_update_time(const std::string& filename, const Real time) {
 void register_dimension(const std::string &filename, const std::string& shortname, const std::string& longname, const int length) {
 
   register_dimension_c(filename.c_str(), shortname.c_str(), longname.c_str(), length);
+}
+/* ----------------------------------------------------------------- */
+void get_variable(const std::string &filename, const std::string& shortname, const std::string& longname, const int numdims, const char**&& var_dimensions, const int dtype, const std::string& pio_decomp_tag) {
+
+  get_variable_c(filename.c_str(), shortname.c_str(), longname.c_str(), numdims, var_dimensions, dtype, pio_decomp_tag.c_str());
 }
 /* ----------------------------------------------------------------- */
 void register_variable(const std::string &filename, const std::string& shortname, const std::string& longname, const int numdims, const char**&& var_dimensions, const int dtype, const std::string& pio_decomp_tag) {

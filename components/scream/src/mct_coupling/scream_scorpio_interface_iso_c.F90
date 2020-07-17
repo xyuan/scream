@@ -108,6 +108,35 @@ contains
 
   end subroutine pio_update_time_c
 !=====================================================================!
+  subroutine get_variable_c(filename_in, shortname_in, longname_in, numdims, var_dimensions_in, dtype, pio_decomp_tag_in) bind(c)
+    use scream_scorpio_interface, only : get_variable
+    type(c_ptr), intent(in)                :: filename_in
+    type(c_ptr), intent(in)                :: shortname_in
+    type(c_ptr), intent(in)                :: longname_in
+    integer(kind=c_int), value, intent(in) :: numdims
+    type(c_ptr), intent(in)                :: var_dimensions_in(numdims)
+    integer(kind=c_int), value, intent(in) :: dtype
+    type(c_ptr), intent(in)                :: pio_decomp_tag_in
+    
+    character(len=256) :: filename
+    character(len=256) :: shortname
+    character(len=256) :: longname
+    character(len=256) :: var_dimensions(numdims)
+    character(len=256) :: pio_decomp_tag
+    integer            :: ii
+    
+    call convert_c_string(filename_in,filename)
+    call convert_c_string(shortname_in,shortname)
+    call convert_c_string(longname_in,longname)
+    call convert_c_string(pio_decomp_tag_in,pio_decomp_tag)
+    do ii = 1,numdims
+      call convert_c_string(var_dimensions_in(ii), var_dimensions(ii))
+    end do
+   
+    call get_variable(filename,shortname,longname,numdims,var_dimensions,dtype,pio_decomp_tag)
+
+  end subroutine get_variable_c
+!=====================================================================!
   subroutine register_variable_c(filename_in, shortname_in, longname_in, numdims, var_dimensions_in, dtype, pio_decomp_tag_in) bind(c)
     use scream_scorpio_interface, only : register_variable
     type(c_ptr), intent(in)                :: filename_in

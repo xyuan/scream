@@ -21,26 +21,38 @@ Int ind_t(const Int tt);
 void get_dof(const std::size_t dimsize, const Int myrank, const Int numranks, Int &dof_len, Int &istart, Int &istop);
 
 TEST_CASE("scorpio_interface_output", "") {
+/* A test to check that both output and input are behaving properly in the scream interface.
+ * The first step creates a new output file, generates data for writing output, and commits that data to the new output file.
+ * The second step opens the recently created output file, reads in all the available data, 
+ * and then compares the read in values with the expected values that should have been written out.
+ */
 
+  /* load namespaces needed for I/O and for data management */
   using namespace scream;
   using namespace scream::scorpio;
   using ekat::util::data;
 
-  // Create the set of SCORPIO output files and their respective
-  // dimensions and variables.
-  int compid=0;
-  MPI_Fint fcomm = MPI_Comm_c2f(MPI_COMM_WORLD);
+  int nerr = 0; // Set a record of the number of errors encountered.
+  /* Create the set of SCORPIO output files and their respective dimensions and variables. */
+  int compid=0;  // For CIME based builds this will be the integer ID assigned to the atm by the component coupler.  For testing we simply set to 0
+  Int myrank, numranks;
+  MPI_Fint fcomm = MPI_Comm_c2f(MPI_COMM_WORLD);  // MPI communicator group used for I/O.  In our simple test we use MPI_COMM_WORLD, however a sub
+  MPI_Comm_rank(MPI_COMM_WORLD, &myrank);  // Store rank and total number of ranks for determining which chunk of global array this rank is responsible for reading.
+  MPI_Comm_size(MPI_COMM_WORLD, &numranks);
   eam_init_pio_subsystem(fcomm,compid,true);   // Gather the initial PIO subsystem data creater by component coupler
-  // Register the set of output files:
-  std::string outfilename = "scorpio_output_test.nc";
-  register_outfile(outfilename);
-  // Register the set of dimensions per output file
+  /* Tell the scorpio interface module that we have a new output file to write to */
+  std::string outfilename = "scorpio_output_test.nc";  // For simplicity create a variable to store the name of the output file.  This will be used with most calls to make sure the every function is applying the action to the proper file (if multiple files are open)
+  register_outfile(outfilename);                       // Register this output file with the scorpio interface module
+  /* Set up the 4 spatial dimensions for this test and register them with the new output file */
   int xlen=10, ylen=5, zlen=2;
   register_dimension(outfilename,"x","horizontal distance",xlen);
   register_dimension(outfilename,"y","vertical distance",ylen);
   register_dimension(outfilename,"z","height",zlen);
-  register_dimension(outfilename,"time","time",0);
-  // Register the set of variables per output file
+  register_dimension(outfilename,"time","time",0);  // Note that time has an unknown length, setting the "length" to 0 tells the interface to set this dimension as having an unlimited length, thus allowing us to write as many timesnaps to file as we desire.
+  /* Set up the list variables we wish to include in the output file
+   * Here we note that we are creating character arrays which use the named dimensions above.
+   * This is used when we register the variables to tell scorpio what dimensions each variable uses.
+   */
   const char* vec_time[] = {"time"};
   const char* vec_x[]    = {"x"};
   const char* vec_y[]    = {"y"};
@@ -48,6 +60,8 @@ TEST_CASE("scorpio_interface_output", "") {
   const char* vec_xt[]   = {"x","time"};
   const char* vec_xyt[]  = {"x","y","time"};
   const char* vec_xyzt[] = {"x","y","z","time"};
+  const char* vec_xy[]   = {"x","y"}; 
+  const char* vec_xyz[]  = {"x","y","z"};
  
   register_variable(outfilename,"time","time",1,vec_time,  PIO_REAL,"t");
   register_variable(outfilename,"x","x-direction",1,vec_x, PIO_REAL,"x-real");
@@ -59,9 +73,16 @@ TEST_CASE("scorpio_interface_output", "") {
   register_variable(outfilename,"index_1d","test value for 1d field",2,vec_xt,   PIO_INT,"xt-int");
   register_variable(outfilename,"index_2d","test value for 2d field",3,vec_xyt,  PIO_INT,"xyt-int");
   register_variable(outfilename,"index_3d","test value for 3d field",4,vec_xyzt, PIO_INT,"xyzt-int");
-  // Finished with the initialization of variables in output file
+  /* When we are finished defining the set of dimensions and variables for the new output file
+   * we have to officially "end" the definition phase in scorpio.  After this step we can no longer
+   * add dimensions or variables to the file.
+   */
   eam_pio_enddef(outfilename);
-  // Create data to be written
+  /* Construst the data to be written as output.  Note that here we take advantage of the ekat
+   * md_array utility for multi-dimension arrays.  It would also be acceptable to use the std::array,
+   * or other construct.  In the end, what is passed to scorpio is only the pointer to the beginning
+   * of the array of data.
+   */
   std::array<Real,10> x_data;
   std::array<Real, 5> y_data;
   std::array<Real, 2> z_data;
@@ -78,7 +99,7 @@ TEST_CASE("scorpio_interface_output", "") {
   ekat::util::md_array<Int, 5,10>     test_index_2d;
   ekat::util::md_array<Int, 2, 5,10>  test_index_3d;
   Real pi = 2*acos(0.0);
-
+  /* Set the x, y and z dimension values */
   for (decltype(x_data)::size_type ii=0;ii<x_data.size();ii++) {
     x_data[ii] = 2.0*pi/x_data.size()*(ii+1);
   }
@@ -88,12 +109,18 @@ TEST_CASE("scorpio_interface_output", "") {
   for (int kk=0;kk<2;kk++) {
     z_data[kk] = 100*(kk+1);
   }
-  // Write dimension data and initial fields
+  /* Write these values to the file.  Note, "x", "y" and "z" are both
+   * dimensions and variables.  Here we are writing to the "variable"
+   * definition.  Dimensions in scorpio don't have vectors associated
+   * with them, they are labels with lengths used to define variables.
+   * So here we note, that you will most likely want to define all
+   * dimensions as variables as well.
+   */
   grid_write_data_array(outfilename,"x",xdim,ekat::util::data(x_data));
   grid_write_data_array(outfilename,"y",ydim,ekat::util::data(y_data));
   grid_write_data_array(outfilename,"z",zdim,ekat::util::data(z_data));
-  sync_outfile(outfilename); 
-  // write multiple timesteps of data for comparison:
+//  sync_outfile(outfilename); 
+  /* To test multiple timelevels, generate unique data for multiple timesnaps, then write the data to file. */
   Real dt = 1.0;
   for (int tt=0;tt<3;tt++) {
     for (decltype(x_data)::size_type ii=0;ii<x_data.size();ii++) {
@@ -117,21 +144,132 @@ TEST_CASE("scorpio_interface_output", "") {
     grid_write_data_array(outfilename,"data_3d",dimlen_3d,ekat::util::data(test_data_3d));
     sync_outfile(outfilename); 
   } //tt
-  ///* Now close the output file and reopen it to check that the output is correct. */
-  //eam_pio_closefile(outfilename);
-  //register_infile(outfilename);
+  /* Now close the output file and reopen it to check that the output is correct. */
+  eam_pio_closefile(outfilename);
+  register_infile(outfilename);
   //
-  //register_variable(outfilename,"time","time",1,vec_time, PIO_REAL,"t");
-  //register_variable(outfilename,"x","x-direction",1,vec_x, PIO_REAL,"x-real");
-  //register_variable(outfilename,"y","y-direction",1,vec_y, PIO_REAL,"y-real");
-  //register_variable(outfilename,"z","z-direction",1,vec_z, PIO_REAL,"z-real");
-  //register_variable(outfilename,"data_1d","test value for 1d field",1,vec_x, PIO_REAL,"x-real");
-  //register_variable(outfilename,"data_2d","test value for 2d field",2,vec_xy, PIO_REAL,"xy-real");
-  //register_variable(outfilename,"data_3d","test value for 3d field",3,vec_xyz, PIO_REAL,"xyz-real");
-  //register_variable(outfilename,"index_1d","test value for 1d field",1,vec_x, PIO_INT,"x-int");
-  //register_variable(outfilename,"index_2d","test value for 2d field",2,vec_xy, PIO_INT,"xy-int");
-  //register_variable(outfilename,"index_3d","test value for 3d field",3,vec_xyz, PIO_INT,"xyz-int");
+  get_variable(outfilename,"time","time",1,vec_time, PIO_REAL,"t");
+  get_variable(outfilename,"x","x-direction",1,vec_x, PIO_REAL,"x-real");
+  get_variable(outfilename,"y","y-direction",1,vec_y, PIO_REAL,"y-real");
+  get_variable(outfilename,"z","z-direction",1,vec_z, PIO_REAL,"z-real");
+  get_variable(outfilename,"data_1d","test value for 1d field",1,vec_x, PIO_REAL,"x-real");
+  get_variable(outfilename,"data_2d","test value for 2d field",2,vec_xy, PIO_REAL,"xy-real");
+  get_variable(outfilename,"data_3d","test value for 3d field",3,vec_xyz, PIO_REAL,"xyz-real");
+  get_variable(outfilename,"index_1d","test value for 1d field",1,vec_x, PIO_INT,"x-int");
+  get_variable(outfilename,"index_2d","test value for 2d field",2,vec_xy, PIO_INT,"xy-int");
+  get_variable(outfilename,"index_3d","test value for 3d field",3,vec_xyz, PIO_INT,"xyz-int");
+  set_decomp(outfilename);
+  // Degrees of Freedom decomposition of input arrays
+  std::array<Int,1> dof_x;
+  std::array<Int,1> dof_y;
+  std::array<Int,1> dof_z;
+  std::array<Int,1> dof_test_1d;
+  std::array<Int,1> dof_test_2d;
+  std::array<Int,1> dof_test_3d;
+  Int xstart,xstop;
+  Int ystart,ystop;
+  Int zstart,zstop;
+  Int test_1d_start,test_1d_stop;
+  Int test_2d_start,test_2d_stop;
+  Int test_3d_start,test_3d_stop;
+  // Setup PIO configuation for reading data
+  get_dof(ekat::util::size(x_data), myrank, numranks, dof_x[0], xstart,xstop);
+  std::vector<Int> x_dof(dof_x[0]);
+  for (int ii=xstart,cnt=0;ii<=xstop;++ii,++cnt) {
+    x_dof[cnt] = ii;
+  }
+  set_dof(outfilename,"x",dof_x[0],x_dof.data());
 
+  get_dof(ekat::util::size(y_data), myrank, numranks, dof_y[0], ystart,ystop);
+  std::vector<Int> y_dof(dof_y[0]);
+  for (int ii=ystart,cnt=0;ii<=ystop;++ii,++cnt) {
+    y_dof[cnt] = ii;
+  }
+  set_dof(outfilename,"y",dof_y[0],y_dof.data());
+
+  get_dof(ekat::util::size(z_data), myrank, numranks, dof_z[0], zstart,zstop);
+  std::vector<Int> z_dof(dof_z[0]);
+  for (int ii=zstart,cnt=0;ii<=zstop;++ii,++cnt) {
+    z_dof[cnt] = ii;
+  }
+  set_dof(outfilename,"z",dof_z[0],z_dof.data());
+
+  get_dof(dimlen_1d[0], myrank, numranks, dof_test_1d[0], test_1d_start,test_1d_stop);
+  std::vector<Int> test1d_dof(dof_test_1d[0]);
+  for (int ii=test_1d_start,cnt=0;ii<=test_1d_stop;++ii,++cnt) {
+    test1d_dof[cnt] = ii;
+  }
+  set_dof(outfilename,"index_1d",dof_test_1d[0],test1d_dof.data());
+  set_dof(outfilename,"data_1d",dof_test_1d[0],test1d_dof.data());
+
+  get_dof(dimlen_2d[0]*dimlen_2d[1], myrank, numranks, dof_test_2d[0], test_2d_start,test_2d_stop);
+  std::vector<Int> test2d_dof(dof_test_2d[0]);
+  for (int ii=test_2d_start,cnt=0;ii<=test_2d_stop;++ii,++cnt) {
+    test2d_dof[cnt] = ii;
+  }
+  set_dof(outfilename,"index_2d",dof_test_2d[0],test2d_dof.data());
+  set_dof(outfilename,"data_2d",dof_test_2d[0],test2d_dof.data());
+
+  get_dof(dimlen_3d[0]*dimlen_3d[1]*dimlen_3d[2], myrank, numranks, dof_test_3d[0], test_3d_start,test_3d_stop);
+  std::vector<Int> test3d_dof(dof_test_3d[0]);
+  for (int ii=test_3d_start,cnt=0;ii<=test_3d_stop;++ii,++cnt) {
+    test3d_dof[cnt] = ii;
+  }
+  set_dof(outfilename,"index_3d",dof_test_3d[0],test3d_dof.data());
+  set_dof(outfilename,"data_3d",dof_test_3d[0],test3d_dof.data());
+  // Read input data and compare
+  grid_read_data_array(outfilename,"x",dof_x[0],ekat::util::data(x_data)+xstart);
+  grid_read_data_array(outfilename,"y",dof_y[0],ekat::util::data(y_data)+ystart);
+  grid_read_data_array(outfilename,"z",dof_z[0],ekat::util::data(z_data)+zstart);
+
+  for (Int ii=xstart;ii<=xstop;ii++) {
+    if (x_data[ii] != 2.0*pi/x_data.size()*(ii+1)) { ++nerr;}
+  }
+  REQUIRE(nerr==0);
+  nerr = 0;
+  for (Int jj=ystart;jj<=ystop;jj++) {
+    if (y_data[jj] != 4.0*pi/y_data.size()*(jj+1)) { ++nerr;}
+  }
+  REQUIRE(nerr==0);
+  nerr = 0;
+  for (Int kk=zstart;kk<=zstop;kk++) {
+    if (z_data[kk] != 100*(kk+1)) { ++nerr;}
+  }
+  REQUIRE(nerr==0);
+  nerr = 0;
+  for (int tt=0;tt<3;tt++) {
+    pio_update_time(outfilename,-999.0);
+    grid_read_data_array(outfilename,"index_1d",dof_test_1d[0],ekat::util::data(test_index_1d)+test_1d_start);
+    grid_read_data_array(outfilename,"index_2d",dof_test_2d[0],ekat::util::data(test_index_2d)+test_2d_start);
+    grid_read_data_array(outfilename,"index_3d",dof_test_3d[0],ekat::util::data(test_index_3d)+test_3d_start);
+    grid_read_data_array(outfilename,"data_1d", dof_test_1d[0],ekat::util::data(test_data_1d) +test_1d_start);
+    grid_read_data_array(outfilename,"data_2d", dof_test_2d[0],ekat::util::data(test_data_2d) +test_2d_start);
+    grid_read_data_array(outfilename,"data_3d", dof_test_3d[0],ekat::util::data(test_data_3d) +test_3d_start);
+    nerr = 0;
+    for (int ii=0,ind=test_1d_start;ii<x_data.size();ii++,ind++) {
+      if (*(ekat::util::data(test_data_1d) + ind)  != f_x(x_data[ii],tt*dt)) {++nerr;}
+      if (*(ekat::util::data(test_index_1d) + ind) != ind_x(ii) + ind_t(tt))  {++nerr;}
+    }
+    REQUIRE(nerr==0);
+    nerr = 0;
+    for (int jj=0,ind=test_2d_start;jj<y_data.size();jj++) {
+      for (int ii=0;ii<x_data.size();ii++,ind++) {
+        if (*(ekat::util::data(test_data_2d) + ind)  != f_x(x_data[ii],tt*dt)*f_y(y_data[jj],tt*dt)) {++nerr;}
+        if (*(ekat::util::data(test_index_2d) + ind) != ind_y(jj) + ind_x(ii) + ind_t(tt))  {++nerr;}
+      }
+    }
+    REQUIRE(nerr==0);
+    nerr = 0;
+    for (int kk=0,ind=test_3d_start;kk<z_data.size();kk++) {
+      for (int jj=0;jj<y_data.size();jj++) {
+        for (int ii=0;ii<x_data.size();ii++,ind++) {
+          if (*(ekat::util::data(test_data_3d) + ind)  != f_x(x_data[ii],tt*dt)*f_y(y_data[jj],tt*dt) + f_z(z_data[kk],tt*dt)) {++nerr;}
+          if (*(ekat::util::data(test_index_3d) + ind) != ind_z(kk) + ind_y(jj) + ind_x(ii) + ind_t(tt))  {++nerr;}
+        }
+      }
+    }
+    REQUIRE(nerr==0);
+  } //tt
 
   eam_pio_finalize();
 } // TEST scorpio_interface_output
@@ -162,16 +300,16 @@ TEST_CASE("scorpio_interface_input", "") {
   const char* vec_xy[]   = {"x","y"}; 
   const char* vec_xyz[]  = {"x","y","z"};
  
-  register_variable(infilename,"time","time",1,vec_time, PIO_REAL,"t");
-  register_variable(infilename,"x","x-direction",1,vec_x, PIO_REAL,"x-real");
-  register_variable(infilename,"y","y-direction",1,vec_y, PIO_REAL,"y-real");
-  register_variable(infilename,"z","z-direction",1,vec_z, PIO_REAL,"z-real");
-  register_variable(infilename,"data_1d","test value for 1d field",1,vec_x, PIO_REAL,"x-real");
-  register_variable(infilename,"data_2d","test value for 2d field",2,vec_xy, PIO_REAL,"xy-real");
-  register_variable(infilename,"data_3d","test value for 3d field",3,vec_xyz, PIO_REAL,"xyz-real");
-  register_variable(infilename,"index_1d","test value for 1d field",1,vec_x, PIO_INT,"x-int");
-  register_variable(infilename,"index_2d","test value for 2d field",2,vec_xy, PIO_INT,"xy-int");
-  register_variable(infilename,"index_3d","test value for 3d field",3,vec_xyz, PIO_INT,"xyz-int");
+  get_variable(infilename,"time","time",1,vec_time, PIO_REAL,"t");
+  get_variable(infilename,"x","x-direction",1,vec_x, PIO_REAL,"x-real");
+  get_variable(infilename,"y","y-direction",1,vec_y, PIO_REAL,"y-real");
+  get_variable(infilename,"z","z-direction",1,vec_z, PIO_REAL,"z-real");
+  get_variable(infilename,"data_1d","test value for 1d field",1,vec_x, PIO_REAL,"x-real");
+  get_variable(infilename,"data_2d","test value for 2d field",2,vec_xy, PIO_REAL,"xy-real");
+  get_variable(infilename,"data_3d","test value for 3d field",3,vec_xyz, PIO_REAL,"xyz-real");
+  get_variable(infilename,"index_1d","test value for 1d field",1,vec_x, PIO_INT,"x-int");
+  get_variable(infilename,"index_2d","test value for 2d field",2,vec_xy, PIO_INT,"xy-int");
+  get_variable(infilename,"index_3d","test value for 3d field",3,vec_xyz, PIO_INT,"xyz-int");
   set_decomp(infilename);
 
   // Create data to be written
