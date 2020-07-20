@@ -145,6 +145,7 @@ TEST_CASE("scorpio_interface_output", "") {
     sync_outfile(outfilename); 
   } //tt
   /* Now close the output file and reopen it to check that the output is correct. */
+  std::printf("ASD - About to closefile output file\n");
   eam_pio_closefile(outfilename);
   register_infile(outfilename);
   //

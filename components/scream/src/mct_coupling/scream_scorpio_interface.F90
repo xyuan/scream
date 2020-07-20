@@ -583,12 +583,17 @@ contains
     character(len=*),  intent(in)    :: fname            ! Pio file name
     !--
     type(pio_atm_file_t),pointer     :: pio_atm_file
-    logical                      :: found
+    logical                          :: found
 
     ! Find the pointer for this file
     call lookup_pio_atm_file(trim(fname),pio_atm_file,found)
-    call PIO_closefile(pio_atm_file%pioFileDesc)
-    pio_atm_file%filename = trim('') ! Essentially nullify this pio atmosphere file pointer
+    if (found) then
+      call PIO_closefile(pio_atm_file%pioFileDesc)
+      pio_atm_file%filename = trim('') ! Essentially nullify this pio atmosphere file pointer
+      nullify(pio_atm_file)
+    else
+      call errorHandle("PIO ERROR: unable to close file: "//trim(fname)//", was not found",-999)
+    end if
 
   end subroutine eam_pio_closefile
 !=====================================================================!
