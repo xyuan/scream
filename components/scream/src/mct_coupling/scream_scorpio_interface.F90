@@ -188,6 +188,9 @@ module scream_scorpio_interface
         !> @brief Coordinate Dimensions Array
         type(hist_coord_t), allocatable :: dimensions(:)
 
+        !> @brief Whether or not this pio file is still open
+        logical                         :: isopen = .false.
+
   end type pio_atm_file_t
 
 !----------------------------------------------------------------------
@@ -582,15 +585,14 @@ contains
 
     character(len=*),  intent(in)    :: fname            ! Pio file name
     !--
-    type(pio_atm_file_t),pointer     :: pio_atm_file
+    type(pio_atm_file_t),pointer     :: pio_atm_file => null()
     logical                          :: found
 
     ! Find the pointer for this file
     call lookup_pio_atm_file(trim(fname),pio_atm_file,found)
     if (found) then
       call PIO_closefile(pio_atm_file%pioFileDesc)
-      pio_atm_file%filename = trim('') ! Essentially nullify this pio atmosphere file pointer
-      nullify(pio_atm_file)
+      pio_atm_file%isopen = .false.
     else
       call errorHandle("PIO ERROR: unable to close file: "//trim(fname)//", was not found",-999)
     end if
@@ -606,8 +608,10 @@ contains
     ! Close all the PIO Files 
     curr => pio_file_list_top
     do while (associated(curr))
-      if (associated(curr%pio_file)) call PIO_closefile(curr%pio_file%pioFileDesc)
-      nullify(curr%pio_file)
+      if (associated(curr%pio_file)) then
+        if (curr%pio_file%isopen) call PIO_closefile(curr%pio_file%pioFileDesc)
+        curr%pio_file%isopen = .false.
+      end if
       curr => curr%next
     end do
     call PIO_finalize(pio_subsystem, ierr)
@@ -801,6 +805,23 @@ contains
 
   end subroutine get_var
 !=====================================================================!
+  ! Diagnostic routine to determine how many pio files are currently open:
+  subroutine count_pio_atm_file(total_count)
+    integer, intent(out) :: total_count
+
+    type(pio_file_list), pointer :: curr => NULL(), prev => NULL() ! Used to cycle through recursive list of pio atm files
+
+    total_count = 0
+    curr => pio_file_list_top
+    do while (associated(curr))
+      if (associated(curr%pio_file)) then
+        if (curr%pio_file%isopen) total_count = total_count+1
+      end if
+      prev => curr
+      curr => prev%next
+    end do
+  end subroutine count_pio_atm_file
+!=====================================================================!
   ! Lookup pointer for pio file based on filename.
   subroutine lookup_pio_atm_file(filename,pio_file,found)
 
@@ -810,14 +831,16 @@ contains
 !    type(pio_file_list), optional, pointer :: curr_bottom
 
     type(pio_file_list), pointer :: curr => NULL(), prev => NULL() ! Used to cycle through recursive list of pio atm files
-
+    integer :: cnt
     ! Starting at the top of the current list of PIO_FILES search for this
     ! filename.
+    cnt = 0
     found = .false.
     curr => pio_file_list_top
     do while (associated(curr))
+      cnt = cnt+1
       if (associated(curr%pio_file)) then
-        if (trim(filename)==trim(curr%pio_file%filename)) then
+        if (trim(filename)==trim(curr%pio_file%filename).and.curr%pio_file%isopen) then
           pio_file => curr%pio_file
           found = .true.
           return
@@ -851,6 +874,7 @@ contains
     pio_file_list_bottom => curr%next
     ! Create and initialize the new pio file:
     pio_file%filename = trim(filename)
+    pio_file%isopen = .true.
     if (purpose == 1) then  ! Will be used for output.  Set numrecs to zero and create the new file.
       pio_file%numRecs = 0
       call eam_pio_createfile(pio_file%pioFileDesc,trim(pio_file%filename))
