@@ -453,7 +453,7 @@ contains
     end if
     allocate( hist_var%compdof(my_dof_len) )
     hist_var%compdof(:my_dof_len) = (/ (ii, ii=istart,istop, 1) /)
-!    call set_dof(trim(pio_atm_filename),trim(hist_var%name),my_dof_len,compdof)
+    call set_dof(trim(pio_atm_filename),trim(hist_var%name),my_dof_len,compdof)
 
     ! Register Variable with PIO
     ! First, check to see if variable already is defined with file
