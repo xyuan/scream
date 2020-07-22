@@ -371,9 +371,9 @@ contains
     else
       call get_compdof(numdims,hist_var%dimlen(:numdims),my_dof_len,istart,istop)
     end if
-    allocate( compdof(my_dof_len) )
-    compdof(:my_dof_len) = (/ (ii, ii=istart,istop, 1) /)
-    call set_dof(trim(pio_atm_filename),trim(hist_var%name),my_dof_len,compdof)
+    allocate( hist_var%compdof(my_dof_len) )
+    hist_var%compdof(:my_dof_len) = (/ (ii, ii=istart,istop, 1) /)
+!    call set_dof(trim(pio_atm_filename),trim(hist_var%name),my_dof_len,compdof)
 
     ! Register Variable with PIO
     ! check to see if variable already is defined with file (for use with input)
@@ -451,9 +451,9 @@ contains
     else
       call get_compdof(numdims,hist_var%dimlen(:numdims),my_dof_len,istart,istop)
     end if
-    allocate( compdof(my_dof_len) )
-    compdof(:my_dof_len) = (/ (ii, ii=istart,istop, 1) /)
-    call set_dof(trim(pio_atm_filename),trim(hist_var%name),my_dof_len,compdof)
+    allocate( hist_var%compdof(my_dof_len) )
+    hist_var%compdof(:my_dof_len) = (/ (ii, ii=istart,istop, 1) /)
+!    call set_dof(trim(pio_atm_filename),trim(hist_var%name),my_dof_len,compdof)
 
     ! Register Variable with PIO
     ! First, check to see if variable already is defined with file
@@ -636,14 +636,9 @@ contains
     type(pio_file_list), pointer :: curr => NULL()
 
     if (retVal .ne. PIO_NOERR) then
-      write(*,*) retVal,errMsg
-      ! Close all the PIO Files before aborting run
-      curr => pio_file_list_top
-      do while (associated(curr))
-        if (associated(curr%pio_file)) call PIO_closefile(curr%pio_file%pioFileDesc)
-        curr => curr%next
-      end do
+      write(*,'(I8,2x,A100)') retVal,trim(errMsg)
       ! Kill run
+      call eam_pio_finalize() 
       call finalize_scream_session()
       call mpi_abort(pio_mpicom,0,retVal)
     end if
@@ -1099,7 +1094,7 @@ contains
     character(len=*),          intent(in)    :: varname
 
     ! Local variables
-    type(pio_atm_file_t),pointer               :: pio_atm_file
+    type(pio_atm_file_t),pointer             :: pio_atm_file
     type(hist_var_t), pointer                :: var
     integer                                  :: ierr
     logical                                  :: found
@@ -1200,7 +1195,7 @@ contains
     character(len=*),          intent(in)    :: varname
 
     ! Local variables
-    type(pio_atm_file_t),pointer               :: pio_atm_file
+    type(pio_atm_file_t),pointer             :: pio_atm_file
     type(hist_var_t), pointer                :: var
     integer                                  :: ierr
     logical                                  :: found
@@ -1210,6 +1205,9 @@ contains
     call PIO_setframe(pio_atm_file%pioFileDesc,var%piovar,int(max(1,pio_atm_file%numRecs),kind=pio_offset_kind))
     call pio_read_darray(pio_atm_file%pioFileDesc, var%piovar, var%iodesc, hbuf, ierr)
     call errorHandle( 'eam_grid_read_darray_1d_int: Error reading variable '//trim(varname),ierr)
+    do ierr = 1,size(hbuf)
+      write(*,*) "ASD read array: ", trim(varname), ' ', pio_myrank, ierr, hbuf(ierr), var%compdof(ierr)
+    end do 
 
   end subroutine grid_read_darray_1d_int
   !---------------------------------------------------------------------------
