@@ -74,16 +74,17 @@ contains
 !=====================================================================!
   subroutine set_dof_c(filename_in,varname_in,dof_len,dof_vec) bind(c)
     use scream_scorpio_interface, only : set_dof
-    type(c_ptr), intent(in) :: filename_in
-    type(c_ptr), intent(in) :: varname_in
-    integer(kind=c_int), value, intent(in) :: dof_len
-    type(c_ptr), intent(in)                :: dof_vec(dof_len)
+    type(c_ptr), intent(in)                             :: filename_in
+    type(c_ptr), intent(in)                             :: varname_in
+    integer(kind=c_int), value, intent(in)              :: dof_len
+    integer(kind=c_int), intent(in), dimension(dof_len) :: dof_vec
 
     character(len=256)       :: filename
     character(len=256)       :: varname
 
     call convert_c_string(filename_in,filename)
     call convert_c_string(varname_in,varname)
+    call set_dof(trim(filename),trim(varname),dof_len,dof_vec)
   end subroutine set_dof_c
 !=====================================================================!
   subroutine eam_pio_closefile_c(filename_in) bind(c)
