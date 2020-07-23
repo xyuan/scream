@@ -116,6 +116,18 @@ void grid_read_data_array(const std::string &filename, const std::string &varnam
 
 };
 /* ----------------------------------------------------------------- */
+void grid_write_data_array(const std::string &filename, const std::string &varname, const Int& dim_length, const Real* hbuf) {
+
+  grid_write_data_array_c_real_1d(filename.c_str(),varname.c_str(),dim_length,hbuf);
+
+};
+/* ----------------------------------------------------------------- */
+void grid_write_data_array(const std::string &filename, const std::string &varname, const Int& dim_length, const Int* hbuf) {
+
+  grid_write_data_array_c_int_1d(filename.c_str(),varname.c_str(),dim_length,hbuf);
+
+};
+/* ----------------------------------------------------------------- */
 void grid_write_data_array(const std::string &filename, const std::string &varname, const std::array<Int,1>& dim_length, const Real* hbuf) {
 
   grid_write_data_array_c_real_1d(filename.c_str(),varname.c_str(),dim_length[0],hbuf);

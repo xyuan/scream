@@ -30,7 +30,6 @@ TEST_CASE("scorpio_interface_output", "") {
  * The second step opens the recently created output file, reads in all the available data, 
  * and then compares the read in values with the expected values that should have been written out.
  */
-
   /* load namespaces needed for I/O and for data management */
   using namespace scream;
   using namespace scream::scorpio;
@@ -79,12 +78,6 @@ TEST_CASE("scorpio_interface_output", "") {
   register_variable(outfilename,"index_2d","test value for 2d field",3,vec_xyt,  PIO_INT,"xyt-int");
   register_variable(outfilename,"index_3d","test value for 3d field",4,vec_xyzt, PIO_INT,"xyzt-int");
   /* 
-   * When we are finished defining the set of dimensions and variables for the new output file
-   * we have to officially "end" the definition phase in scorpio.  After this step we can no longer
-   * add dimensions or variables to the file.
-   */
-  eam_pio_enddef(outfilename);
-  /* 
    * Construct the data to be written as output.  Note that here we take advantage of the ekat
    * md_array utility for multi-dimension arrays.  It would also be acceptable to use the std::array,
    * or other construct.  In the end, what is passed to scorpio is only the pointer to the beginning
@@ -106,75 +99,6 @@ TEST_CASE("scorpio_interface_output", "") {
   ekat::util::md_array<Int, 5,10>     test_index_2d;
   ekat::util::md_array<Int, 2, 5,10>  test_index_3d;
   Real pi = 2*acos(0.0);
-  /* Set the x, y and z dimension values */
-  for (decltype(x_data)::size_type ii=0;ii<x_data.size();ii++) {
-    x_data[ii] = x_i(ii,x_data.size()); 
-  }
-  for (int jj=0;jj<5;jj++) {
-    y_data[jj] = y_i(jj,y_data.size()); 
-  }
-  for (int kk=0;kk<2;kk++) {
-    z_data[kk] = z_i(kk,z_data.size()); 
-  }
-  /* 
-   * Write these values to the file.  Note, "x", "y" and "z" are both
-   * dimensions and variables.  Here we are writing to the "variable"
-   * definition.  Dimensions in scorpio don't have vectors associated
-   * with them, they are labels with lengths used to define variables.
-   * So here we note, that you will most likely want to define all
-   * dimensions as variables as well.
-   */
-  grid_write_data_array(outfilename,"x",xdim,ekat::util::data(x_data));
-  grid_write_data_array(outfilename,"y",ydim,ekat::util::data(y_data));
-  grid_write_data_array(outfilename,"z",zdim,ekat::util::data(z_data));
-  /* To test multiple timelevels, generate unique data for multiple timesnaps, then write the data to file. */
-  Real dt = 1.0;
-  for (int tt=0;tt<3;tt++) {
-    for (decltype(x_data)::size_type ii=0;ii<x_data.size();ii++) {
-      test_data_1d[ii]  = f_x(x_data[ii],tt*dt);
-      test_index_1d[ii] = ind_x(ii) + ind_t(tt);
-      for (int jj=0;jj<5;jj++) {
-        test_data_2d[jj][ii]  = f_x(x_data[ii],tt*dt)*f_y(y_data[jj],tt*dt);
-        test_index_2d[jj][ii] = ind_y(jj) + ind_x(ii) + ind_t(tt);
-        for (int kk=0;kk<2;kk++) {
-          test_data_3d[kk][jj][ii]  = f_x(x_data[ii],tt*dt)*f_y(y_data[jj],tt*dt) + f_z(z_data[kk],tt*dt);
-          test_index_3d[kk][jj][ii] = ind_z(kk) + ind_y(jj) + ind_x(ii) + ind_t(tt);
-        } //kk
-      } //jj
-    } //ii
-    /* 
-     * Call pio_update_time to increase the number of timesnaps registered with this output file by 1.
-     * This is an essential step whenever pio is called for multiple timesnaps, otherwise the output will
-     * overwrite the current timesnap each time.
-     */
-    pio_update_time(outfilename,tt*dt);
-    grid_write_data_array(outfilename,"index_1d",dimlen_1d,ekat::util::data(test_index_1d));
-    grid_write_data_array(outfilename,"index_2d",dimlen_2d,ekat::util::data(test_index_2d));
-    grid_write_data_array(outfilename,"index_3d",dimlen_3d,ekat::util::data(test_index_3d));
-    grid_write_data_array(outfilename,"data_1d",dimlen_1d,ekat::util::data(test_data_1d));
-    grid_write_data_array(outfilename,"data_2d",dimlen_2d,ekat::util::data(test_data_2d));
-    grid_write_data_array(outfilename,"data_3d",dimlen_3d,ekat::util::data(test_data_3d));
-    /* Call sync_outfile to ensure that all the fields are syncronized for this timesnap */
-    sync_outfile(outfilename); 
-  } //tt
-  /* Now close the output file and reopen it to check that the output is correct. */
-  eam_pio_closefile(outfilename);
-  /* Reopen the output file we just created to check both "input" and that the fields are correct. */
-  register_infile(outfilename);
-  /* Use "get_variable" to gather the important variable information for each variable we expect to
-   * load and test.  Note that we don't use "register_variable" since we are technically accessing a
-   * variable which should already exist in the file.
-   */
-  get_variable(outfilename,"time","time",1,vec_time, PIO_REAL,"t_in");
-  get_variable(outfilename,"x","x-direction",1,vec_x, PIO_REAL,"x-real_in");
-  get_variable(outfilename,"y","y-direction",1,vec_y, PIO_REAL,"y-real_in");
-  get_variable(outfilename,"z","z-direction",1,vec_z, PIO_REAL,"z-real_in");
-  get_variable(outfilename,"data_1d","test value for 1d field",1,vec_x, PIO_REAL,"x-real_in");
-  get_variable(outfilename,"data_2d","test value for 2d field",2,vec_xy, PIO_REAL,"xy-real_in");
-  get_variable(outfilename,"data_3d","test value for 3d field",3,vec_xyz, PIO_REAL,"xyz-real_in");
-  get_variable(outfilename,"index_1d","test value for 1d field",1,vec_x, PIO_INT,"x-int_in");
-  get_variable(outfilename,"index_2d","test value for 2d field",2,vec_xy, PIO_INT,"xy-int_in");
-  get_variable(outfilename,"index_3d","test value for 3d field",3,vec_xyz, PIO_INT,"xyz-int_in");
   /* 
    * Degrees of Freedom decomposition of input arrays, this information is used to tell
    * PIO which global array indices the local MPI rank is responsible for.  Without it, we
@@ -196,16 +120,16 @@ TEST_CASE("scorpio_interface_output", "") {
   Int test_2d_start,test_2d_stop;
   Int test_3d_start,test_3d_stop;
   /* 
-   * Setup PIO configuation for reading data.  This is a 3 step process:
+   * Setup PIO configuation for writing data.  This is a 3 step process:
    * 1. Determine the number of indices, start and stop location for this rank.
    * 2. Create a vector of the indices based on the info from step 1. 
    *    We need to do this as a second step since we don't know the length of this vector ahead of time.
    * 3. Assign the global indices to the dof vector.
    */
+  // Time is special since it is a single value:
+  set_dof(outfilename,"time",0,0);
   // start with x
-  std::array<Real,10> x_data_in;
-  for (int ii=0;ii<10;ii++) { x_data_in[ii] = -999; }
-  get_dof(ekat::util::size(x_data_in), myrank, numranks, dof_x[0], xstart,xstop);
+  get_dof(ekat::util::size(x_data), myrank, numranks, dof_x[0], xstart,xstop);
   std::vector<Int> x_dof(dof_x[0]);
   for (int ii=xstart,cnt=0;ii<=xstop;++ii,++cnt) {
     x_dof[cnt] = ii+1;  // Add one to index since C++ starts at 0 and Fortran starts at 1
@@ -249,15 +173,116 @@ TEST_CASE("scorpio_interface_output", "") {
   }
   set_dof(outfilename,"index_3d",dof_test_3d[0],test3d_dof.data());
   set_dof(outfilename,"data_3d",dof_test_3d[0],test3d_dof.data());
+  /* Set the x, y and z dimension values */
+  for (decltype(x_data)::size_type ii=0;ii<x_data.size();ii++) {
+    x_data[ii] = x_i(ii,x_data.size()); 
+  }
+  for (int jj=0;jj<5;jj++) {
+    y_data[jj] = y_i(jj,y_data.size()); 
+  }
+  for (int kk=0;kk<2;kk++) {
+    z_data[kk] = z_i(kk,z_data.size()); 
+  }
+  /* 
+   * When we are finished defining the set of dimensions and variables for the new output file
+   * we have to officially "end" the definition phase in scorpio.  After this step we can no longer
+   * add dimensions or variables to the file, or change their metadata.
+   * NOTE: We would normally also have to set_decomp (set the io-decomposition) for all variables.
+   * This is handled during the eam_pio_enddef call.  When reading variables (see below) we need to
+   * issue this command ourselves.
+   */
+  eam_pio_enddef(outfilename);
+  /* 
+   * Write these values to the file.  Note, "x", "y" and "z" are both
+   * dimensions and variables.  Here we are writing to the "variable"
+   * definition.  Dimensions in scorpio don't have vectors associated
+   * with them, they are labels with lengths used to define variables.
+   * So here we note, that you will most likely want to define all
+   * dimensions as variables as well.
+   */
+  grid_write_data_array(outfilename,"x",dof_x[0],ekat::util::data(x_data)+xstart);
+  grid_write_data_array(outfilename,"y",dof_y[0],ekat::util::data(y_data)+ystart);
+  grid_write_data_array(outfilename,"z",dof_z[0],ekat::util::data(z_data)+zstart);
+  /* To test multiple timelevels, generate unique data for multiple timesnaps, then write the data to file. */
+  Real dt = 1.0;
+  for (int tt=0;tt<3;tt++) {
+    for (decltype(x_data)::size_type ii=0;ii<x_data.size();ii++) {
+      test_data_1d[ii]  = f_x(x_data[ii],tt*dt);
+      test_index_1d[ii] = ind_x(ii) + ind_t(tt);
+      for (int jj=0;jj<5;jj++) {
+        test_data_2d[jj][ii]  = f_x(x_data[ii],tt*dt)*f_y(y_data[jj],tt*dt);
+        test_index_2d[jj][ii] = ind_y(jj) + ind_x(ii) + ind_t(tt);
+        for (int kk=0;kk<2;kk++) {
+          test_data_3d[kk][jj][ii]  = f_x(x_data[ii],tt*dt)*f_y(y_data[jj],tt*dt) + f_z(z_data[kk],tt*dt);
+          test_index_3d[kk][jj][ii] = ind_z(kk) + ind_y(jj) + ind_x(ii) + ind_t(tt);
+        } //kk
+      } //jj
+    } //ii
+    /* 
+     * Call pio_update_time to increase the number of timesnaps registered with this output file by 1.
+     * This is an essential step whenever pio is called for multiple timesnaps, otherwise the output will
+     * overwrite the current timesnap each time.
+     */
+    pio_update_time(outfilename,tt*dt);
+    grid_write_data_array(outfilename,"index_1d",dof_test_1d[0],ekat::util::data(test_index_1d)+test_1d_start);
+    grid_write_data_array(outfilename,"index_2d",dof_test_2d[0],ekat::util::data(test_index_2d)+test_2d_start);
+    grid_write_data_array(outfilename,"index_3d",dof_test_3d[0],ekat::util::data(test_index_3d)+test_3d_start);
+    grid_write_data_array(outfilename,"data_1d", dof_test_1d[0],ekat::util::data(test_data_1d) +test_1d_start);
+    grid_write_data_array(outfilename,"data_2d", dof_test_2d[0],ekat::util::data(test_data_2d) +test_2d_start);
+    grid_write_data_array(outfilename,"data_3d", dof_test_3d[0],ekat::util::data(test_data_3d) +test_3d_start);
+    /* Call sync_outfile to ensure that all the fields are syncronized for this timesnap */
+    sync_outfile(outfilename); 
+  } //tt
+  /* Now close the output file and reopen it to check that the output is correct. */
+  eam_pio_closefile(outfilename);
+
+  /* ============================================================================================= */
+  /* ============================================================================================= */
+  /* ============================================================================================= */
+
+  /* Reopen the output file we just created to check both "input" and that the fields are correct. */
+  register_infile(outfilename);
+  /* Use "get_variable" to gather the important variable information for each variable we expect to
+   * load and test.  Note that we don't use "register_variable" since we are technically accessing a
+   * variable which should already exist in the file.
+   */
+  get_variable(outfilename,"time","time",1,vec_time, PIO_REAL,"t_in");
+  get_variable(outfilename,"x","x-direction",1,vec_x, PIO_REAL,"x-real_in");
+  get_variable(outfilename,"y","y-direction",1,vec_y, PIO_REAL,"y-real_in");
+  get_variable(outfilename,"z","z-direction",1,vec_z, PIO_REAL,"z-real_in");
+  get_variable(outfilename,"data_1d","test value for 1d field",1,vec_x, PIO_REAL,"x-real_in");
+  get_variable(outfilename,"data_2d","test value for 2d field",2,vec_xy, PIO_REAL,"xy-real_in");
+  get_variable(outfilename,"data_3d","test value for 3d field",3,vec_xyz, PIO_REAL,"xyz-real_in");
+  get_variable(outfilename,"index_1d","test value for 1d field",1,vec_x, PIO_INT,"x-int_in");
+  get_variable(outfilename,"index_2d","test value for 2d field",2,vec_xy, PIO_INT,"xy-int_in");
+  get_variable(outfilename,"index_3d","test value for 3d field",3,vec_xyz, PIO_INT,"xyz-int_in");
+  /* 
+   * Setup PIO configuation for reading data.  This is usually a 3 step process:
+   * 1. Determine the number of indices, start and stop location for this rank.
+   * 2. Create a vector of the indices based on the info from step 1. 
+   *    We need to do this as a second step since we don't know the length of this vector ahead of time.
+   * 3. Assign the global indices to the dof vector.
+   * We already did all of this setting things up for writing output, so here we just reuse the same dof vectors.
+   */
+  set_dof(outfilename,"time",0,0);
+  set_dof(outfilename,"x",dof_x[0],x_dof.data());
+  set_dof(outfilename,"y",dof_y[0],y_dof.data());
+  set_dof(outfilename,"z",dof_z[0],z_dof.data());
+  set_dof(outfilename,"index_1d",dof_test_1d[0],test1d_dof.data());
+  set_dof(outfilename,"data_1d",dof_test_1d[0],test1d_dof.data());
+  set_dof(outfilename,"index_2d",dof_test_2d[0],test2d_dof.data());
+  set_dof(outfilename,"data_2d",dof_test_2d[0],test2d_dof.data());
+  set_dof(outfilename,"index_3d",dof_test_3d[0],test3d_dof.data());
+  set_dof(outfilename,"data_3d",dof_test_3d[0],test3d_dof.data());
   // Now that the variables have been gathered and the dof set for each one, set the iodesc decomposition from PIO.
   set_decomp(outfilename);
   /* Read input data for x, y and z, and compare with expected value.  Report mismatches as an error. */
-  grid_read_data_array(outfilename,"x",dof_x[0],ekat::util::data(x_data_in)+xstart);
+  grid_read_data_array(outfilename,"x",dof_x[0],ekat::util::data(x_data)+xstart);
   grid_read_data_array(outfilename,"y",dof_y[0],ekat::util::data(y_data)+ystart);
   grid_read_data_array(outfilename,"z",dof_z[0],ekat::util::data(z_data)+zstart);
   nerr = 0;
   for (Int ii=xstart;ii<=xstop;ii++) {
-    if (x_data_in[ii] != x_i(ii,x_data.size())) { ++nerr;}
+    if (x_data[ii] != x_i(ii,x_data.size())) { ++nerr;}
   }
   REQUIRE(nerr==0);
   nerr = 0;
@@ -267,24 +292,24 @@ TEST_CASE("scorpio_interface_output", "") {
   REQUIRE(nerr==0);
   nerr = 0;
   for (Int kk=zstart;kk<=zstop;kk++) {
-    if (z_data[kk] != z_i(kk,z_data.size())) { ++nerr;}
+    if (z_data[kk] != z_i(kk,z_data.size())) { ++nerr; std::printf("   - (%d) %f vs. %f\n",kk,z_data[kk],z_i(kk,z_data.size()));}
   }
   REQUIRE(nerr==0);
   /* Now read and compare the field data for each of the timestep */
   nerr = 0;
   for (int tt=0;tt<3;tt++) {
     pio_update_time(outfilename,-999.0);
-//    grid_read_data_array(outfilename,"index_1d",dof_test_1d[0],ekat::util::data(test_index_1d)+test_1d_start);
-//    grid_read_data_array(outfilename,"data_1d", dof_test_1d[0],ekat::util::data(test_data_1d) +test_1d_start);
-//    nerr = 0;
-//    for (int ii=0,ind=test_1d_start;ind<test_1d_stop;ii++,ind++) {
-//      if (*(ekat::util::data(test_data_1d) + ind)  != f_x(x_data[ind],tt*dt)) {++nerr;}
-//      if (*(ekat::util::data(test_index_1d) + ind) != ind_x(ind) + ind_t(tt))  {++nerr;}
-//    }
-//    REQUIRE(nerr==0);
+    grid_read_data_array(outfilename,"index_1d",dof_test_1d[0],ekat::util::data(test_index_1d)+test_1d_start);
+    grid_read_data_array(outfilename,"data_1d", dof_test_1d[0],ekat::util::data(test_data_1d) +test_1d_start);
+    nerr = 0;
+    for (int ii=0,ind=test_1d_start;ind<test_1d_stop;ii++,ind++) {
+      if (*(ekat::util::data(test_data_1d) + ind)  != f_x(x_data[ind],tt*dt)) {++nerr;}
+      if (*(ekat::util::data(test_index_1d) + ind) != ind_x(ind) + ind_t(tt))  {++nerr;}
+    }
+    REQUIRE(nerr==0);
     nerr = 0;
     grid_read_data_array(outfilename,"index_2d",dof_test_2d[0],ekat::util::data(test_index_2d)+test_2d_start);
-//    grid_read_data_array(outfilename,"data_2d", dof_test_2d[0],ekat::util::data(test_data_2d) +test_2d_start);
+    grid_read_data_array(outfilename,"data_2d", dof_test_2d[0],ekat::util::data(test_data_2d) +test_2d_start);
     for (int ind=test_2d_start;ind<=test_2d_stop;ind++) {
       int jj = (int) ind / xdim[0]; 
       int ii = ind - (jj*xdim[0]);
@@ -293,16 +318,16 @@ TEST_CASE("scorpio_interface_output", "") {
     }
     REQUIRE(nerr==0);
     nerr = 0;
-//    grid_read_data_array(outfilename,"index_3d",dof_test_3d[0],ekat::util::data(test_index_3d)+test_3d_start);
-//    grid_read_data_array(outfilename,"data_3d", dof_test_3d[0],ekat::util::data(test_data_3d) +test_3d_start);
-//    for (int ind=test_3d_start;ind<=test_3d_stop;ind++) {
-//      int kk = (int) ind / (xdim[0]*ydim[0]);
-//      int jj = (int) (ind - (kk*xdim[0]*ydim[0]))/xdim[0];
-//      int ii = ind - (kk*xdim[0]*ydim[0] + jj*xdim[0]);
-//      if (*(ekat::util::data(test_data_3d) + ind)  != f_x(x_data[ii],tt*dt)*f_y(y_data[jj],tt*dt) + f_z(z_data[kk],tt*dt)) {++nerr;}
-//      if (*(ekat::util::data(test_index_3d) + ind) != ind_z(kk) + ind_y(jj) + ind_x(ii) + ind_t(tt))  {++nerr;}
-//    }
-//    REQUIRE(nerr==0);
+    grid_read_data_array(outfilename,"index_3d",dof_test_3d[0],ekat::util::data(test_index_3d)+test_3d_start);
+    grid_read_data_array(outfilename,"data_3d", dof_test_3d[0],ekat::util::data(test_data_3d) +test_3d_start);
+    for (int ind=test_3d_start;ind<=test_3d_stop;ind++) {
+      int kk = (int) ind / (xdim[0]*ydim[0]);
+      int jj = (int) (ind - (kk*xdim[0]*ydim[0]))/xdim[0];
+      int ii = ind - (kk*xdim[0]*ydim[0] + jj*xdim[0]);
+      if (*(ekat::util::data(test_data_3d) + ind)  != f_x(x_data[ii],tt*dt)*f_y(y_data[jj],tt*dt) + f_z(z_data[kk],tt*dt)) {++nerr;}
+      if (*(ekat::util::data(test_index_3d) + ind) != ind_z(kk) + ind_y(jj) + ind_x(ii) + ind_t(tt))  {++nerr;}
+    }
+    REQUIRE(nerr==0);
   } //tt
   /* 
    * Now that the test has finished, finalize PIO.  This also closes all files, so it is not neccessary to close the
@@ -419,6 +444,8 @@ TEST_CASE("scorpio_interface_input", "") {
   Int test_2d_start,test_2d_stop;
   Int test_3d_start,test_3d_stop;
 
+  set_dof(infilename,"time",0,0);
+
   get_dof(ekat::util::size(x_data), myrank, numranks, dof_x[0], xstart,xstop);
   std::vector<Int> x_dof(dof_x[0]);
   for (int ii=xstart,cnt=0;ii<=xstop;++ii,++cnt) {
@@ -529,10 +556,9 @@ Real y_i(const Int ii, const Int y_len) {
   return y;
 }
 Real z_i(const Int ii, const Int z_len) {
-  Real y;
-  Real pi = 2*acos(0.0);
-  y = 100*(ii+1);
-  return y;
+  Real z;
+  z = 100*(ii+1);
+  return z;
 }
 Real f_x(const Real x, const Real t) {
   Real f;
@@ -572,9 +598,14 @@ void get_dof(const std::size_t dimsize, const Int myrank, const Int numranks, In
   }
   istart = myrank*dof_len;
   if (myrank == numranks-1) {
-    dof_len = dimsize-istart;
+    dof_len = std::max((Int) dimsize-istart,0);
   }
   istop = istart + dof_len-1;
+  // Final check that we don't have more ranks than total dof
+  if (istart >= dimsize) {
+    dof_len = 0;
+    istop = istart - 1;
+  }
 
   return;
 }

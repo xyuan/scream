@@ -130,6 +130,7 @@ module scream_scorpio_interface
     integer, allocatable :: dimid(:)          ! array of PIO dimension id's for this variable
     integer, allocatable :: dimlen(:)         ! array of PIO dimension lengths for this variable
     logical              :: has_t_dim         ! true, if variable has a time dimension
+    logical              :: compdof_set = .false. ! true after the dof for this rank has been set.
   end type hist_var_t
 !----------------------------------------------------------------------
   ! The iodesc_list allows us to cache existing PIO decompositions
@@ -190,6 +191,9 @@ module scream_scorpio_interface
 
         !> @brief Whether or not this pio file is still open
         logical                         :: isopen = .false.
+
+        !> @brief Whether or not the dim/var definition phase is still open
+        logical                         :: is_enddef = .false.
 
   end type pio_atm_file_t
 
@@ -254,6 +258,7 @@ contains
     ! Officially close the definition step for this file.
     ierr = PIO_enddef(current_atm_file%pioFileDesc)
     call errorHandle("PIO ERROR: issue arose with PIO_enddef for file"//trim(current_atm_file%filename),ierr)
+    current_atm_file%is_enddef = .true.
 
   end subroutine eam_pio_enddef
 !=====================================================================!
@@ -362,19 +367,6 @@ contains
       if (hist_var%dimlen(dim_ii).eq.0) hist_var%has_t_dim = .true.
     end do
 
-    ! Distribute responsibility for writing cores over all PIO ranks
-    ! i.e. compute the degrees of freedom that this rank will contribute to PIO
-    ! TODO: Possible todo would be to allow for a subset of cores to be assigned
-    ! PIO.
-    if (hist_var%has_t_dim) then
-      call get_compdof(numdims-1,hist_var%dimlen(:numdims-1),my_dof_len,istart,istop)
-    else
-      call get_compdof(numdims,hist_var%dimlen(:numdims),my_dof_len,istart,istop)
-    end if
-    allocate( hist_var%compdof(my_dof_len) )
-    hist_var%compdof(:my_dof_len) = (/ (ii, ii=istart,istop, 1) /)
-!    call set_dof(trim(pio_atm_filename),trim(hist_var%name),my_dof_len,compdof)
-
     ! Register Variable with PIO
     ! check to see if variable already is defined with file (for use with input)
     ierr = PIO_inq_varid(pio_atm_file%pioFileDesc,trim(shortname),hist_var%piovar)
@@ -441,19 +433,6 @@ contains
       call errorHandle("EAM_PIO ERROR: Unable to determine length for dimension "//trim(var_dimensions(dim_ii)),ierr)
       if (hist_var%dimlen(dim_ii).eq.0) hist_var%has_t_dim = .true.
     end do
-
-    ! Distribute responsibility for writing cores over all PIO ranks
-    ! i.e. compute the degrees of freedom that this rank will contribute to PIO
-    ! TODO: Possible todo would be to allow for a subset of cores to be assigned
-    ! PIO.
-    if (hist_var%has_t_dim) then
-      call get_compdof(numdims-1,hist_var%dimlen(:numdims-1),my_dof_len,istart,istop)
-    else
-      call get_compdof(numdims,hist_var%dimlen(:numdims),my_dof_len,istart,istop)
-    end if
-    allocate( hist_var%compdof(my_dof_len) )
-    hist_var%compdof(:my_dof_len) = (/ (ii, ii=istart,istop, 1) /)
-    call set_dof(trim(pio_atm_filename),trim(hist_var%name),my_dof_len,compdof)
 
     ! Register Variable with PIO
     ! First, check to see if variable already is defined with file
@@ -647,6 +626,9 @@ contains
 !=====================================================================!
   ! Algorithm to determine the degrees-of-freedom in the global array that this
   ! PIO rank is responsible for writing.  Needed in the pio_write interface.
+  ! TODO: For unit test at least this isn't used.  Should we delete it and
+  ! always expect the C++ code to establish the DOF locally, or keep this as a
+  ! tool that can be used if needed?
   subroutine get_compdof(numdims,dimension_len,dof_len,istart,istop)
 
     integer, intent(in)  :: numdims                ! Number of dimensions
@@ -739,13 +721,17 @@ contains
 
     type(pio_atm_file_t),pointer            :: pio_atm_file
     type(hist_var_t), pointer               :: var
-    logical                      :: found
-
+    logical                                 :: found
+    integer                                 :: ii
+    
     call lookup_pio_atm_file(trim(filename),pio_atm_file,found)
     call get_var(pio_atm_file,varname,var)
     if (allocated(var%compdof)) deallocate(var%compdof)
     allocate( var%compdof(dof_len) )
-    var%compdof(:dof_len) = dof_vec 
+    do ii = 1,dof_len
+      var%compdof(ii) = dof_vec(ii)
+    end do
+    var%compdof_set = .true.
  
   end subroutine set_dof
 !=====================================================================!
@@ -760,10 +746,12 @@ contains
     logical                       :: found
 
     call lookup_pio_atm_file(filename,current_atm_file,found)
+    if (current_atm_file%is_enddef) call errorHandle("PIO ERROR: unable to set decomposition in file: "//trim(current_atm_file%filename)//", definition phase has ended (pio_enddef)",999) 
     curr => current_atm_file%var_list_top
     do while (associated(curr))
       if (associated(curr%var)) then
         hist_var => curr%var
+        if (.not.hist_var%compdof_set) call errorHandle("PIO ERROR: unable to set decomp for file, var: "//trim(current_atm_file%filename)//", "//trim(hist_var%name)//". Set DOF.",999) 
         ! Assign decomp
         if (hist_var%has_t_dim) then
           loc_len = max(1,hist_var%numdims-1)
@@ -902,7 +890,7 @@ contains
     call lookup_pio_atm_file(trim(filename),pio_atm_file,found)
     call get_var(pio_atm_file,varname,var)
     call PIO_setframe(pio_atm_file%pioFileDesc,var%piovar,int(max(1,pio_atm_file%numRecs),kind=pio_offset_kind))
-    call pio_write_darray(pio_atm_file%pioFileDesc, var%piovar, var%iodesc, hbuf(var%compdof), ierr)
+    call pio_write_darray(pio_atm_file%pioFileDesc, var%piovar, var%iodesc, hbuf, ierr)
     call errorHandle( 'eam_grid_write_darray_1d_int: Error writing variable',ierr)
   end subroutine grid_write_darray_1d_int
 
@@ -1002,7 +990,7 @@ contains
     call lookup_pio_atm_file(trim(filename),pio_atm_file,found)
     call get_var(pio_atm_file,varname,var)
     call PIO_setframe(pio_atm_file%pioFileDesc,var%piovar,int(max(1,pio_atm_file%numRecs),kind=pio_offset_kind))
-    call pio_write_darray(pio_atm_file%pioFileDesc, var%piovar, var%iodesc, hbuf(var%compdof), ierr)
+    call pio_write_darray(pio_atm_file%pioFileDesc, var%piovar, var%iodesc, hbuf, ierr)
     call errorHandle( 'eam_grid_write_darray_1d_real: Error writing variable',ierr)
   end subroutine grid_write_darray_1d_real
 
@@ -1205,9 +1193,6 @@ contains
     call PIO_setframe(pio_atm_file%pioFileDesc,var%piovar,int(max(1,pio_atm_file%numRecs),kind=pio_offset_kind))
     call pio_read_darray(pio_atm_file%pioFileDesc, var%piovar, var%iodesc, hbuf, ierr)
     call errorHandle( 'eam_grid_read_darray_1d_int: Error reading variable '//trim(varname),ierr)
-    do ierr = 1,size(hbuf)
-      write(*,*) "ASD read array: ", trim(varname), ' ', pio_myrank, ierr, hbuf(ierr), var%compdof(ierr)
-    end do 
 
   end subroutine grid_read_darray_1d_int
   !---------------------------------------------------------------------------

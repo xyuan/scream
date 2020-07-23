@@ -35,8 +35,10 @@ namespace scorpio {
   void eam_pio_enddef(const std::string &filename);
   void pio_update_time(const std::string &filename, const Real time);
 
-  void grid_read_data_array(const std::string &filename, const std::string &varname, const Int& dim_length, Real* hbuf);
-  void grid_read_data_array(const std::string &filename, const std::string &varname, const Int& dim_length, Int* hbuf);
+  void grid_read_data_array (const std::string &filename, const std::string &varname, const Int& dim_length, Real* hbuf);
+  void grid_read_data_array (const std::string &filename, const std::string &varname, const Int& dim_length, Int* hbuf);
+  void grid_write_data_array(const std::string &filename, const std::string &varname, const Int& dim_length, const Real* hbuf);
+  void grid_write_data_array(const std::string &filename, const std::string &varname, const Int& dim_length, const Int* hbuf);
 
   void grid_write_data_array(const std::string &filename, const std::string &varname, const std::array<Int,1>& dim_length, const Real* hbuf);
   void grid_write_data_array(const std::string &filename, const std::string &varname, const std::array<Int,2>& dim_length, const Real* hbuf);
