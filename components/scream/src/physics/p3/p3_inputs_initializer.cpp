@@ -39,14 +39,22 @@ void P3InputsInitializer::initialize_fields ()
     "       Please, check the atmosphere processes you are using,"
     "       and make sure they agree on who's initializing each field.\n");
 
-  // Get device views
+  // Get device views and add to vector
+ 
   auto d_q     = m_fields.at("q").get_view();
+  
   auto d_T     = m_fields.at("T").get_view();
+  
   auto d_ast   = m_fields.at("ast").get_view();
+  
   auto d_ni_activated  = m_fields.at("ni_activated").get_view();
+  
   auto d_nc_nuceat_tend = m_fields.at("nc_nuceat_tend").get_view();
+  
   auto d_pmid  = m_fields.at("pmid").get_view();
+  
   auto d_dpres  = m_fields.at("dp").get_view();
+  
   auto d_zi    = m_fields.at("zi").get_view();
 
   // Create host mirrors

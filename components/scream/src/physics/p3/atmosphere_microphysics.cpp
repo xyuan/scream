@@ -125,6 +125,23 @@ void P3Microphysics::initialize (const util::TimeStamp& t0)
 // =========================================================================================
 void P3Microphysics::run (const Real dt)
 {
+
+  P3F::P3PrognosticState prog_state{qc_d, nc_d, qr_d, nr_d, qi_d, qm_d,
+                                    ni_d, bm_d, qv_d, th_d};
+  P3F::P3DiagnosticInputs diag_inputs{nc_nuceat_tend_d, ni_activated_d, inv_qc_relvar_d, cld_frac_i_d,
+                                      cld_frac_l_d, cld_frac_r_d, pres_d, dz_d, dpres_d,
+                                      exner_d};
+  P3F::P3DiagnosticOutputs diag_outputs{mu_c_d, lamc_d, cmeiout_d, precip_liq_surf_d,
+                                        precip_ice_surf_d, diag_effc_d, diag_effi_d,
+                                        rho_qi_d, precip_total_tend_d, nevapr_d,
+                                        qr_evap_tend_d, precip_liq_flux_d, precip_ice_flux_d};
+  P3F::P3Infrastructure infrastructure{dt, it, its, ite, kts, kte,
+                                       do_predict_nc, col_location_d};
+  P3F::P3HistoryOnly history_only{liq_ice_exchange_d, vap_liq_exchange_d,
+                                  vap_ice_exchange_d};
+  P3F::p3_main(prog_state, diag_inputs, diag_outputs, infrastructure,
+               history_only, nj, nk);
+
   // std::array<const char*, num_views> view_names = {"q", "FQ", "T", "zi", "pmid", "dpres", "ast", "ni_activated", "nc_nuceat_tend"};
 
   std::vector<const Real*> in;
