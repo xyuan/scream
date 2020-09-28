@@ -1,13 +1,17 @@
 #include "physics/p3/scream_p3_interface.hpp"
 #include "physics/p3/atmosphere_microphysics.hpp"
 #include "physics/p3/p3_inputs_initializer.hpp"
+#include "physics/p3/p3_functions_f90.hpp"
 
 #include "ekat/ekat_assert.hpp"
+#include "p3_f90.hpp"
+
+#include "ekat/kokkos/ekat_kokkos_utils.hpp"
+#include "ekat/ekat_pack_kokkos.hpp"
 
 #include <array>
 
-namespace scream
-{
+namespace scream {
 /*
  * P3 Microphysics routines
 */
@@ -60,6 +64,9 @@ void P3Microphysics::set_grids(const std::shared_ptr<const GridsManager> grids_m
   m_required_fields.emplace("pmid",           scalar3d_layout_mid,   Pa, grid_name);
   m_required_fields.emplace("dp",             scalar3d_layout_mid,   Pa, grid_name);
   m_required_fields.emplace("zi",             scalar3d_layout_int,   m, grid_name);
+  m_required_fields.emplace("nc",             scalar3d_layout_mid,   Pa, grid_name);
+  m_required_fields.emplace("qr",             scalar3d_layout_mid,   Pa, grid_name);
+  m_required_fields.emplace("th",             scalar3d_layout_mid,   Pa, grid_name);
 
   // Input-Outputs
   m_required_fields.emplace("FQ", tracers_layout,      Q, grid_name);
@@ -89,9 +96,8 @@ void P3Microphysics::initialize (const util::TimeStamp& t0)
   //    of its initable inputs.
   // Recall that:
   //  - initable fields may not need initialization (e.g., some other atm proc that
-  //    appears earlier in the atm dag might provide them).
-
-  std::vector<std::string> p3_inputs = {"q","T","FQ","ast","ni_activated","nc_nuceat_tend","pmid","dp","zi"};
+  //    appears earlier in the atm dag might provide them).  
+  std::vector<std::string> p3_inputs = {"q","T","FQ","ast","ni_activated","nc_nuceat_tend","pmid","dp","zi", "nc", "qr","th"};
   using strvec = std::vector<std::string>;
   const strvec& allowed_to_init = m_p3_params.get<strvec>("Initializable Inputs",strvec(0));
   const bool can_init_all = m_p3_params.get<bool>("Can Initialize All Inputs", false);
@@ -125,28 +131,30 @@ void P3Microphysics::initialize (const util::TimeStamp& t0)
 // =========================================================================================
 void P3Microphysics::run (const Real dt)
 {
-
-  P3F::P3PrognosticState prog_state{qc_d, nc_d, qr_d, nr_d, qi_d, qm_d,
-                                    ni_d, bm_d, qv_d, th_d};
-  P3F::P3DiagnosticInputs diag_inputs{nc_nuceat_tend_d, ni_activated_d, inv_qc_relvar_d, cld_frac_i_d,
-                                      cld_frac_l_d, cld_frac_r_d, pres_d, dz_d, dpres_d,
-                                      exner_d};
-  P3F::P3DiagnosticOutputs diag_outputs{mu_c_d, lamc_d, cmeiout_d, precip_liq_surf_d,
-                                        precip_ice_surf_d, diag_effc_d, diag_effi_d,
-                                        rho_qi_d, precip_total_tend_d, nevapr_d,
-                                        qr_evap_tend_d, precip_liq_flux_d, precip_ice_flux_d};
-  P3F::P3Infrastructure infrastructure{dt, it, its, ite, kts, kte,
-                                       do_predict_nc, col_location_d};
-  P3F::P3HistoryOnly history_only{liq_ice_exchange_d, vap_liq_exchange_d,
-                                  vap_ice_exchange_d};
-  P3F::p3_main(prog_state, diag_inputs, diag_outputs, infrastructure,
-               history_only, nj, nk);
-
-  // std::array<const char*, num_views> view_names = {"q", "FQ", "T", "zi", "pmid", "dpres", "ast", "ni_activated", "nc_nuceat_tend"};
+  using namespace p3;
+  using P3F = Functions<Real, DefaultDevice>;
+//  P3F :: P3PrognosticState prog_state{m_raw_ptrs_in["q"], nc_d, qr_d, nr_d, qi_d, qm_d,
+////                                  ni_d, bm_d, qv_d, th_d};
+  
+////P3F::P3DiagnosticInputs diag_inputs{nc_nuceat_tend_d, ni_activated_d, inv_qc_relvar_d, cld_frac_i_d,
+//                                    cld_frac_l_d, cld_frac_r_d, pres_d, dz_d, dpres_d,
+//                                    exner_d};
+//P3F::P3DiagnosticOutputs diag_outputs{mu_c_d, lamc_d, cmeiout_d, precip_liq_surf_d,
+//                                      precip_ice_surf_d, diag_effc_d, diag_effi_d,
+//                                      rho_qi_d, precip_total_tend_d, nevapr_d,
+//                                      qr_evap_tend_d, precip_liq_flux_d, precip_ice_flux_d};
+//P3F::P3Infrastructure infrastructure{dt, it, its, ite, kts, kte,
+//                                     do_predict_nc, col_location_d};
+//P3F::P3HistoryOnly history_only{liq_ice_exchange_d, vap_liq_exchange_d,
+//                                vap_ice_exchange_d};
+//P3F::p3_main(prog_state, diag_inputs, diag_outputs, infrastructure,
+//             history_only, nj, nk);
+//
+// std::array<const char*, num_views> view_names = {"q", "FQ", "T", "zi", "pmid", "dpres", "ast", "ni_activated", "nc_nuceat_tend"};
 
   std::vector<const Real*> in;
   std::vector<Real*> out;
-
+  
   // Copy inputs to host. Copy also outputs, cause we might "update" them, rather than overwrite them.
   for (auto& it : m_p3_fields_in) {
     Kokkos::deep_copy(m_p3_host_views_in.at(it.first),it.second.get_view());
@@ -154,7 +162,6 @@ void P3Microphysics::run (const Real dt)
   for (auto& it : m_p3_fields_out) {
     Kokkos::deep_copy(m_p3_host_views_out.at(it.first),it.second.get_view());
   }
-
   // Call f90 routine
   p3_main_f90 (dt, m_raw_ptrs_in["zi"], m_raw_ptrs_in["pmid"], m_raw_ptrs_in["dp"], m_raw_ptrs_in["ast"], m_raw_ptrs_in["ni_activated"], m_raw_ptrs_in["nc_nuceat_tend"], m_raw_ptrs_out["q"], m_raw_ptrs_out["FQ"], m_raw_ptrs_out["T"]);
 
@@ -166,6 +173,13 @@ void P3Microphysics::run (const Real dt)
   m_p3_fields_out.at("q").get_header().get_tracking().update_time_stamp(m_current_ts);
   m_p3_fields_out.at("FQ").get_header().get_tracking().update_time_stamp(m_current_ts);
   m_p3_fields_out.at("T").get_header().get_tracking().update_time_stamp(m_current_ts);
+//  
+  P3F :: P3PrognosticState prog_state{m_p3_fields_in["ast"],m_p3_dev_views_in["nc"], 
+				m_p3_dev_views_in["qr"], m_p3_dev_views_in["pmid"],
+				m_p3_dev_views_in["zi"], m_p3_dev_views_in["T"],
+                                m_p3_dev_views_in["ni_activated"],m_p3_dev_views_in["nc_nuceat_tend"], 
+				m_p3_dev_views_in["FQ"], m_p3_dev_views_in["th"]};
+
 }
 
 // =========================================================================================
@@ -191,9 +205,11 @@ void P3Microphysics::set_required_field_impl (const Field<const Real, device_typ
   // in the Homme's view, and be done with it.
   const auto& name = f.get_header().get_identifier().name();
   m_p3_fields_in.emplace(name,f);
-  m_p3_host_views_in[name] = Kokkos::create_mirror_view(f.get_view());
+  //TODO: change to get reshaped view
+  auto blah = m_p3_fields_in[name].get_reshaped_view<Real**>(); 
+  //m_p3_dev_views_in[name] = f.get_view();  
+  m_p3_host_views_in[name] = Kokkos::create_mirror_view(blah.get_reshaped_view<Real**>());
   m_raw_ptrs_in[name] = m_p3_host_views_in[name].data();
-
   // Add myself as customer to the field
   add_me_as_customer(f);
 }
@@ -205,11 +221,12 @@ void P3Microphysics::set_computed_field_impl (const Field<      Real, device_typ
   // in the Homme's view, and be done with it.
   const auto& name = f.get_header().get_identifier().name();
   m_p3_fields_out.emplace(name,f);
+//  m_p3_dev_views_out[name] = f.get_view();  
+  //m_p3_fields_out[name].get_reshaped_view<Real**>(); 
   m_p3_host_views_out[name] = Kokkos::create_mirror_view(f.get_view());
   m_raw_ptrs_out[name] = m_p3_host_views_out[name].data();
 
   // Add myself as provider for the field
   add_me_as_provider(f);
 }
-
 } // namespace scream
