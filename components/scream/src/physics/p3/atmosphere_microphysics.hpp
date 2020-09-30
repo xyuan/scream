@@ -75,9 +75,10 @@ protected:
 
   std::map<std::string,const Real*>  m_raw_ptrs_in;
   std::map<std::string,Real*>        m_raw_ptrs_out;
-
-  std::map<std::string, Kokkos::View<const scream::Real *, Kokkos::LayoutRight, ekat::HostDevice>>  m_p3_dev_views_in;
-  std::map<std::string, Kokkos::View<const scream::Real *, Kokkos::LayoutRight, ekat::HostDevice>>        m_p3_dev_views_out;
+// DstTraits=Kokkos::ViewTraits<ekat::pack::Pack<scream::Real={double}, 16> **, Kokkos::LayoutRight, ekat::HostDevice>,   SrcTraits=Kokkos::ViewTraits<const scream::Real={double} **, Kokkos::LayoutRight, ekat::HostDevice>
+//
+  std::map<std::string, Kokkos::View<const scream::Real **, Kokkos::LayoutRight, ekat::HostDevice>>  m_p3_dev_views_in;
+  std::map<std::string, Kokkos::View<const scream::Real **, Kokkos::LayoutRight, ekat::HostDevice>>        m_p3_dev_views_out;
 
   // Used to init some fields. For now, only needed for stand-alone p3 runs
   std::shared_ptr<FieldInitializer>  m_initializer;
