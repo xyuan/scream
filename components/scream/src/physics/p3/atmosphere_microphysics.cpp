@@ -10,6 +10,8 @@
 #include "ekat/ekat_pack_kokkos.hpp"
 
 #include <array>
+#include "physics/p3/var_type.hpp"
+#include <stdio.h>
 
 namespace scream {
 /*
@@ -58,6 +60,10 @@ void P3Microphysics::set_grids(const std::shared_ptr<const GridsManager> grids_m
 
   // Inputs
   auto nondim = m/m;
+
+  for (auto& i : p3_inputs){
+    std :: cout << "here \n";
+  }
   m_required_fields.emplace("ast",            scalar3d_layout_mid,   nondim, grid_name);
   m_required_fields.emplace("ni_activated",   scalar3d_layout_mid,   1/kg, grid_name);
   m_required_fields.emplace("nc_nuceat_tend", scalar3d_layout_mid,   1/(kg*s), grid_name);
@@ -65,17 +71,26 @@ void P3Microphysics::set_grids(const std::shared_ptr<const GridsManager> grids_m
   m_required_fields.emplace("dp",             scalar3d_layout_mid,   Pa, grid_name);
   m_required_fields.emplace("zi",             scalar3d_layout_int,   m, grid_name);
 
- // m_required_fields.emplace("qc",             scalar3d_layout_mid,   Pa, grid_name);
- // m_required_fields.emplace("nc",             scalar3d_layout_mid,   Pa, grid_name);
- // m_required_fields.emplace("qr",             scalar3d_layout_mid,   Pa, grid_name);
- // m_required_fields.emplace("nr",             scalar3d_layout_mid,   Pa, grid_name);
- // m_required_fields.emplace("qi",             scalar3d_layout_mid,   Pa, grid_name);
- // m_required_fields.emplace("qm",             scalar3d_layout_mid,   Pa, grid_name);
- // m_required_fields.emplace("ni",             scalar3d_layout_mid,   Pa, grid_name);
- // m_required_fields.emplace("bm",             scalar3d_layout_mid,   Pa, grid_name);
- // m_required_fields.emplace("qv",             scalar3d_layout_mid,   Pa, grid_name);
- // m_required_fields.emplace("th",             scalar3d_layout_mid,   Pa, grid_name);
+  m_required_fields.emplace("qc",             tracers_layout,   Pa, grid_name);
+  m_required_fields.emplace("nc",             tracers_layout,   Pa, grid_name);
+  m_required_fields.emplace("qr",             tracers_layout,   Pa, grid_name);
+  m_required_fields.emplace("nr",             tracers_layout,   Pa, grid_name);
+  m_required_fields.emplace("qi",             tracers_layout,   Pa, grid_name);
+  m_required_fields.emplace("qm",             tracers_layout,   Pa, grid_name);
+  m_required_fields.emplace("ni",             tracers_layout,   Pa, grid_name);
+  m_required_fields.emplace("bm",             tracers_layout,   Pa, grid_name);
+  m_required_fields.emplace("qv",             tracers_layout,   Pa, grid_name);
+  m_required_fields.emplace("th",             tracers_layout,   Pa, grid_name);
   
+//  m_required_fields.emplace("inv_qc_relvar",  scalar3d_layout_int,   Pa, grid_name);
+//  m_required_fields.emplace("cld_frac_i",  scalar3d_layout_int,   Pa, grid_name);
+//  m_required_fields.emplace("cld_frac_l",  scalar3d_layout_int,   Pa, grid_name);
+//  m_required_fields.emplace("cld_frac_r",  scalar3d_layout_int,   Pa, grid_name);
+//  m_required_fields.emplace("pres",  scalar3d_layout_int,   Pa, grid_name);
+//  m_required_fields.emplace("dz",  scalar3d_layout_int,   Pa, grid_name);
+//  m_required_fields.emplace("dpres",  scalar3d_layout_int,   Pa, grid_name);
+//  m_required_fields.emplace("exner",  scalar3d_layout_int,   Pa, grid_name);
+//  
   // Input-Outputs
   m_required_fields.emplace("FQ", tracers_layout,      Q, grid_name);
   m_required_fields.emplace("T",  scalar3d_layout_mid, K, grid_name);
@@ -85,16 +100,27 @@ void P3Microphysics::set_grids(const std::shared_ptr<const GridsManager> grids_m
   m_computed_fields.emplace("T",  scalar3d_layout_mid, K, grid_name);
   m_computed_fields.emplace("q",  vector3d_layout_mid, Q, grid_name);
   
- // m_required_fields.emplace("qc",             scalar3d_layout_mid,   Pa, grid_name);
- // m_required_fields.emplace("nc",             scalar3d_layout_mid,   Pa, grid_name);
- // m_required_fields.emplace("qr",             scalar3d_layout_mid,   Pa, grid_name);
- // m_required_fields.emplace("nr",             scalar3d_layout_mid,   Pa, grid_name);
- // m_required_fields.emplace("qi",             scalar3d_layout_mid,   Pa, grid_name);
- // m_required_fields.emplace("qm",             scalar3d_layout_mid,   Pa, grid_name);
- // m_required_fields.emplace("ni",             scalar3d_layout_mid,   Pa, grid_name);
- // m_required_fields.emplace("bm",             scalar3d_layout_mid,   Pa, grid_name);
- // m_required_fields.emplace("qv",             scalar3d_layout_mid,   Pa, grid_name);
- // m_required_fields.emplace("th",             scalar3d_layout_mid,   Pa, grid_name);
+  m_computed_fields.emplace("qc",            tracers_layout,   Pa, grid_name);
+  m_computed_fields.emplace("nc",            tracers_layout,   Pa, grid_name);
+  m_computed_fields.emplace("qr",            tracers_layout,   Pa, grid_name);
+  m_computed_fields.emplace("nr",            tracers_layout,   Pa, grid_name);
+  m_computed_fields.emplace("qi",            tracers_layout,   Pa, grid_name);
+  m_computed_fields.emplace("qm",            tracers_layout,   Pa, grid_name);
+  m_computed_fields.emplace("ni",            tracers_layout,   Pa, grid_name);
+  m_computed_fields.emplace("bm",            tracers_layout,   Pa, grid_name);
+  m_computed_fields.emplace("qv",            tracers_layout,   Pa, grid_name);
+  m_computed_fields.emplace("th",            tracers_layout,   Pa, grid_name);
+  
+
+//  m_computed_fields.emplace("inv_qc_relvar",  scalar3d_layout_int,   Pa, grid_name);
+//  m_computed_fields.emplace("cld_frac_i",  scalar3d_layout_int,   Pa, grid_name);
+//  m_computed_fields.emplace("cld_frac_l",  scalar3d_layout_int,   Pa, grid_name);
+//  m_computed_fields.emplace("cld_frac_r",  scalar3d_layout_int,   Pa, grid_name);
+//  m_computed_fields.emplace("pres",  scalar3d_layout_int,   Pa, grid_name);
+//  m_computed_fields.emplace("dz",  scalar3d_layout_int,   Pa, grid_name);
+//  m_computed_fields.emplace("dpres",  scalar3d_layout_int,   Pa, grid_name);
+//  m_computed_fields.emplace("exner",  scalar3d_layout_int,   Pa, grid_name);
+//
 }
 
 // =========================================================================================
@@ -116,7 +142,12 @@ void P3Microphysics::initialize (const util::TimeStamp& t0)
   // Recall that:
   //  - initable fields may not need initialization (e.g., some other atm proc that
   //    appears earlier in the atm dag might provide them).  
-  std::vector<std::string> p3_inputs = {"q","T","FQ","ast","ni_activated","nc_nuceat_tend","pmid","dp","zi", "nc", "qr","th"};
+//  std::vector<std::string> p3_inputs = {"q","T","FQ","ast","ni_activated",
+//				"nc_nuceat_tend","pmid","dp","zi", "qc", "nc", 
+//				"qr" , "nr", "qi", "qm", "ni", "bm", "qv", "th"};
+//			//,
+//			//	"inv_qc_relvar", "cld_frac_i", "cld_frac_l", "cld_frac_r", 
+//			//	"pres", "dz", "dpres", "exner"};
   using strvec = std::vector<std::string>;
   const strvec& allowed_to_init = m_p3_params.get<strvec>("Initializable Inputs",strvec(0));
   const bool can_init_all = m_p3_params.get<bool>("Can Initialize All Inputs", false);
@@ -151,13 +182,9 @@ void P3Microphysics::initialize (const util::TimeStamp& t0)
 void P3Microphysics::run (const Real dt)
 {
   using namespace p3;
-//  using namespace ekat::pack;
-//  using P3F = Functions<Real, DefaultDevice>;
+  using namespace ekat::pack;
+  using P3F = Functions<Real, DefaultDevice>;
   
-//P3F::P3DiagnosticOutputs diag_outputs{mu_c_d, lamc_d, cmeiout_d, precip_liq_surf_d,
-//                                      precip_ice_surf_d, diag_effc_d, diag_effi_d,
-//                                      rho_qi_d, precip_total_tend_d, nevapr_d,
-//                                      qr_evap_tend_d, precip_liq_flux_d, precip_ice_flux_d};
 //P3F::P3Infrastructure infrastructure{dt, it, its, ite, kts, kte,
 //                                     do_predict_nc, col_location_d};
 //P3F::P3HistoryOnly history_only{liq_ice_exchange_d, vap_liq_exchange_d,
@@ -190,19 +217,21 @@ void P3Microphysics::run (const Real dt)
   m_p3_fields_out.at("T").get_header().get_tracking().update_time_stamp(m_current_ts);
 
 
-//  auto qc_d = m_p3_fields_out.at("qc").get_reshaped_view<Pack<Real,16>**>();
-//  auto nc_d = m_p3_fields_out.at("nc").get_reshaped_view<Pack<Real,16>**>();
-//  auto qr_d = m_p3_fields_out.at("qr").get_reshaped_view<Pack<Real,16>**>();
-//  auto nr_d = m_p3_fields_out.at("nr").get_reshaped_view<Pack<Real,16>**>();
-//  auto qi_d = m_p3_fields_out.at("qi").get_reshaped_view<Pack<Real,16>**>();
-//  auto qm_d = m_p3_fields_out.at("qm").get_reshaped_view<Pack<Real,16>**>();
-//  auto ni_d = m_p3_fields_out.at("ni").get_reshaped_view<Pack<Real,16>**>();
-//  auto bm_d = m_p3_fields_out.at("bm").get_reshaped_view<Pack<Real,16>**>();
-//  auto qv_d = m_p3_fields_out.at("qv").get_reshaped_view<Pack<Real,16>**>();
-//  auto th_d = m_p3_fields_out.at("th").get_reshaped_view<Pack<Real,16>**>();
 
+  
+  auto qc_d = m_p3_fields_out.at("qc").get_reshaped_view<Pack<Real,4>**>();
+  auto nc_d = m_p3_fields_out.at("nc").get_reshaped_view<Pack<Real,4>**>();
+  auto qr_d = m_p3_fields_out.at("qr").get_reshaped_view<Pack<Real,4>**>();
+  auto nr_d = m_p3_fields_out.at("nr").get_reshaped_view<Pack<Real,4>**>();
+  auto qi_d = m_p3_fields_out.at("qi").get_reshaped_view<Pack<Real,4>**>();
+  auto qm_d = m_p3_fields_out.at("qm").get_reshaped_view<Pack<Real,4>**>();
+  auto ni_d = m_p3_fields_out.at("ni").get_reshaped_view<Pack<Real,4>**>();
+  auto bm_d = m_p3_fields_out.at("bm").get_reshaped_view<Pack<Real,4>**>();
+  auto qv_d = m_p3_fields_out.at("qv").get_reshaped_view<Pack<Real,4>**>();
+  auto th_d = m_p3_fields_out.at("th").get_reshaped_view<Pack<Real,4>**>();
 
- 
+  std :: cout << "VAR TYPE : " << var_type(&qc_d) << "\n";
+
 
 //  P3F :: P3PrognosticState prog_state{qc_d,nc_d, 
 //				qr_d, nr_d,
@@ -210,9 +239,27 @@ void P3Microphysics::run (const Real dt)
 //                                ni_d, bm_d, 
 //				qv_d, th_d};
 //
-//  P3F::P3DiagnosticInputs diag_inputs{nc_nuceat_tend_d, ni_activated_d, inv_qc_relvar_d, cld_frac_i_d,
-//                                    cld_frac_l_d, cld_frac_r_d, pres_d, dz_d, dpres_d,
-//                                    exner_d};
+//  auto nc_nuceat_tend_d = m_p3_fields_out.at("nc_nuceat_tend").get_reshaped_view<Pack<Real,16>**>();
+//  auto ni_activated_d = m_p3_fields_out.at("ni_activated_tend").get_reshaped_view<Pack<Real,16>**>();
+//  auto inv_qc_relvar_d = m_p3_fields_out.at("inv_qc_relvar").get_reshaped_view<Pack<Real,16>**>();
+//  auto cld_frac_i_d = m_p3_fields_out.at("cld_frac_i").get_reshaped_view<Pack<Real,16>**>();
+//  auto cld_frac_l_d = m_p3_fields_out.at("cld_frac_l").get_reshaped_view<Pack<Real,16>**>();
+//  auto cld_frac_r_d = m_p3_fields_out.at("cld_frac_r").get_reshaped_view<Pack<Real,16>**>();
+//  auto pres_d = m_p3_fields_out.at("pres").get_reshaped_view<Pack<Real,16>**>();
+//  auto dz_d = m_p3_fields_out.at("dz").get_reshaped_view<Pack<Real,16>**>();
+//  auto dpres_d = m_p3_fields_out.at("dpres").get_reshaped_view<Pack<Real,16>**>();
+//  auto exner_d = m_p3_fields_out.at("exner").get_reshaped_view<Pack<Real,16>**>();
+//  
+//
+//  P3F::P3DiagnosticInputs diag_inputs{nc_nuceat_tend_d, ni_activated_d, inv_qc_relvar_d, 
+//				cld_frac_i_d, cld_frac_l_d, cld_frac_r_d, 
+//				pres_d, dz_d, dpres_d, exner_d};
+//
+//
+//
+
+
+
 }
 
 // =========================================================================================
@@ -247,6 +294,7 @@ void P3Microphysics::set_required_field_impl (const Field<const Real, device_typ
 }
 
 void P3Microphysics::set_computed_field_impl (const Field<      Real, device_type>& f) {
+  using namespace ekat::pack;
   // Store a copy of the field. We need this in order to do some tracking updates
   // at the end of the run call. Other than that, there would be really
   // no need to store a scream field here; we could simply set the view ptr

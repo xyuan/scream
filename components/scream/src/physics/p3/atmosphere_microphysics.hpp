@@ -6,6 +6,10 @@
 
 #include <string>
 
+#include "ekat/kokkos/ekat_kokkos_utils.hpp"
+#include "ekat/ekat_pack_kokkos.hpp"
+
+
 namespace scream
 {
 
@@ -21,6 +25,10 @@ namespace scream
 class P3Microphysics : public AtmosphereProcess
 {
 public:
+  std::vector<std::string> p3_inputs = {"q","T","FQ","ast","ni_activated",
+				"nc_nuceat_tend","pmid","dp","zi", "qc", "nc", 
+				"qr" , "nr", "qi", "qm", "ni", "bm", "qv", "th"};
+
   using field_type       = Field<      Real,device_type>;
   using const_field_type = Field<const Real,device_type>;
 
@@ -76,7 +84,7 @@ protected:
   std::map<std::string,const Real*>  m_raw_ptrs_in;
   std::map<std::string,Real*>        m_raw_ptrs_out;
 // DstTraits=Kokkos::ViewTraits<ekat::pack::Pack<scream::Real={double}, 16> **, Kokkos::LayoutRight, ekat::HostDevice>,   SrcTraits=Kokkos::ViewTraits<const scream::Real={double} **, Kokkos::LayoutRight, ekat::HostDevice>
-//
+//Kokkos::View<ekat::pack::Pack<double, 4>**, Kokkos::LayoutRight, Kokkos::Device<Kokkos::OpenMP, Kokkos::HostSpace>, Kokkos::MemoryTraits<1u> >*
   std::map<std::string, Kokkos::View<const scream::Real **, Kokkos::LayoutRight, ekat::HostDevice>>  m_p3_dev_views_in;
   std::map<std::string, Kokkos::View<const scream::Real **, Kokkos::LayoutRight, ekat::HostDevice>>        m_p3_dev_views_out;
 
