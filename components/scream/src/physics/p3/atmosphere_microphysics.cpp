@@ -61,9 +61,6 @@ void P3Microphysics::set_grids(const std::shared_ptr<const GridsManager> grids_m
   // Inputs
   auto nondim = m/m;
 
-  for (auto& i : p3_inputs){
-    std :: cout << "here \n";
-  }
   m_required_fields.emplace("ast",            scalar3d_layout_mid,   nondim, grid_name);
   m_required_fields.emplace("ni_activated",   scalar3d_layout_mid,   1/kg, grid_name);
   m_required_fields.emplace("nc_nuceat_tend", scalar3d_layout_mid,   1/(kg*s), grid_name);
@@ -82,15 +79,18 @@ void P3Microphysics::set_grids(const std::shared_ptr<const GridsManager> grids_m
   m_required_fields.emplace("qv",             tracers_layout,   Pa, grid_name);
   m_required_fields.emplace("th",             tracers_layout,   Pa, grid_name);
   
-//  m_required_fields.emplace("inv_qc_relvar",  scalar3d_layout_int,   Pa, grid_name);
-//  m_required_fields.emplace("cld_frac_i",  scalar3d_layout_int,   Pa, grid_name);
-//  m_required_fields.emplace("cld_frac_l",  scalar3d_layout_int,   Pa, grid_name);
-//  m_required_fields.emplace("cld_frac_r",  scalar3d_layout_int,   Pa, grid_name);
-//  m_required_fields.emplace("pres",  scalar3d_layout_int,   Pa, grid_name);
-//  m_required_fields.emplace("dz",  scalar3d_layout_int,   Pa, grid_name);
-//  m_required_fields.emplace("dpres",  scalar3d_layout_int,   Pa, grid_name);
-//  m_required_fields.emplace("exner",  scalar3d_layout_int,   Pa, grid_name);
-//  
+  m_required_fields.emplace("inv_qc_relvar",  scalar3d_layout_int,   Pa, grid_name);
+  m_required_fields.emplace("cld_frac_i",  scalar3d_layout_int,   Pa, grid_name);
+  m_required_fields.emplace("cld_frac_l",  scalar3d_layout_int,   Pa, grid_name);
+  m_required_fields.emplace("cld_frac_r",  scalar3d_layout_int,   Pa, grid_name);
+  m_required_fields.emplace("pres",  scalar3d_layout_int,   Pa, grid_name);
+  m_required_fields.emplace("dz",  scalar3d_layout_int,   Pa, grid_name);
+  m_required_fields.emplace("dpres",  scalar3d_layout_int,   Pa, grid_name);
+  m_required_fields.emplace("exner",  scalar3d_layout_int,   Pa, grid_name);
+  m_required_fields.emplace("liq_ice_exchange",  scalar3d_layout_int,   Pa, grid_name);
+  m_required_fields.emplace("vap_liq_exchange",  scalar3d_layout_int,   Pa, grid_name);
+  m_required_fields.emplace("vap_ice_exchange",  scalar3d_layout_int,   Pa, grid_name);
+  
   // Input-Outputs
   m_required_fields.emplace("FQ", tracers_layout,      Q, grid_name);
   m_required_fields.emplace("T",  scalar3d_layout_mid, K, grid_name);
@@ -112,15 +112,20 @@ void P3Microphysics::set_grids(const std::shared_ptr<const GridsManager> grids_m
   m_computed_fields.emplace("th",            tracers_layout,   Pa, grid_name);
   
 
-//  m_computed_fields.emplace("inv_qc_relvar",  scalar3d_layout_int,   Pa, grid_name);
-//  m_computed_fields.emplace("cld_frac_i",  scalar3d_layout_int,   Pa, grid_name);
-//  m_computed_fields.emplace("cld_frac_l",  scalar3d_layout_int,   Pa, grid_name);
-//  m_computed_fields.emplace("cld_frac_r",  scalar3d_layout_int,   Pa, grid_name);
-//  m_computed_fields.emplace("pres",  scalar3d_layout_int,   Pa, grid_name);
-//  m_computed_fields.emplace("dz",  scalar3d_layout_int,   Pa, grid_name);
-//  m_computed_fields.emplace("dpres",  scalar3d_layout_int,   Pa, grid_name);
-//  m_computed_fields.emplace("exner",  scalar3d_layout_int,   Pa, grid_name);
-//
+  m_computed_fields.emplace("ni_activated",   scalar3d_layout_mid,   1/kg, grid_name);
+  m_computed_fields.emplace("nc_nuceat_tend", scalar3d_layout_mid,   1/(kg*s), grid_name);
+  m_computed_fields.emplace("inv_qc_relvar",  scalar3d_layout_int,   Pa, grid_name);
+  m_computed_fields.emplace("cld_frac_i",  scalar3d_layout_int,   Pa, grid_name);
+  m_computed_fields.emplace("cld_frac_l",  scalar3d_layout_int,   Pa, grid_name);
+  m_computed_fields.emplace("cld_frac_r",  scalar3d_layout_int,   Pa, grid_name);
+  m_computed_fields.emplace("pres",  scalar3d_layout_int,   Pa, grid_name);
+  m_computed_fields.emplace("dz",  scalar3d_layout_int,   Pa, grid_name);
+  m_computed_fields.emplace("dpres",  scalar3d_layout_int,   Pa, grid_name);
+  m_computed_fields.emplace("exner",  scalar3d_layout_int,   Pa, grid_name);
+  m_computed_fields.emplace("liq_ice_exchange",  scalar3d_layout_int,   Pa, grid_name);
+  m_computed_fields.emplace("vap_liq_exchange",  scalar3d_layout_int,   Pa, grid_name);
+  m_computed_fields.emplace("vap_ice_exchange",  scalar3d_layout_int,   Pa, grid_name);
+
 }
 
 // =========================================================================================
@@ -142,12 +147,12 @@ void P3Microphysics::initialize (const util::TimeStamp& t0)
   // Recall that:
   //  - initable fields may not need initialization (e.g., some other atm proc that
   //    appears earlier in the atm dag might provide them).  
-//  std::vector<std::string> p3_inputs = {"q","T","FQ","ast","ni_activated",
-//				"nc_nuceat_tend","pmid","dp","zi", "qc", "nc", 
-//				"qr" , "nr", "qi", "qm", "ni", "bm", "qv", "th"};
-//			//,
-//			//	"inv_qc_relvar", "cld_frac_i", "cld_frac_l", "cld_frac_r", 
-//			//	"pres", "dz", "dpres", "exner"};
+  std::vector<std::string> p3_inputs = {"q","T","FQ","ast","ni_activated",
+				"nc_nuceat_tend","pmid","dp","zi", "qc", "nc", 
+				"qr" , "nr", "qi", "qm", "ni", "bm", "qv", "th",
+				"inv_qc_relvar", "cld_frac_i", "cld_frac_l", "cld_frac_r", 
+				"pres", "dz", "dpres", "exner", "liq_ice_exchange", 
+				"vap_liq_exchange", "vap_ice_exchange"};
   using strvec = std::vector<std::string>;
   const strvec& allowed_to_init = m_p3_params.get<strvec>("Initializable Inputs",strvec(0));
   const bool can_init_all = m_p3_params.get<bool>("Can Initialize All Inputs", false);
@@ -185,10 +190,6 @@ void P3Microphysics::run (const Real dt)
   using namespace ekat::pack;
   using P3F = Functions<Real, DefaultDevice>;
   
-//P3F::P3Infrastructure infrastructure{dt, it, its, ite, kts, kte,
-//                                     do_predict_nc, col_location_d};
-//P3F::P3HistoryOnly history_only{liq_ice_exchange_d, vap_liq_exchange_d,
-//                                vap_ice_exchange_d};
 //P3F::p3_main(prog_state, diag_inputs, diag_outputs, infrastructure,
 //             history_only, nj, nk);
 //
@@ -205,7 +206,7 @@ void P3Microphysics::run (const Real dt)
     Kokkos::deep_copy(m_p3_host_views_out.at(it.first),it.second.get_view());
   }
   // Call f90 routine
-  p3_main_f90 (dt, m_raw_ptrs_in["zi"], m_raw_ptrs_in["pmid"], m_raw_ptrs_in["dp"], m_raw_ptrs_in["ast"], m_raw_ptrs_in["ni_activated"], m_raw_ptrs_in["nc_nuceat_tend"], m_raw_ptrs_out["q"], m_raw_ptrs_out["FQ"], m_raw_ptrs_out["T"]);
+//  p3_main_f90 (dt, m_raw_ptrs_in["zi"], m_raw_ptrs_in["pmid"], m_raw_ptrs_in["dp"], m_raw_ptrs_in["ast"], m_raw_ptrs_in["ni_activated"], m_raw_ptrs_in["nc_nuceat_tend"], m_raw_ptrs_out["q"], m_raw_ptrs_out["FQ"], m_raw_ptrs_out["T"]);
 
 // Copy outputs back to device
   for (auto& it : m_p3_fields_out) {
@@ -219,46 +220,53 @@ void P3Microphysics::run (const Real dt)
 
 
   
-  auto qc_d = m_p3_fields_out.at("qc").get_reshaped_view<Pack<Real,4>**>();
-  auto nc_d = m_p3_fields_out.at("nc").get_reshaped_view<Pack<Real,4>**>();
-  auto qr_d = m_p3_fields_out.at("qr").get_reshaped_view<Pack<Real,4>**>();
-  auto nr_d = m_p3_fields_out.at("nr").get_reshaped_view<Pack<Real,4>**>();
-  auto qi_d = m_p3_fields_out.at("qi").get_reshaped_view<Pack<Real,4>**>();
-  auto qm_d = m_p3_fields_out.at("qm").get_reshaped_view<Pack<Real,4>**>();
-  auto ni_d = m_p3_fields_out.at("ni").get_reshaped_view<Pack<Real,4>**>();
-  auto bm_d = m_p3_fields_out.at("bm").get_reshaped_view<Pack<Real,4>**>();
-  auto qv_d = m_p3_fields_out.at("qv").get_reshaped_view<Pack<Real,4>**>();
-  auto th_d = m_p3_fields_out.at("th").get_reshaped_view<Pack<Real,4>**>();
+  auto qc_d = m_p3_fields_out.at("qc").get_reshaped_view<Pack<Real,16>**>();
+  auto nc_d = m_p3_fields_out.at("nc").get_reshaped_view<Pack<Real,16>**>();
+  auto qr_d = m_p3_fields_out.at("qr").get_reshaped_view<Pack<Real,16>**>();
+  auto nr_d = m_p3_fields_out.at("nr").get_reshaped_view<Pack<Real,16>**>();
+  auto qi_d = m_p3_fields_out.at("qi").get_reshaped_view<Pack<Real,16>**>();
+  auto qm_d = m_p3_fields_out.at("qm").get_reshaped_view<Pack<Real,16>**>();
+  auto ni_d = m_p3_fields_out.at("ni").get_reshaped_view<Pack<Real,16>**>();
+  auto bm_d = m_p3_fields_out.at("bm").get_reshaped_view<Pack<Real,16>**>();
+  auto qv_d = m_p3_fields_out.at("qv").get_reshaped_view<Pack<Real,16>**>();
+  auto th_d = m_p3_fields_out.at("th").get_reshaped_view<Pack<Real,16>**>();
 
   std :: cout << "VAR TYPE : " << var_type(&qc_d) << "\n";
 
 
-//  P3F :: P3PrognosticState prog_state{qc_d,nc_d, 
-//				qr_d, nr_d,
-//				qi_d, qm_d,
-//                                ni_d, bm_d, 
-//				qv_d, th_d};
-//
-//  auto nc_nuceat_tend_d = m_p3_fields_out.at("nc_nuceat_tend").get_reshaped_view<Pack<Real,16>**>();
-//  auto ni_activated_d = m_p3_fields_out.at("ni_activated_tend").get_reshaped_view<Pack<Real,16>**>();
-//  auto inv_qc_relvar_d = m_p3_fields_out.at("inv_qc_relvar").get_reshaped_view<Pack<Real,16>**>();
-//  auto cld_frac_i_d = m_p3_fields_out.at("cld_frac_i").get_reshaped_view<Pack<Real,16>**>();
-//  auto cld_frac_l_d = m_p3_fields_out.at("cld_frac_l").get_reshaped_view<Pack<Real,16>**>();
-//  auto cld_frac_r_d = m_p3_fields_out.at("cld_frac_r").get_reshaped_view<Pack<Real,16>**>();
-//  auto pres_d = m_p3_fields_out.at("pres").get_reshaped_view<Pack<Real,16>**>();
-//  auto dz_d = m_p3_fields_out.at("dz").get_reshaped_view<Pack<Real,16>**>();
-//  auto dpres_d = m_p3_fields_out.at("dpres").get_reshaped_view<Pack<Real,16>**>();
-//  auto exner_d = m_p3_fields_out.at("exner").get_reshaped_view<Pack<Real,16>**>();
-//  
-//
-//  P3F::P3DiagnosticInputs diag_inputs{nc_nuceat_tend_d, ni_activated_d, inv_qc_relvar_d, 
-//				cld_frac_i_d, cld_frac_l_d, cld_frac_r_d, 
-//				pres_d, dz_d, dpres_d, exner_d};
-//
-//
-//
+  P3F :: P3PrognosticState prog_state{qc_d,nc_d, 
+				qr_d, nr_d,
+				qi_d, qm_d,
+                                ni_d, bm_d, 
+				qv_d, th_d};
+
+  auto nc_nuceat_tend_d = m_p3_fields_out.at("nc_nuceat_tend").get_reshaped_view<Pack<Real,16>**>();
+  auto ni_activated_d = m_p3_fields_out.at("ni_activated").get_reshaped_view<Pack<Real,16>**>();
+  auto inv_qc_relvar_d = m_p3_fields_out.at("inv_qc_relvar").get_reshaped_view<Pack<Real,16>**>();
+  auto cld_frac_i_d = m_p3_fields_out.at("cld_frac_i").get_reshaped_view<Pack<Real,16>**>();
+  auto cld_frac_l_d = m_p3_fields_out.at("cld_frac_l").get_reshaped_view<Pack<Real,16>**>();
+  auto cld_frac_r_d = m_p3_fields_out.at("cld_frac_r").get_reshaped_view<Pack<Real,16>**>();
+  auto pres_d = m_p3_fields_out.at("pres").get_reshaped_view<Pack<Real,16>**>();
+  auto dz_d = m_p3_fields_out.at("dz").get_reshaped_view<Pack<Real,16>**>();
+  auto dpres_d = m_p3_fields_out.at("dpres").get_reshaped_view<Pack<Real,16>**>();
+  auto exner_d = m_p3_fields_out.at("exner").get_reshaped_view<Pack<Real,16>**>();
+  
+
+  P3F::P3DiagnosticInputs diag_inputs{nc_nuceat_tend_d, ni_activated_d, inv_qc_relvar_d, 
+				cld_frac_i_d, cld_frac_l_d, cld_frac_r_d, 
+				pres_d, dz_d, dpres_d, exner_d};
 
 
+  auto liq_ice_exchange_d = m_p3_fields_out.at("liq_ice_exchange").get_reshaped_view<Pack<Real,16>**>();
+  auto vap_liq_exchange_d = m_p3_fields_out.at("vap_liq_exchange").get_reshaped_view<Pack<Real,16>**>();
+  auto vap_ice_exchange_d = m_p3_fields_out.at("vap_ice_exchange").get_reshaped_view<Pack<Real,16>**>();
+
+
+P3F::P3HistoryOnly history_only{liq_ice_exchange_d, vap_liq_exchange_d,
+                                vap_ice_exchange_d};
+
+//P3F::P3Infrastructure infrastructure{dt, it, its, ite, kts, kte,
+//                                     do_predict_nc, col_location_d};
 
 }
 
@@ -270,11 +278,15 @@ void P3Microphysics::finalize()
 
 // =========================================================================================
 void P3Microphysics::register_fields (FieldRepository<Real, device_type>& field_repo) const {
+  using namespace ekat::pack;
+
   for (auto& fid : m_required_fields) {
-    field_repo.register_field(fid);
+    field_repo.register_field<Pack<Real,16>>(fid);
+   // field_repo.register_field(fid);
   }
   for (auto& fid : m_computed_fields) {
-    field_repo.register_field(fid);
+    field_repo.register_field<Pack<Real,16>>(fid);
+   // field_repo.register_field(fid);
   }
 }
 

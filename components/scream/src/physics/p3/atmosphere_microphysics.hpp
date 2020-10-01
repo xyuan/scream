@@ -25,9 +25,6 @@ namespace scream
 class P3Microphysics : public AtmosphereProcess
 {
 public:
-  std::vector<std::string> p3_inputs = {"q","T","FQ","ast","ni_activated",
-				"nc_nuceat_tend","pmid","dp","zi", "qc", "nc", 
-				"qr" , "nr", "qi", "qm", "ni", "bm", "qv", "th"};
 
   using field_type       = Field<      Real,device_type>;
   using const_field_type = Field<const Real,device_type>;
