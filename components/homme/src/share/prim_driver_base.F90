@@ -1029,7 +1029,7 @@ contains
     integer :: ie,i,j,k,n,q,t,scm_dum
     integer :: n0_qdp,np1_qdp,r,nstep_end,nets_in,nete_in,step_factor
     logical :: compute_diagnostics, independent_time_steps
-    real(kind=real_kind) :: Q_temp(np,np,nlev), dp_array(np,np,nlev)
+    real(kind=real_kind) :: Q_temp(np,np,nlev), dp_array(np,np,nlev), ps_v_local(np,np)
 
     ! Use the flexible time stepper if dt_remap_factor == 0 (vertically Eulerian
     ! dynamics) or dt_remap < dt_tracer. This applies to SL transport only.
@@ -1119,19 +1119,20 @@ contains
       if (compute_diagnostics) call run_diagnostics(elem,hvcoord,tl,4,.false.,nets,nete)
 
       ! Record the horizontal advection completed
-       do k=1,nlev
-         dp_array(:,:,k) = ( hvcoord%hyai(k+1) - hvcoord%hyai(k) )*hvcoord%ps0 + &
-              ( hvcoord%hybi(k+1) - hvcoord%hybi(k))*elem(ie)%state%ps_v(:,:,tl%np1)
-         write(iulog,*) 'dp_array', dp_array(1,1,k), k 
-       end do
-       do q=1,qsize
-         do ie = nets,nete
-           !Q_temp(:,:,:)=elem(ie)%state%Qdp(:,:,:,q,np1_qdp)/dp_array(:,:,:)
-           Q_temp(:,:,:)=elem(ie)%state%Qdp(:,:,:,q,np1_qdp)
-           elem(ie)%derived%dQ_horiz(:,:,:,q) = elem(ie)%derived%dQ_horiz(:,:,:,q) + (Q_temp -elem(ie)%derived%Q_reference(:,:,:,q))
-           elem(ie)%derived%Q_reference(:,:,:,q) = Q_temp
-         end do
-       enddo
+      do ie = nets,nete
+        ps_v_local(:,:) = hvcoord%hyai(1)*hvcoord%ps0 + sum(elem(ie)%state%dp3d(:,:,:,np1),3)
+        do k=1,nlev
+          dp_array(:,:,k) = ( hvcoord%hyai(k+1) - hvcoord%hyai(k) )*hvcoord%ps0 + &
+               ( hvcoord%hybi(k+1) - hvcoord%hybi(k))*ps_v_local(:,:)
+          write(iulog,*) 'dp_array', dp_array(1,1,k), k 
+        end do
+        do q=1,qsize
+            !Q_temp(:,:,:)=elem(ie)%state%Qdp(:,:,:,q,np1_qdp)/dp_array(:,:,:)
+            Q_temp(:,:,:)=elem(ie)%state%Qdp(:,:,:,q,np1_qdp)
+            elem(ie)%derived%dQ_horiz(:,:,:,q) = elem(ie)%derived%dQ_horiz(:,:,:,q) + (Q_temp -elem(ie)%derived%Q_reference(:,:,:,q))
+            elem(ie)%derived%Q_reference(:,:,:,q) = Q_temp
+        end do
+      enddo
 
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !  apply vertical remap
