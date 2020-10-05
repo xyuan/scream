@@ -59,7 +59,7 @@ set stop_units                  = ndays
 set stop_num                    = 12 
 set restart_units               = $stop_units
 set restart_num                 = $stop_num
-set num_resubmits               = 20
+set num_resubmits               = 0
 set do_short_term_archiving     = false
 
 ### SIMULATION OPTIONS
@@ -984,8 +984,9 @@ cat <<EOF >> user_nl_cam
  micro_aerosolactivation = .false.
  rrtmgp_clip_temperatures = .true. 
  NHTFRQ = 120, 120, 120 
- fincl2 = 'TMQ:I','CLOUD:I','PRECL:I','U:I','V:I','OMEGA:I','Q:I','T:I','CLDLIQ:I','CLDICE:I','CLDRIM','QRL:I','QRS:I','AQRAIN:I','vap_cld_exchange:I','vap_ice_exchange:I','liq_ice_exchange:I','vap_liq_exchange:I','P3_mtend_CLDICE:I','P3_mtend_CLDRAIN:I','P3_mtend_CLDLIQ:I','P3_mtend_NUMICE:I','P3_mtend_NUMRAIN:I','P3_sed_CLDICE:I','P3_sed_CLDRAIN:I','P3_qrevp:I','P3_qcacc:I','P3_qcaut:I','P3_qimlt:I','CLDLIQshoc_tend:I','CLDICEshoc_tend:I','CLDLIQ_tend_advective:I','CLDICE_tend_advective:I','Q_tend_advective:I','Qshoc_tend:I','SHFLX:I','LHFLX:I','LWCF:I','SWCF:I','FLNS:I','FLNT:I','FSNS:I','FSNT:I','Z3:I','Q_tend_advective_vert:I','Q_tend_advective_horiz:I','CLDICE_tend_advective_vert:I','CLDICE_tend_advective_horiz:I'
+ fincl2 = 'TMQ:I','CLOUD:I','PRECL:I','U:I','V:I','OMEGA:I','Q:I','T:I','CLDLIQ:I','CLDICE:I','CLDRIM','QRL:I','QRS:I','AQRAIN:I','vap_cld_exchange:I','vap_ice_exchange:I','liq_ice_exchange:I','vap_liq_exchange:I','P3_mtend_CLDICE:I','P3_mtend_CLDRAIN:I','P3_mtend_CLDLIQ:I','P3_mtend_NUMICE:I','P3_mtend_NUMRAIN:I','P3_sed_CLDICE:I','P3_sed_CLDRAIN:I','P3_qrevp:I','P3_qcacc:I','P3_qcaut:I','P3_qimlt:I','CLDLIQshoc_tend:I','CLDICEshoc_tend:I','CLDLIQ_tend_advective:I','CLDICE_tend_advective:I','Q_tend_advective:I','Qshoc_tend:I','SHFLX:I','LHFLX:I','LWCF:I','SWCF:I','FLNS:I','FLNT:I','FSNS:I','FSNT:I','Z3:I'
  fincl3 = 'TMQ','CLOUD','PRECL','U','V','OMEGA','Q','T','CLDLIQ','CLDICE','CLDRIM','QRL','QRS','AQRAIN','vap_cld_exchange','vap_ice_exchange','liq_ice_exchange','vap_liq_exchange','P3_mtend_CLDICE','P3_mtend_CLDRAIN','P3_mtend_CLDLIQ','P3_mtend_NUMICE','P3_mtend_NUMRAIN','P3_sed_CLDICE','P3_sed_CLDRAIN','P3_qrevp','P3_qcacc','P3_qcaut','P3_qimlt','CLDLIQshoc_tend','CLDICEshoc_tend','CLDLIQ_tend_advective','CLDICE_tend_advective','Q_tend_advective','Qshoc_tend','SHFLX','LHFLX','LWCF','SWCF','FLNS','FLNT','FSNS','FSNT','Z3'
+fincl4 = 'Q_tend_adv_vert:I'
 EOF
 
 cat <<EOF >> user_nl_clm

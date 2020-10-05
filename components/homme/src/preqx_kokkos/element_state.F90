@@ -84,6 +84,10 @@ module element_state
     real (kind=real_kind) :: FT(np,np,nlev)                           ! temperature forcing
     real (kind=real_kind) :: FQps(np,np)                              ! forcing of FQ on ps_v
 
+    real (kind=real_kind) :: Q_reference(np,np,nlev,qsize_d)          !Reference Q used to determine advective tendencies Hassan
+    real (kind=real_kind) :: dQ_horiz(np,np,nlev,qsize_d)             !horizontal advection tendency
+    real (kind=real_kind) :: dQ_verti(np,np,nlev,qsize_d)             !vertical advection tendency
+
   end type derived_state_t
   
 
