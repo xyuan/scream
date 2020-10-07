@@ -90,6 +90,7 @@ void P3Microphysics::set_grids(const std::shared_ptr<const GridsManager> grids_m
   m_required_fields.emplace("liq_ice_exchange",  scalar3d_layout_int,   Pa, grid_name);
   m_required_fields.emplace("vap_liq_exchange",  scalar3d_layout_int,   Pa, grid_name);
   m_required_fields.emplace("vap_ice_exchange",  scalar3d_layout_int,   Pa, grid_name);
+  m_required_fields.emplace("col_location",  scalar3d_layout_int,   Pa, grid_name);
   
   m_required_fields.emplace("mu_c",  scalar3d_layout_int,   Pa, grid_name);
   m_required_fields.emplace("lamc",  scalar3d_layout_int,   Pa, grid_name);
@@ -138,7 +139,7 @@ void P3Microphysics::set_grids(const std::shared_ptr<const GridsManager> grids_m
   m_computed_fields.emplace("exner",  scalar3d_layout_int,   Pa, grid_name);
   m_computed_fields.emplace("liq_ice_exchange",  scalar3d_layout_int,   Pa, grid_name);
   m_computed_fields.emplace("vap_liq_exchange",  scalar3d_layout_int,   Pa, grid_name);
-  m_computed_fields.emplace("vap_ice_exchange",  scalar3d_layout_int,   Pa, grid_name);
+  m_computed_fields.emplace("col_location",  scalar3d_layout_int,   Pa, grid_name);
 
   m_computed_fields.emplace("mu_c",  scalar3d_layout_int,   Pa, grid_name);
   m_computed_fields.emplace("lamc",  scalar3d_layout_int,   Pa, grid_name);
@@ -182,7 +183,8 @@ void P3Microphysics::initialize (const util::TimeStamp& t0)
 				"vap_liq_exchange", "vap_ice_exchange", "mu_c", "lamc",
 				"cmeiout", "precip_liq_surf", "precip_ice_surf", "diag_effc",
 				"diag_effi", "rho_qi", "precip_total_tend", "nevapr",
-				"qr_evap_tend", "precip_liq_flux", "precip_ice_flux"};
+				"qr_evap_tend", "precip_liq_flux", "precip_ice_flux", 
+				"col_location"};
   using strvec = std::vector<std::string>;
   const strvec& allowed_to_init = m_p3_params.get<strvec>("Initializable Inputs",strvec(0));
   const bool can_init_all = m_p3_params.get<bool>("Can Initialize All Inputs", false);
@@ -306,28 +308,35 @@ void P3Microphysics::run (const Real dt)
   auto liq_ice_exchange_d = m_p3_fields_out.at("liq_ice_exchange").get_reshaped_view<Pack<Real,16>**>();
   auto vap_liq_exchange_d = m_p3_fields_out.at("vap_liq_exchange").get_reshaped_view<Pack<Real,16>**>();
   auto vap_ice_exchange_d = m_p3_fields_out.at("vap_ice_exchange").get_reshaped_view<Pack<Real,16>**>();
+  auto col_location_d = m_p3_fields_out.at("col_location").get_reshaped_view<Pack<Real,16>**>();
 
 
-P3F::P3HistoryOnly history_only{liq_ice_exchange_d, vap_liq_exchange_d,
+  P3F::P3HistoryOnly history_only{liq_ice_exchange_d, vap_liq_exchange_d,
                                 vap_ice_exchange_d};
 
-//its = 1
-//ite = ncols
-//
-//kts = nlev
-//kte = 1 
-//
-//do_predict_nc = true
-//col_location_d = 0 TODO: only dummy value; need to do lat/long 
+  Int its = 1;
+  //ite = ncols
+  Int ite = 1; // dummy
+
+  Int it = 1; //dummy, ask Aaron 
+ 
+  Int kts = 1; //temp dummy
+
+  //kts = nlev
+  Int kte = 1; 
+
+  bool do_predict_nc = true;
 
 
-//nj = ncols
-//nk = nlev
+//  nj = ncols
+//  nj = ncols
+//  nk = nlev
 //  const Int nj    = (ite - its) + 1; 
 //  const Int nk    = (kte - kts) + 1;
 
-//P3F::P3Infrastructure infrastructure{dt, it, its, ite, kts, kte,
-//                                     do_predict_nc, col_location_d};
+
+P3F::P3Infrastructure infrastructure{dt, it, its, ite, kts, kte,
+                                     do_predict_nc, blah};
 
 
 
