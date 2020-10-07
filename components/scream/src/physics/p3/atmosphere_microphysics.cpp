@@ -90,7 +90,7 @@ void P3Microphysics::set_grids(const std::shared_ptr<const GridsManager> grids_m
   m_required_fields.emplace("liq_ice_exchange",  scalar3d_layout_int,   Pa, grid_name);
   m_required_fields.emplace("vap_liq_exchange",  scalar3d_layout_int,   Pa, grid_name);
   m_required_fields.emplace("vap_ice_exchange",  scalar3d_layout_int,   Pa, grid_name);
-  m_required_fields.emplace("col_location",  scalar3d_layout_int,   Pa, grid_name);
+  //m_required_fields.emplace("col_location",  scalar3d_layout_int,   Pa, grid_name);
   
   m_required_fields.emplace("mu_c",  scalar3d_layout_int,   Pa, grid_name);
   m_required_fields.emplace("lamc",  scalar3d_layout_int,   Pa, grid_name);
@@ -139,7 +139,7 @@ void P3Microphysics::set_grids(const std::shared_ptr<const GridsManager> grids_m
   m_computed_fields.emplace("exner",  scalar3d_layout_int,   Pa, grid_name);
   m_computed_fields.emplace("liq_ice_exchange",  scalar3d_layout_int,   Pa, grid_name);
   m_computed_fields.emplace("vap_liq_exchange",  scalar3d_layout_int,   Pa, grid_name);
-  m_computed_fields.emplace("col_location",  scalar3d_layout_int,   Pa, grid_name);
+//  m_computed_fields.emplace("col_location",  scalar3d_layout_int,   Pa, grid_name);
 
   m_computed_fields.emplace("mu_c",  scalar3d_layout_int,   Pa, grid_name);
   m_computed_fields.emplace("lamc",  scalar3d_layout_int,   Pa, grid_name);
@@ -183,8 +183,9 @@ void P3Microphysics::initialize (const util::TimeStamp& t0)
 				"vap_liq_exchange", "vap_ice_exchange", "mu_c", "lamc",
 				"cmeiout", "precip_liq_surf", "precip_ice_surf", "diag_effc",
 				"diag_effi", "rho_qi", "precip_total_tend", "nevapr",
-				"qr_evap_tend", "precip_liq_flux", "precip_ice_flux", 
-				"col_location"};
+				"qr_evap_tend", "precip_liq_flux", "precip_ice_flux"};
+  
+
   using strvec = std::vector<std::string>;
   const strvec& allowed_to_init = m_p3_params.get<strvec>("Initializable Inputs",strvec(0));
   const bool can_init_all = m_p3_params.get<bool>("Can Initialize All Inputs", false);
@@ -263,12 +264,12 @@ void P3Microphysics::run (const Real dt)
   std :: cout << "VAR TYPE : " << var_type(&qc_d) << "\n";
 
 
-  P3F :: P3PrognosticState prog_state{qc_d,nc_d, 
-				qr_d, nr_d,
-				qi_d, qm_d,
-                                ni_d, bm_d, 
-				qv_d, th_d};
-
+//  P3F :: P3PrognosticState prog_state{qc_d,nc_d, 
+//				qr_d, nr_d,
+//				qi_d, qm_d,
+//                                ni_d, bm_d, 
+//				qv_d, th_d};
+//
   auto nc_nuceat_tend_d = m_p3_fields_out.at("nc_nuceat_tend").get_reshaped_view<Pack<Real,16>**>();
   auto ni_activated_d = m_p3_fields_out.at("ni_activated").get_reshaped_view<Pack<Real,16>**>();
   auto inv_qc_relvar_d = m_p3_fields_out.at("inv_qc_relvar").get_reshaped_view<Pack<Real,16>**>();
@@ -281,10 +282,10 @@ void P3Microphysics::run (const Real dt)
   auto exner_d = m_p3_fields_out.at("exner").get_reshaped_view<Pack<Real,16>**>();
   
 
-  P3F::P3DiagnosticInputs diag_inputs{nc_nuceat_tend_d, ni_activated_d, inv_qc_relvar_d, 
-				cld_frac_i_d, cld_frac_l_d, cld_frac_r_d, 
-				pres_d, dz_d, dpres_d, exner_d};
-
+//  P3F::P3DiagnosticInputs diag_inputs{nc_nuceat_tend_d, ni_activated_d, inv_qc_relvar_d, 
+//				cld_frac_i_d, cld_frac_l_d, cld_frac_r_d, 
+//				pres_d, dz_d, dpres_d, exner_d};
+//
   auto mu_c_d = m_p3_fields_out.at("mu_c").get_reshaped_view<Pack<Real,16>**>();
   auto lamc_d = m_p3_fields_out.at("lamc").get_reshaped_view<Pack<Real,16>**>();
   auto cmeiout_d = m_p3_fields_out.at("cmeiout").get_reshaped_view<Pack<Real,16>**>();
@@ -308,25 +309,26 @@ void P3Microphysics::run (const Real dt)
   auto liq_ice_exchange_d = m_p3_fields_out.at("liq_ice_exchange").get_reshaped_view<Pack<Real,16>**>();
   auto vap_liq_exchange_d = m_p3_fields_out.at("vap_liq_exchange").get_reshaped_view<Pack<Real,16>**>();
   auto vap_ice_exchange_d = m_p3_fields_out.at("vap_ice_exchange").get_reshaped_view<Pack<Real,16>**>();
-  auto col_location_d = m_p3_fields_out.at("col_location").get_reshaped_view<Pack<Real,16>**>();
 
+//  auto col_location_d = m_p3_fields_out.at("col_location").get_reshaped_view<Real **>();
+//  auto col_location_h = Kokkos::create_mirror_view(col_location_d);  
 
-  P3F::P3HistoryOnly history_only{liq_ice_exchange_d, vap_liq_exchange_d,
-                                vap_ice_exchange_d};
-
-  Int its = 1;
-  //ite = ncols
-  Int ite = 1; // dummy
-
-  Int it = 1; //dummy, ask Aaron 
- 
-  Int kts = 1; //temp dummy
-
-  //kts = nlev
-  Int kte = 1; 
-
-  bool do_predict_nc = true;
-
+//  P3F::P3HistoryOnly history_only{liq_ice_exchange_d, vap_liq_exchange_d,
+//                                vap_ice_exchange_d};
+//
+//  Int its = 1;
+//  //ite = ncols
+//  Int ite = 1; // dummy
+//
+//  Int it = 1; //dummy, ask Aaron 
+// 
+//  Int kts = 1; //temp dummy
+//
+//  //kts = nlev
+//  Int kte = 1; 
+//
+//  bool do_predict_nc = true;
+//
 
 //  nj = ncols
 //  nj = ncols
@@ -335,8 +337,8 @@ void P3Microphysics::run (const Real dt)
 //  const Int nk    = (kte - kts) + 1;
 
 
-P3F::P3Infrastructure infrastructure{dt, it, its, ite, kts, kte,
-                                     do_predict_nc, blah};
+//  P3F::P3Infrastructure infrastructure{dt, it, its, ite, kts, kte,
+//                                     do_predict_nc, col_location_h};
 
 
 
