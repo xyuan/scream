@@ -91,6 +91,20 @@ void P3Microphysics::set_grids(const std::shared_ptr<const GridsManager> grids_m
   m_required_fields.emplace("vap_liq_exchange",  scalar3d_layout_int,   Pa, grid_name);
   m_required_fields.emplace("vap_ice_exchange",  scalar3d_layout_int,   Pa, grid_name);
   
+  m_required_fields.emplace("mu_c",  scalar3d_layout_int,   Pa, grid_name);
+  m_required_fields.emplace("lamc",  scalar3d_layout_int,   Pa, grid_name);
+  m_required_fields.emplace("cmeiout",  scalar3d_layout_int,   Pa, grid_name);
+  m_required_fields.emplace("precip_liq_surf",  scalar3d_layout_int,   Pa, grid_name);
+  m_required_fields.emplace("precip_ice_surf",  scalar3d_layout_int,   Pa, grid_name);
+  m_required_fields.emplace("diag_effc",  scalar3d_layout_int,   Pa, grid_name);
+  m_required_fields.emplace("diag_effi",  scalar3d_layout_int,   Pa, grid_name);
+  m_required_fields.emplace("rho_qi",  scalar3d_layout_int,   Pa, grid_name);
+  m_required_fields.emplace("precip_total_tend",  scalar3d_layout_int,   Pa, grid_name);
+  m_required_fields.emplace("nevapr",  scalar3d_layout_int,   Pa, grid_name);
+  m_required_fields.emplace("qr_evap_tend",  scalar3d_layout_int,   Pa, grid_name);
+  m_required_fields.emplace("precip_liq_flux",  scalar3d_layout_int,   Pa, grid_name);
+  m_required_fields.emplace("precip_ice_flux",  scalar3d_layout_int,   Pa, grid_name);
+  
   // Input-Outputs
   m_required_fields.emplace("FQ", tracers_layout,      Q, grid_name);
   m_required_fields.emplace("T",  scalar3d_layout_mid, K, grid_name);
@@ -126,6 +140,19 @@ void P3Microphysics::set_grids(const std::shared_ptr<const GridsManager> grids_m
   m_computed_fields.emplace("vap_liq_exchange",  scalar3d_layout_int,   Pa, grid_name);
   m_computed_fields.emplace("vap_ice_exchange",  scalar3d_layout_int,   Pa, grid_name);
 
+  m_computed_fields.emplace("mu_c",  scalar3d_layout_int,   Pa, grid_name);
+  m_computed_fields.emplace("lamc",  scalar3d_layout_int,   Pa, grid_name);
+  m_computed_fields.emplace("cmeiout",  scalar3d_layout_int,   Pa, grid_name);
+  m_computed_fields.emplace("precip_liq_surf",  scalar3d_layout_int,   Pa, grid_name);
+  m_computed_fields.emplace("precip_ice_surf",  scalar3d_layout_int,   Pa, grid_name);
+  m_computed_fields.emplace("diag_effc",  scalar3d_layout_int,   Pa, grid_name);
+  m_computed_fields.emplace("diag_effi",  scalar3d_layout_int,   Pa, grid_name);
+  m_computed_fields.emplace("rho_qi",  scalar3d_layout_int,   Pa, grid_name);
+  m_computed_fields.emplace("precip_total_tend",  scalar3d_layout_int,   Pa, grid_name);
+  m_computed_fields.emplace("nevapr",  scalar3d_layout_int,   Pa, grid_name);
+  m_computed_fields.emplace("qr_evap_tend",  scalar3d_layout_int,   Pa, grid_name);
+  m_computed_fields.emplace("precip_liq_flux",  scalar3d_layout_int,   Pa, grid_name);
+  m_computed_fields.emplace("precip_ice_flux",  scalar3d_layout_int,   Pa, grid_name);
 }
 
 // =========================================================================================
@@ -152,7 +179,10 @@ void P3Microphysics::initialize (const util::TimeStamp& t0)
 				"qr" , "nr", "qi", "qm", "ni", "bm", "qv", "th",
 				"inv_qc_relvar", "cld_frac_i", "cld_frac_l", "cld_frac_r", 
 				"pres", "dz", "dpres", "exner", "liq_ice_exchange", 
-				"vap_liq_exchange", "vap_ice_exchange"};
+				"vap_liq_exchange", "vap_ice_exchange", "mu_c", "lamc",
+				"cmeiout", "precip_liq_surf", "precip_ice_surf", "diag_effc",
+				"diag_effi", "rho_qi", "precip_total_tend", "nevapr",
+				"qr_evap_tend", "precip_liq_flux", "precip_ice_flux"};
   using strvec = std::vector<std::string>;
   const strvec& allowed_to_init = m_p3_params.get<strvec>("Initializable Inputs",strvec(0));
   const bool can_init_all = m_p3_params.get<bool>("Can Initialize All Inputs", false);
@@ -190,9 +220,6 @@ void P3Microphysics::run (const Real dt)
   using namespace ekat::pack;
   using P3F = Functions<Real, DefaultDevice>;
   
-//P3F::p3_main(prog_state, diag_inputs, diag_outputs, infrastructure,
-//             history_only, nj, nk);
-//
 // std::array<const char*, num_views> view_names = {"q", "FQ", "T", "zi", "pmid", "dpres", "ast", "ni_activated", "nc_nuceat_tend"};
 
   std::vector<const Real*> in;
@@ -256,7 +283,26 @@ void P3Microphysics::run (const Real dt)
 				cld_frac_i_d, cld_frac_l_d, cld_frac_r_d, 
 				pres_d, dz_d, dpres_d, exner_d};
 
+  auto mu_c_d = m_p3_fields_out.at("mu_c").get_reshaped_view<Pack<Real,16>**>();
+  auto lamc_d = m_p3_fields_out.at("lamc").get_reshaped_view<Pack<Real,16>**>();
+  auto cmeiout_d = m_p3_fields_out.at("cmeiout").get_reshaped_view<Pack<Real,16>**>();
+  auto precip_liq_surf_d = m_p3_fields_out.at("precip_liq_surf").get_reshaped_view<Pack<Real,16>**>();
+  auto precip_ice_surf_d = m_p3_fields_out.at("precip_ice_surf").get_reshaped_view<Pack<Real,16>**>();
+  auto diag_effc_d = m_p3_fields_out.at("diag_effc").get_reshaped_view<Pack<Real,16>**>();
+  auto diag_effi_d = m_p3_fields_out.at("diag_effi").get_reshaped_view<Pack<Real,16>**>();
+  auto rho_qi_d = m_p3_fields_out.at("rho_qi").get_reshaped_view<Pack<Real,16>**>();
+  auto precip_total_tend_d = m_p3_fields_out.at("precip_total_tend").get_reshaped_view<Pack<Real,16>**>();
+  auto nevapr_d = m_p3_fields_out.at("nevapr").get_reshaped_view<Pack<Real,16>**>();
+  auto qr_evap_tend_d = m_p3_fields_out.at("qr_evap_tend").get_reshaped_view<Pack<Real,16>**>();
+  auto precip_liq_flux_d = m_p3_fields_out.at("precip_liq_flux").get_reshaped_view<Pack<Real,16>**>();
+  auto precip_ice_flux_d = m_p3_fields_out.at("precip_ice_flux").get_reshaped_view<Pack<Real,16>**>();
+  
 
+//  P3F::P3DiagnosticOutputs diag_outputs{mu_c_d, lamc_d, cmeiout_d, precip_liq_surf_d,
+//                                        precip_ice_surf_d, diag_effc_d, diag_effi_d,
+//                                        rho_qi_d, precip_total_tend_d, nevapr_d,
+//                                        qr_evap_tend_d, precip_liq_flux_d, precip_ice_flux_d};
+//
   auto liq_ice_exchange_d = m_p3_fields_out.at("liq_ice_exchange").get_reshaped_view<Pack<Real,16>**>();
   auto vap_liq_exchange_d = m_p3_fields_out.at("vap_liq_exchange").get_reshaped_view<Pack<Real,16>**>();
   auto vap_ice_exchange_d = m_p3_fields_out.at("vap_ice_exchange").get_reshaped_view<Pack<Real,16>**>();
@@ -265,9 +311,29 @@ void P3Microphysics::run (const Real dt)
 P3F::P3HistoryOnly history_only{liq_ice_exchange_d, vap_liq_exchange_d,
                                 vap_ice_exchange_d};
 
+//its = 1
+//ite = ncols
+//
+//kts = nlev
+//kte = 1 
+//
+//do_predict_nc = true
+//col_location_d = 0 TODO: only dummy value; need to do lat/long 
+
+
+//nj = ncols
+//nk = nlev
+//  const Int nj    = (ite - its) + 1; 
+//  const Int nk    = (kte - kts) + 1;
+
 //P3F::P3Infrastructure infrastructure{dt, it, its, ite, kts, kte,
 //                                     do_predict_nc, col_location_d};
 
+
+
+//P3F::p3_main(prog_state, diag_inputs, diag_outputs, infrastructure,
+//             history_only, nj, nk);
+//
 }
 
 // =========================================================================================
@@ -282,11 +348,9 @@ void P3Microphysics::register_fields (FieldRepository<Real, device_type>& field_
 
   for (auto& fid : m_required_fields) {
     field_repo.register_field<Pack<Real,16>>(fid);
-   // field_repo.register_field(fid);
   }
   for (auto& fid : m_computed_fields) {
     field_repo.register_field<Pack<Real,16>>(fid);
-   // field_repo.register_field(fid);
   }
 }
 
