@@ -21,6 +21,8 @@ public:
     return m_fields_id;
   }
 
+  std::vector<std::string> p3_inputs;
+
 protected:
 
   void add_field (const field_type& f);

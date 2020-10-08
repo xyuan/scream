@@ -6,8 +6,29 @@
 namespace scream
 {
 
+const int INPUT_SIZE = 44;
+
+//Layout options are set as an int 
+//to be passed into the GridOpts struct
+const int SCALAR_3D_MID = 0;
+const int SCALAR_3D_INT = 1;
+const int VECTOR_3D_MID = 2;
+const int TRACERS = 3;
+const int LINEAR = 4;
+
 void P3InputsInitializer::add_field (const field_type &f)
 {
+p3_inputs = {"q","T","FQ","ast","ni_activated",
+		"nc_nuceat_tend","pmid","dp","zi", "qc", "nc", 
+		"qr" , "nr", "qi", "qm", "ni", "bm", "qv", "th",
+		"inv_qc_relvar", "cld_frac_i", "cld_frac_l", "cld_frac_r", 
+		"pres", "dz", "dpres", "exner", "liq_ice_exchange", 
+		"vap_liq_exchange", "vap_ice_exchange", "mu_c", "lamc",
+		"cmeiout", "precip_liq_surf", "precip_ice_surf", "diag_effc",
+		"diag_effi", "rho_qi", "precip_total_tend", "nevapr",
+		"qr_evap_tend", "precip_liq_flux", "precip_ice_flux",
+		"col_location"};
+
   const auto& id = f.get_header().get_identifier();
   
   m_fields.emplace(id.name(),f);
@@ -19,21 +40,26 @@ void P3InputsInitializer::initialize_fields ()
 {
   // Safety check: if we're asked to init anything at all,
   // then we should have been asked to init 7 fields.
+//  int count = 0;
+//  count += m_fields.count("q");
+//  count += m_fields.count("T");
+//  count += m_fields.count("ast");
+//  count += m_fields.count("ni_activated");
+//  count += m_fields.count("nc_nuceat_tend");
+//  count += m_fields.count("pmid");
+//  count += m_fields.count("dp");
+//  count += m_fields.count("zi");
+//  
+//  check if p3 inputs have been registered as fields
   int count = 0;
-  count += m_fields.count("q");
-  count += m_fields.count("T");
-  count += m_fields.count("ast");
-  count += m_fields.count("ni_activated");
-  count += m_fields.count("nc_nuceat_tend");
-  count += m_fields.count("pmid");
-  count += m_fields.count("dp");
-  count += m_fields.count("zi");
-
+  for (int j = 0; j < p3_inputs.size(); j++){
+    count += m_fields.count(p3_inputs[j]);
+  } 
   if (count==0) {
     return;
   }
 
-  EKAT_REQUIRE_MSG (count==8,
+  EKAT_REQUIRE_MSG (count==INPUT_SIZE,
     "Error! P3InputsInitializer is expected to init 'q','T','ast','ni_activated','nc_nuceat_tend','pmid','dp','zi'.\n"
     "       Only " + std::to_string(count) + " of those have been found.\n"
     "       Please, check the atmosphere processes you are using,"

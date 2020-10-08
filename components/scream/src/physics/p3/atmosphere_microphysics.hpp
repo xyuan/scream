@@ -80,11 +80,7 @@ protected:
 
   std::map<std::string,const Real*>  m_raw_ptrs_in;
   std::map<std::string,Real*>        m_raw_ptrs_out;
-// DstTraits=Kokkos::ViewTraits<ekat::pack::Pack<scream::Real={double}, 16> **, Kokkos::LayoutRight, ekat::HostDevice>,   SrcTraits=Kokkos::ViewTraits<const scream::Real={double} **, Kokkos::LayoutRight, ekat::HostDevice>
-//Kokkos::View<ekat::pack::Pack<double, 4>**, Kokkos::LayoutRight, Kokkos::Device<Kokkos::OpenMP, Kokkos::HostSpace>, Kokkos::MemoryTraits<1u> >*
-  std::map<std::string, Kokkos::View<const scream::Real **, Kokkos::LayoutRight, ekat::HostDevice>>  m_p3_dev_views_in;
-  std::map<std::string, Kokkos::View<const scream::Real **, Kokkos::LayoutRight, ekat::HostDevice>>        m_p3_dev_views_out;
-
+  
   // Used to init some fields. For now, only needed for stand-alone p3 runs
   std::shared_ptr<FieldInitializer>  m_initializer;
 
@@ -93,6 +89,9 @@ protected:
 
   ekat::ParameterList     m_p3_params;
 
+
+  Int 		  m_num_dofs;
+  Int               m_num_levs;  
 }; // class P3Microphysics
 
 } // namespace scream
