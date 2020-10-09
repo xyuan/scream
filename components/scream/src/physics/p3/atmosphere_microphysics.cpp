@@ -1,6 +1,7 @@
 #include "physics/p3/scream_p3_interface.hpp"
 #include "physics/p3/atmosphere_microphysics.hpp"
 #include "physics/p3/p3_inputs_initializer.hpp"
+#include "physics/p3/p3_inputs_initializer.cpp"
 #include "physics/p3/p3_functions_f90.hpp"
 
 #include "ekat/ekat_assert.hpp"
@@ -38,8 +39,8 @@ void P3Microphysics::set_grids(const std::shared_ptr<const GridsManager> grids_m
 
   // The units of mixing ratio Q are technically non-dimensional.
   // Nevertheless, for output reasons, we like to see 'kg/kg'.
-  auto Q = kg/kg;
-  Q.set_string("kg/kg");
+//  auto Q = kg/kg;
+//  Q.set_string("kg/kg");
 
   constexpr int NVL = SCREAM_NUM_VERTICAL_LEV;
   constexpr int QSZ =  35;  /* TODO THIS NEEDS TO BE CHANGED TO A CONFIGURABLE */
