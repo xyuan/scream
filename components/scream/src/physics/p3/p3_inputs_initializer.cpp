@@ -40,7 +40,8 @@ auto nondim = m/m;
 
 
 
-
+//@Aaron: GridOpts struct holds info to be used to 
+//create dev views, raw ptrs, and host devs
 struct GridOpts{
   string name;
   bool isOut;
@@ -51,7 +52,7 @@ struct GridOpts{
 
 unordered_map<string, GridOpts> opt_map;
 
-//Initializes struct GridOpts fields
+//@Aaron: Initializes struct GridOpts fields
 void set_grid_opts_helper(GridOpts O, string n, bool out, const Units* unit, int field_idx
                           ){
   
@@ -62,6 +63,7 @@ void set_grid_opts_helper(GridOpts O, string n, bool out, const Units* unit, int
   opt_map.insert({O.name, O});
 }
 
+//Aaron: declares and sets values of Grid Opts
 void set_grid_opts(){
 
   GridOpts q; 
@@ -155,9 +157,6 @@ void set_grid_opts(){
   set_grid_opts_helper(T, "t", true, &K, SCALAR_3D_MID);
   set_grid_opts_helper(FQ, "FQ", true, &Q, VECTOR_3D_MID);
 
-
-  
-  
   }
   void P3InputsInitializer::add_field (const field_type &f)
   {
@@ -186,6 +185,8 @@ void set_grid_opts(){
     "       Only " + std::to_string(count) + " of those have been found.\n"
     "       Please, check the atmosphere processes you are using,"
     "       and make sure they agree on who's initializing each field.\n");
+
+  //@Aaron left this in to show the old ways of structuring this code
 
   //// Get device views
   //auto d_q     = m_fields.at("q").get_view();
