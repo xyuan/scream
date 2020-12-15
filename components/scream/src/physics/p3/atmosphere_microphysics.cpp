@@ -1,8 +1,10 @@
-#include "physics/p3/scream_p3_interface.hpp"
 #include "physics/p3/atmosphere_microphysics.hpp"
 #include "physics/p3/p3_inputs_initializer.hpp"
+#include "physics/p3/p3_main_impl.hpp"
 
 #include "ekat/ekat_assert.hpp"
+#include "ekat/ekat_pack_kokkos.hpp"
+#include "ekat/ekat_pack.hpp"
 
 #include <array>
 
@@ -11,7 +13,10 @@ namespace scream
 /*
  * P3 Microphysics routines
 */
-
+  using namespace p3;
+  using P3F      = Functions<Real, DefaultDevice>;
+  using Spack    = typename P3F::Spack;
+  using Pack = ekat::Pack<Real,Spack::n>;
 // =========================================================================================
 P3Microphysics::P3Microphysics (const ekat::Comm& comm, const ekat::ParameterList& params)
  : m_p3_comm (comm)
@@ -76,9 +81,6 @@ void P3Microphysics::initialize_impl (const util::TimeStamp& t0)
 {
   m_current_ts = t0;
 
-  // Call f90 routine
-  p3_init_f90 ();
-
   // We may have to init some fields from within P3. This can be the case in a P3 standalone run.
   // Some options:
   //  - we can tell P3 it can init all inputs or specify which ones it can init. We call the
@@ -137,9 +139,7 @@ void P3Microphysics::run_impl (const Real dt)
   for (auto& it : m_p3_fields_out) {
     Kokkos::deep_copy(m_p3_host_views_out.at(it.first),it.second.get_view());
   }
-
-  // Call f90 routine
-  p3_main_f90 (dt, m_raw_ptrs_in["zi"], m_raw_ptrs_in["pmid"], m_raw_ptrs_in["dp"], m_raw_ptrs_in["ast"], m_raw_ptrs_in["ni_activated"], m_raw_ptrs_in["nc_nuceat_tend"], m_raw_ptrs_out["q"], m_raw_ptrs_out["FQ"], m_raw_ptrs_out["T"], m_raw_ptrs_out["qv_prev"], m_raw_ptrs_out["T_prev"]);
+  auto T     = m_p3_fields_out["T"].get_reshaped_view<Pack**>();
 
   // Copy outputs back to device
   for (auto& it : m_p3_fields_out) {
@@ -158,16 +158,16 @@ void P3Microphysics::run_impl (const Real dt)
 // =========================================================================================
 void P3Microphysics::finalize_impl()
 {
-  p3_finalize_f90 ();
+  // Do nothing for now
 }
 
 // =========================================================================================
 void P3Microphysics::register_fields (FieldRepository<Real>& field_repo) const {
   for (auto& fid : m_required_fields) {
-    field_repo.register_field(fid);
+    field_repo.register_field<Pack>(fid);
   }
   for (auto& fid : m_computed_fields) {
-    field_repo.register_field(fid);
+    field_repo.register_field<Pack>(fid);
   }
 }
 
