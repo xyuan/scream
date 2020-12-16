@@ -44,88 +44,79 @@ add_field (const field_type &f, const field_type& f_ref,
 // =========================================================================================
 void P3InputsInitializer::initialize_fields ()
 {
+
+  // To simplify the initializer we first define all the fields we expect to have to initialize.
+  std::vector<std::string> fields_to_init;
+  fields_to_init.push_back("T_atm");
+  fields_to_init.push_back("ast");
+  fields_to_init.push_back("ni_activated");
+  fields_to_init.push_back("nc_nuceat_tend");
+  fields_to_init.push_back("pmid");
+  fields_to_init.push_back("dp");
+  fields_to_init.push_back("zi");
+  fields_to_init.push_back("qv_prev");
+  fields_to_init.push_back("T_prev");
+  fields_to_init.push_back("qv");
+  fields_to_init.push_back("qc");
+  fields_to_init.push_back("qr");
+  fields_to_init.push_back("qi");
+  fields_to_init.push_back("qm");
+  fields_to_init.push_back("nc");
+  fields_to_init.push_back("nr");
+  fields_to_init.push_back("ni");
+  fields_to_init.push_back("bm");
+  fields_to_init.push_back("nccn_prescribed");
+  fields_to_init.push_back("inv_qc_relvar");  
   // Safety check: if we're asked to init anything at all,
-  // then we should have been asked to init 10 fields.
+  // then we should have been asked to init 20 fields.
   int count = 0;
-  count += m_fields.count("q");
-  count += m_fields.count("T");
-  count += m_fields.count("ast");
-  count += m_fields.count("ni_activated");
-  count += m_fields.count("nc_nuceat_tend");
-  count += m_fields.count("pmid");
-  count += m_fields.count("dp");
-  count += m_fields.count("zi");
-  count += m_fields.count("qv_prev");
-  count += m_fields.count("T_prev");
+  std::string list_of_fields = "";
+  for (auto name : fields_to_init)
+  {
+    list_of_fields += name;
+    list_of_fields += ", ";
+    count += m_fields.count(name);
+  }
   
   if (count==0) {
     return;
   }
 
-  EKAT_REQUIRE_MSG (count==10,
-    "Error! P3InputsInitializer is expected to init 'q','T','ast','ni_activated','nc_nuceat_tend','pmid','dp','zi','qv_prev','T_prev'.\n"
-    "       Only " + std::to_string(count) + " of those have been found.\n"
-    "       Please, check the atmosphere processes you are using,"
+  EKAT_REQUIRE_MSG (count==fields_to_init.size(),
+//    "Error! P3InputsInitializer is expected to init 'q','T','ast','ni_activated','nc_nuceat_tend','pmid','dp','zi','qv_prev','T_prev'.\n"
+    "Error! P3InputsInitializer is expected to init " + std::to_string(fields_to_init.size()) + " fields:\n"
+    "       " + list_of_fields + "\n"
+    "       Instead found " + std::to_string(count) + " fields.\n"
+    "       Please, check the atmosphere processes you are using,\n"
     "       and make sure they agree on who's initializing each field.\n");
 
-  // Get device views
-  auto d_q     = m_fields.at("q").get_view();
-  auto d_T     = m_fields.at("T").get_view();
-  auto d_ast   = m_fields.at("ast").get_view();
-  auto d_ni_activated  = m_fields.at("ni_activated").get_view();
-  auto d_nc_nuceat_tend = m_fields.at("nc_nuceat_tend").get_view();
-  auto d_pmid  = m_fields.at("pmid").get_view();
-  auto d_dpres  = m_fields.at("dp").get_view();
-  auto d_zi    = m_fields.at("zi").get_view();
-  auto d_qv_prev = m_fields.at("qv_prev").get_view();
-  auto d_t_prev  = m_fields.at("T_prev").get_view();
-  
-  // Create host mirrors
-  auto h_q     = Kokkos::create_mirror_view(d_q);
-  auto h_T     = Kokkos::create_mirror_view(d_T);
-  auto h_ast   = Kokkos::create_mirror_view(d_ast);
-  auto h_ni_activated  = Kokkos::create_mirror_view(d_ni_activated);
-  auto h_nc_nuceat_tend = Kokkos::create_mirror_view(d_nc_nuceat_tend);
-  auto h_pmid  = Kokkos::create_mirror_view(d_pmid);
-  auto h_dpres  = Kokkos::create_mirror_view(d_dpres);
-  auto h_zi    = Kokkos::create_mirror_view(d_zi);
-  auto h_qv_prev = Kokkos::create_mirror_view(d_qv_prev);
-  auto h_t_prev = Kokkos::create_mirror_view(d_t_prev);
-  
-  // Get host mirros' raw pointers
-  auto q     = h_q.data();
-  auto T_atm     = h_T.data();
-  auto ast   = h_ast.data();
-  auto ni_activated  = h_ni_activated.data();
-  auto nc_nuceat_tend = h_nc_nuceat_tend.data();
-  auto pmid  = h_pmid.data();
-  auto dpres  = h_dpres.data();
-  auto zi    = h_zi.data();
-  auto qv_prev = h_qv_prev.data();
-  auto t_prev  = h_t_prev.data();
-  
-  for (int ii=0;ii<h_T.size();++ii)
+  // Get views
+  using value_type           = Real;
+  using device_type          = DefaultDevice;
+  using view_type            = typename KokkosTypes<device_type>::template view<value_type*>;
+  using host_view_type       = typename KokkosTypes<HostDevice>::template view<value_type*>;
+  std::map<std::string,view_type> device_views;
+  std::map<std::string,host_view_type> host_mirrors;
+  for (auto name : fields_to_init)
   {
-    T_atm[ii] = 273.0 + ii/1000.;
+    // Get device views
+    auto d_view =  m_fields.at(name).get_view();
+    device_views.emplace(name,d_view);
+    // Create host mirrors
+    host_mirrors.emplace(name,Kokkos::create_mirror_view(d_view));
   }
 
-  // Deep copy back to device
-  Kokkos::deep_copy(d_q,h_q);
-  Kokkos::deep_copy(d_T,h_T);
-  Kokkos::deep_copy(d_ast,h_ast);
-  Kokkos::deep_copy(d_ni_activated,h_ni_activated);
-  Kokkos::deep_copy(d_nc_nuceat_tend,h_nc_nuceat_tend);
-  Kokkos::deep_copy(d_pmid,h_pmid);
-  Kokkos::deep_copy(d_dpres,h_dpres);
-  Kokkos::deep_copy(d_zi,h_zi);
-  Kokkos::deep_copy(d_qv_prev,h_qv_prev);
-  Kokkos::deep_copy(d_t_prev,h_t_prev);
+  // Initialize all variables on using the host mirrors:
+  
+  for (int ii=0;ii<host_mirrors.at("T_atm").size();++ii)
+  {
+    host_mirrors.at("T_atm").data()[ii] = 273.0 + ii/1000.;
+  }
 
-  // If we are in charge of init-ing FQ as well, init it to 0.
-  if (m_fields.count("FQ")==1) {
-    // Init FQ to 0
-    auto d_FQ = m_fields.at("FQ").get_view();
-    Kokkos::deep_copy(d_FQ,Real(0));
+  // Deep copy from host view back to device view
+  for (auto name : fields_to_init)
+  {
+    Kokkos::deep_copy(device_views.at(name),host_mirrors.at(name));
   }
 
   if (m_remapper) {
