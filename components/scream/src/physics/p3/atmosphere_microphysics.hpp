@@ -86,6 +86,7 @@ protected:
 
   Int m_num_cols;
   Int m_num_levs;
+  Int m_it = 0;
 
 }; // class P3Microphysics
 

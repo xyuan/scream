@@ -2,6 +2,9 @@
 #include "physics/p3/p3_inputs_initializer.hpp"
 #include "physics/p3/p3_main_impl.hpp"
 
+// Needed for p3_init, the only F90 code still used.
+#include "physics/p3/p3_f90.hpp"
+
 #include "ekat/ekat_assert.hpp"
 #include "ekat/ekat_pack_kokkos.hpp"
 #include "ekat/ekat_pack.hpp"
@@ -17,6 +20,10 @@ namespace scream
   using P3F      = Functions<Real, DefaultDevice>;
   using Spack    = typename P3F::Spack;
   using Pack = ekat::Pack<Real,Spack::n>;
+
+  using view_1d  = typename P3F::view_1d<Real>;
+  using view_2d  = typename P3F::view_2d<Spack>;
+  using sview_2d = typename KokkosTypes<DefaultDevice>::template view_2d<Real>;
 // =========================================================================================
 P3Microphysics::P3Microphysics (const ekat::Comm& comm, const ekat::ParameterList& params)
  : m_p3_comm (comm)
@@ -110,6 +117,9 @@ void P3Microphysics::initialize_impl (const util::TimeStamp& t0)
 {
   m_current_ts = t0;
 
+  // Call p3 initilization routines from main code.
+  p3_init();
+
   // We may have to init some fields from within P3. This can be the case in a P3 standalone run.
   // Some options:
   //  - we can tell P3 it can init all inputs or specify which ones it can init. We call the
@@ -171,7 +181,104 @@ void P3Microphysics::run_impl (const Real dt)
     Kokkos::deep_copy(m_p3_host_views_out.at(it.first),it.second.get_view());
   }
 
-  auto T     = m_p3_fields_out["T_atm"].get_reshaped_view<Pack**>();
+  // --Prognostic State Variables: 
+  auto qc     = m_p3_fields_out["qc"].get_reshaped_view<Pack**>();
+  auto nc     = m_p3_fields_out["nc"].get_reshaped_view<Pack**>();
+  auto qr     = m_p3_fields_out["qr"].get_reshaped_view<Pack**>();
+  auto nr     = m_p3_fields_out["nr"].get_reshaped_view<Pack**>();
+  auto qi     = m_p3_fields_out["qi"].get_reshaped_view<Pack**>();
+  auto qm     = m_p3_fields_out["qm"].get_reshaped_view<Pack**>();
+  auto ni     = m_p3_fields_out["ni"].get_reshaped_view<Pack**>();
+  auto bm     = m_p3_fields_out["bm"].get_reshaped_view<Pack**>();
+  auto qv     = m_p3_fields_out["qv"].get_reshaped_view<Pack**>();
+  auto th_atm = m_p3_fields_out["th_atm"].get_reshaped_view<Pack**>();
+  // --Diagnostic Input Variables:
+  // local arrays
+  view_2d cld_frac_i("cld_frac_i",m_num_cols,m_num_levs);
+  view_2d cld_frac_l("cld_frac_l",m_num_cols,m_num_levs);
+  view_2d cld_frac_r("cld_frac_r",m_num_cols,m_num_levs);
+  view_2d dz("dz",m_num_cols,m_num_levs);
+  view_2d exner("exner",m_num_cols,m_num_levs);
+  // field managed arrays
+  auto nc_nuceat_tend  = m_p3_fields_in["nc_nuceat_tend"].get_reshaped_view<const Pack**>();
+  auto nccn_prescribed = m_p3_fields_in["nccn_prescribed"].get_reshaped_view<const Pack**>();
+  auto ni_activated    = m_p3_fields_in["ni_activated"].get_reshaped_view<const Pack**>();
+  auto inv_qc_relvar   = m_p3_fields_in["inv_qc_relvar"].get_reshaped_view<const Pack**>();
+  auto pmid            = m_p3_fields_in["pmid"].get_reshaped_view<const Pack**>();
+  auto dp              = m_p3_fields_in["dp"].get_reshaped_view<const Pack**>();
+  auto qv_prev         = m_p3_fields_out["qv_prev"].get_reshaped_view<Pack**>();
+  auto T_prev          = m_p3_fields_out["T_prev"].get_reshaped_view<Pack**>();
+  // --Diagnostic Outputs
+  view_1d precip_liq_surf("precip_liq_surf",m_num_cols);
+  view_1d precip_ice_surf("precip_ice_surf",m_num_cols);
+  view_2d qv2qi_depos_tend("qv2qi_depos_tend",m_num_cols,m_num_levs);
+  view_2d rho_qi("rho_qi",m_num_cols,m_num_levs);
+  view_2d precip_liq_flux("precip_liq_flux",m_num_cols,m_num_levs);
+  view_2d precip_ice_flux("precip_ice_flux",m_num_cols,m_num_levs);
+  auto mu_c               = m_p3_fields_out["mu_c"].get_reshaped_view<Pack**>();
+  auto lamc               = m_p3_fields_out["lamc"].get_reshaped_view<Pack**>();
+  auto diag_eff_radius_qc = m_p3_fields_out["diag_eff_radius_qc"].get_reshaped_view<Pack**>();
+  auto diag_eff_radius_qi = m_p3_fields_out["diag_eff_radius_qi"].get_reshaped_view<Pack**>();
+  auto precip_total_tend  = m_p3_fields_out["precip_total_tend"].get_reshaped_view<Pack**>();
+  auto nevapr             = m_p3_fields_out["nevapr"].get_reshaped_view<Pack**>();
+  auto qr_evap_tend       = m_p3_fields_out["qr_evap_tend"].get_reshaped_view<Pack**>();
+  // --Infrastructure
+  // dt is passed to run
+  m_it++;
+  Int its = 0;
+  Int ite = m_num_cols-1;
+  Int kts = 0;
+  Int kte = m_num_levs-1;
+  bool do_predict_nc = true;     // Hard-coded for now, TODO: make this a runtime option 
+  bool do_prescribed_CCN = true; // Hard-coded for now, TODO: make this a runtime option
+  sview_2d col_location("col_location", m_num_cols, 3);
+  // --History Only
+  auto liq_ice_exchange = m_p3_fields_out["liq_ice_exchange"].get_reshaped_view<Pack**>();
+  auto vap_liq_exchange = m_p3_fields_out["vap_liq_exchange"].get_reshaped_view<Pack**>();
+  auto vap_ice_exchange = m_p3_fields_out["vap_ice_exchange"].get_reshaped_view<Pack**>();
+
+  // Variables needed, but not passed to P3
+  auto ast    = m_p3_fields_in["ast"].get_reshaped_view<const Pack**>();
+  auto zi     = m_p3_fields_in["zi"].get_reshaped_view<const Pack**>();
+  auto T_atm  = m_p3_fields_out["T_atm"].get_reshaped_view<Pack**>();
+
+  // Pack our data into structs and ship it off to p3_main.
+  P3F::P3PrognosticState prog_state{ qc, nc, qr, nr, qi, qm, ni, bm, qv, th_atm };
+  P3F::P3DiagnosticInputs diag_inputs{ nc_nuceat_tend, nccn_prescribed, ni_activated, inv_qc_relvar, 
+                                       cld_frac_i, cld_frac_l, cld_frac_r, pmid, dz, dp, exner, qv_prev, T_prev };
+  P3F::P3DiagnosticOutputs diag_outputs{ mu_c, lamc, qv2qi_depos_tend, precip_liq_surf,
+                                         precip_ice_surf, diag_eff_radius_qc, diag_eff_radius_qi, rho_qi,
+                                         precip_total_tend, nevapr, qr_evap_tend, precip_liq_flux, precip_ice_flux };
+  P3F::P3Infrastructure infrastructure{ dt, m_it, its, ite, kts, kte, do_predict_nc, do_prescribed_CCN, col_location };
+  P3F::P3HistoryOnly history_only{ liq_ice_exchange, vap_liq_exchange, vap_ice_exchange };
+
+// --Eventually delete from here...
+  auto q_before = qv(0,0);
+  q_before = 0.0;
+  for (int i_col=0;i_col<m_num_cols;i_col++)
+  {
+    for (int i_lev=0;i_lev<m_num_levs;i_lev++)
+    {
+      q_before = q_before + (qv(i_col,i_lev) + qc(i_col,i_lev) + qr(i_col,i_lev) + qi(i_col,i_lev) + qm(i_col,i_lev));
+    }
+  }
+// to here.
+  auto elapsed_microsec = P3F::p3_main(prog_state, diag_inputs, diag_outputs, infrastructure,
+                                       history_only, m_num_cols, m_num_levs);
+// Eventually delete from here...
+  auto q_after = qv(0,0);
+  q_after = 0.0; 
+  for (int i_col=0;i_col<m_num_cols;i_col++)
+  {
+    for (int i_lev=0;i_lev<m_num_levs;i_lev++)
+    {
+      q_after = q_after + (qv(i_col,i_lev) + qc(i_col,i_lev) + qr(i_col,i_lev) + qi(i_col,i_lev) + qm(i_col,i_lev));
+      qv_prev(i_col,i_lev) = qv(i_col,i_lev);
+      T_prev(i_col,i_lev) = T_atm(i_col,i_lev);
+    }
+  }
+  printf("ASD = q_diff:  %f, %f, %.10e\n",q_before,q_after,q_after-q_before);
+// to here.
 
   // Copy outputs back to device
   for (auto& it : m_p3_fields_out) {
