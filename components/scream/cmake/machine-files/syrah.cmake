@@ -1,6 +1,7 @@
 # Load all kokkos settings from Ekat's mach file
+#set (Kokkos_ENABLE_OPENMP "" OFF)
 set (EKAT_MACH_FILES_PATH ${CMAKE_CURRENT_LIST_DIR}/../../../../externals/ekat/cmake/machine-files)
-include (${EKAT_MACH_FILES_PATH}/kokkos/openmp.cmake)
+#include (${EKAT_MACH_FILES_PATH}/kokkos/openmp.cmake)
 
 # Enable Sandy Bridge arch in Kokkos
 option(Kokkos_ARCH_SNB "" ON)

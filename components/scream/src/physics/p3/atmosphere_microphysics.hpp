@@ -53,7 +53,9 @@ public:
   const std::set<FieldIdentifier>& get_required_fields () const { return m_required_fields; }
   const std::set<FieldIdentifier>& get_computed_fields () const { return m_computed_fields; }
 
+#ifndef KOKKOS_ENABLE_CUDA
 protected:
+#endif
 
   // The three main overrides for the subcomponent
   void initialize_impl (const util::TimeStamp& t0);

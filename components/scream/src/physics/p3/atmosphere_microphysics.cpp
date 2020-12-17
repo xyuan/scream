@@ -5,9 +5,14 @@
 // Needed for p3_init, the only F90 code still used.
 #include "physics/p3/p3_f90.hpp"
 
+#include "physics/share/physics_constants.hpp"
+#include "physics/share/physics_functions.hpp" // also for ETI not on GPUs
+#include "physics/share/physics_universal_impl.hpp"
+
 #include "ekat/ekat_assert.hpp"
 #include "ekat/ekat_pack_kokkos.hpp"
 #include "ekat/ekat_pack.hpp"
+#include "ekat/kokkos/ekat_kokkos_utils.hpp"
 
 #include <array>
 
@@ -17,9 +22,12 @@ namespace scream
  * P3 Microphysics routines
 */
   using namespace p3;
-  using P3F      = Functions<Real, DefaultDevice>;
-  using Spack    = typename P3F::Spack;
-  using Pack = ekat::Pack<Real,Spack::n>;
+  using P3F          = Functions<Real, DefaultDevice>;
+  using PC           = scream::physics::Constants<Real>;
+  using Spack        = typename P3F::Spack;
+  using Smask        = typename P3F::Smask;
+  using Pack         = ekat::Pack<Real,Spack::n>;
+  using IntSmallPack = typename ekat::Pack<Int, Spack::n>;
 
   using view_1d  = typename P3F::view_1d<Real>;
   using view_2d  = typename P3F::view_2d<Spack>;
@@ -47,11 +55,12 @@ void P3Microphysics::set_grids(const std::shared_ptr<const GridsManager> grids_m
   auto nondim = m/m;
   auto mm = m/1000;
 
-  constexpr int m_num_levs = SCREAM_NUM_VERTICAL_LEV;
+  m_num_levs = SCREAM_NUM_VERTICAL_LEV;
 
   const auto& grid_name = m_p3_params.get<std::string>("Grid");
   auto grid = grids_manager->get_grid(grid_name);
   m_num_cols = grid->get_num_local_dofs();
+
 
   using namespace ShortFieldTagsNames;
 
@@ -242,6 +251,88 @@ void P3Microphysics::run_impl (const Real dt)
   auto zi     = m_p3_fields_in["zi"].get_reshaped_view<const Pack**>();
   auto T_atm  = m_p3_fields_out["T_atm"].get_reshaped_view<Pack**>();
 
+  Real mucon  = 5.3;
+  Real dcon   = 25.0 * pow(10.0,-6);
+  Real qsmall = pow(10.0,-14); 
+  Real mincld = 0.0001;  // TODO: These should be stored somewhere as more universal constants.  Or maybe in the P3 class hpp
+
+  Kokkos::deep_copy(mu_c,Spack(mucon));
+  Kokkos::deep_copy(lamc,Spack( (mucon-1.0)/dcon ));
+  Kokkos::deep_copy(cld_frac_l,Spack(mincld));
+  Kokkos::deep_copy(cld_frac_i,Spack(mincld));
+  Kokkos::deep_copy(cld_frac_r,Spack(mincld));
+  using physics    = scream::physics::Functions<Real, DefaultDevice>;
+//  using KT = KokkosTypes<DefaultDevice>;
+//  using ExeSpace = typename KT::ExeSpace;
+//  using MemberType = typename KT::MemberType;
+//  const auto policy = ekat::ExeSpaceUtils<ExeSpace>::get_default_team_policy(1,1);
+  // TODO: Improve the performance of this step.  Currently just using a parallel_for loop over
+  // 1 to ensure code will work on GPU.  Perhaps need to use ekat::subview.
+  Kokkos::parallel_for(
+    "set_p3_local_vars",
+    1,
+    KOKKOS_LAMBDA(const int& i_dum) {
+    for (int icol=0;icol<m_num_cols;icol++)
+    {
+      for (int jlev=0;jlev<m_num_levs;jlev++)
+      {
+        int ipack = jlev / Spack::n;
+        int ivec  = jlev % Spack::n;
+        int ipack_p1 = (jlev+1) / Spack::n;
+        int ivec_p1  = (jlev+1) % Spack::n;
+        int ipack_m1 = (jlev-1) / Spack::n;
+        int ivec_m1  = (jlev-1) % Spack::n;
+        
+        const Spack opmid(pmid(icol,ipack)[ivec]);
+        const Spack oT_atm(T_atm(icol,ipack)[ivec]);
+        const Spack zi_top(zi(icol,ipack)[ivec]);
+        const Spack zi_bot(zi(icol,ipack_p1)[ivec_p1]);
+        
+        auto oexner  = physics::get_exner(opmid,Smask(true));
+        exner(icol,ipack)[ivec] = oexner[0];
+
+        auto oth = physics::T_to_th(oT_atm,oexner,Smask(true));
+        th_atm(icol,ipack)[ivec] = oth[0];
+
+        auto odz = physics::get_dz(zi_top,zi_bot,Smask(true));
+        dz(icol,ipack)[ivec] = odz[0];
+
+        if (ast(icol,ipack)[ivec]>mincld)
+        {
+          cld_frac_l(icol,ipack)[ivec] = ast(icol,ipack)[ivec]; 
+        }
+        cld_frac_i(icol,ipack)[ivec] = cld_frac_l(icol,ipack)[ivec];
+        cld_frac_r(icol,ipack)[ivec] = cld_frac_l(icol,ipack)[ivec];
+        if (jlev != 0)
+        {
+          if (qr(icol,ipack)[ivec]>=qsmall or qi(icol,ipack)[ivec]>=qsmall)
+          {
+            cld_frac_r(icol,ipack)[ivec] = ast(icol,ipack_m1)[ivec_m1]>cld_frac_r(icol,ipack)[ivec] ? 
+                                             ast(icol,ipack_m1)[ivec_m1] :
+                                             cld_frac_r(icol,ipack)[ivec];
+          }
+        }
+      }
+    }
+  });
+//  Kokkos::fence();
+// --Eventually delete from here...
+  Real q_before;
+  Kokkos::parallel_reduce(
+    "q_before",
+    1,
+    KOKKOS_LAMBDA(const int& i_dum, Real& sum) {
+  for (int i_col=0;i_col<m_num_cols;i_col++)
+  {
+    for (int i_lev=0;i_lev<m_num_levs;i_lev++)
+    {
+      int ipack = i_lev / Spack::n;
+      int ivec  = i_lev % Spack::n;
+      sum += (qv(i_col,ipack)[ivec] + qc(i_col,ipack)[ivec] + qr(i_col,ipack)[ivec] + qi(i_col,ipack)[ivec] + qm(i_col,ipack)[ivec]);
+    }
+  }
+  },q_before);
+// to here.
   // Pack our data into structs and ship it off to p3_main.
   P3F::P3PrognosticState prog_state{ qc, nc, qr, nr, qi, qm, ni, bm, qv, th_atm };
   P3F::P3DiagnosticInputs diag_inputs{ nc_nuceat_tend, nccn_prescribed, ni_activated, inv_qc_relvar, 
@@ -252,32 +343,27 @@ void P3Microphysics::run_impl (const Real dt)
   P3F::P3Infrastructure infrastructure{ dt, m_it, its, ite, kts, kte, do_predict_nc, do_prescribed_CCN, col_location };
   P3F::P3HistoryOnly history_only{ liq_ice_exchange, vap_liq_exchange, vap_ice_exchange };
 
-// --Eventually delete from here...
-  auto q_before = qv(0,0);
-  q_before = 0.0;
-  for (int i_col=0;i_col<m_num_cols;i_col++)
-  {
-    for (int i_lev=0;i_lev<m_num_levs;i_lev++)
-    {
-      q_before = q_before + (qv(i_col,i_lev) + qc(i_col,i_lev) + qr(i_col,i_lev) + qi(i_col,i_lev) + qm(i_col,i_lev));
-    }
-  }
-// to here.
   auto elapsed_microsec = P3F::p3_main(prog_state, diag_inputs, diag_outputs, infrastructure,
                                        history_only, m_num_cols, m_num_levs);
 // Eventually delete from here...
-  auto q_after = qv(0,0);
-  q_after = 0.0; 
+  Real q_after; 
+  Kokkos::parallel_reduce(
+    "q_after",
+    1,
+    KOKKOS_LAMBDA(const int& i_dum, Real& sum) {
   for (int i_col=0;i_col<m_num_cols;i_col++)
   {
     for (int i_lev=0;i_lev<m_num_levs;i_lev++)
     {
-      q_after = q_after + (qv(i_col,i_lev) + qc(i_col,i_lev) + qr(i_col,i_lev) + qi(i_col,i_lev) + qm(i_col,i_lev));
-      qv_prev(i_col,i_lev) = qv(i_col,i_lev);
-      T_prev(i_col,i_lev) = T_atm(i_col,i_lev);
+      int ipack = i_lev / Spack::n;
+      int ivec  = i_lev % Spack::n;
+      sum += (qv(i_col,ipack)[ivec] + qc(i_col,ipack)[ivec] + qr(i_col,ipack)[ivec] + qi(i_col,ipack)[ivec] + qm(i_col,ipack)[ivec]);
+      qv_prev(i_col,ipack)[ivec] = qv(i_col,ipack)[ivec];
+      T_prev(i_col,ipack)[ivec] = T_atm(i_col,ipack)[ivec];
     }
   }
-  printf("ASD = q_diff:  %f, %f, %.10e\n",q_before,q_after,q_after-q_before);
+  },q_after);
+  printf("ASD = q_diff::  %.10e, %.10e, %.10e -- %d, %d\n",q_before,q_after,q_after-q_before,m_num_cols,m_num_levs);
 // to here.
 
   // Copy outputs back to device
