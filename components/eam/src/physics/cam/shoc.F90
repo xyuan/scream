@@ -77,6 +77,9 @@ real(rtype), parameter :: c_diag_3rd_mom = 7.0_rtype
 !  variance
 logical(btype), parameter :: dothetal_skew = .false.
 
+! Revert to a simple 1.5 TKE closure
+logical(btype), parameter :: do_15closure = .false.
+
 ! ========
 ! Below define some parameters for SHOC
 
@@ -325,6 +328,9 @@ subroutine shoc_main ( &
   real(rtype) :: dz_zt(shcol,nlev)
   ! Grid difference centereted on interface grid [m]
   real(rtype) :: dz_zi(shcol,nlevi)
+  
+  real(rtype) :: wthl_sec_save(shcol,nlevi)
+  real(rtype) :: wqw_sec_save(shcol,nlevi)
 
   ! Surface friction velocity [m/s]
   real(rtype) :: ustar(shcol)
@@ -434,6 +440,19 @@ subroutine shoc_main ( &
        dz_zt,dz_zi,zt_grid,zi_grid,&        ! Input
        w3)                                  ! Output
 
+    if (do_15closure) then
+      wthl_sec_save(:shcol,:nlevi) = wthl_sec(:shcol,:nlevi)
+      wqw_sec_save(:shcol,:nlevi) = wqw_sec(:shcol,:nlevi)
+     
+      w_sec(:shcol,:nlev) = 0.004_rtype
+      thl_sec(:shcol,:nlevi) = 0.0_rtype
+      qw_sec(:shcol,:nlevi) = 0.0_rtype
+      wthl_sec(:shcol,:nlevi) = 0.0_rtype
+      wqw_sec(:shcol,:nlevi) = 0.0_rtype
+      qwthl_sec(:shcol,:nlevi) = 0.0_rtype
+      w3(:shcol,:nlevi) = 0.0_rtype
+    endif
+
     ! Call the PDF to close on SGS cloud and turbulence
     call shoc_assumed_pdf(&
        shcol,nlev,nlevi,&                   ! Input
@@ -443,6 +462,11 @@ subroutine shoc_main ( &
        zt_grid,zi_grid,&                    ! Input
        shoc_cldfrac,shoc_ql,&               ! Output
        wqls_sec,wthv_sec,shoc_ql2)          ! Output
+       
+    if (do_15closure) then
+      wthl_sec(:shcol,:nlevi) = wthl_sec_save(:shcol,:nlevi)
+      wqw_sec(:shcol,:nlevi) = wqw_sec_save(:shcol,:nlevi)
+    endif
 
     ! Check TKE to make sure values lie within acceptable
     !  bounds after vertical advection, etc.
@@ -2076,6 +2100,9 @@ subroutine clipping_diag_third_shoc_moments(&
       cond = w3clip * bfb_sqrt(2._rtype * bfb_cube(theterm))
       if (w3(i,k) .lt. 0) tsign = -1._rtype
       if (tsign * w3(i,k) .gt. cond) w3(i,k) = tsign * cond
+      
+      ! DPAB
+!      w3(i,k) = 100.0_rtype
 
     enddo !end i loop (column loop)
   enddo ! end k loop (vertical loop)
@@ -2937,7 +2964,7 @@ subroutine shoc_tke(&
 
   !advance sgs TKE
   call adv_sgs_tke(nlev, shcol, dtime, shoc_mix, wthv_sec, &
-       sterm_zt, tk, tke, a_diss)
+       sterm_zt, tk, brunt, tke, a_diss)
 
   !Compute isotropic time scale [s]
   call isotropic_ts(nlev, shcol, brunt_int, tke, a_diss, brunt, isotropy)
@@ -3058,7 +3085,7 @@ end subroutine compute_shr_prod
 ! Advance SGS TKE
 
 subroutine adv_sgs_tke(nlev, shcol, dtime, shoc_mix, wthv_sec, &
-     sterm_zt, tk, tke, a_diss)
+     sterm_zt, tk, brunt, tke, a_diss)
 
 #ifdef SCREAM_CONFIG_IS_CMAKE
   use shoc_iso_f, only: adv_sgs_tke_f
@@ -3079,6 +3106,8 @@ subroutine adv_sgs_tke(nlev, shcol, dtime, shoc_mix, wthv_sec, &
   real(rtype), intent(in) :: sterm_zt(shcol,nlev)
   ! eddy coefficient for momentum [m2/s]
   real(rtype), intent(in) :: tk(shcol,nlev)
+  ! brunt
+  real(rtype), intent(in) :: brunt(shcol,nlev)
 
   ! intent-inout
   ! turbulent kinetic energy [m2/s2]
@@ -3108,13 +3137,18 @@ subroutine adv_sgs_tke(nlev, shcol, dtime, shoc_mix, wthv_sec, &
 
   Ce1=Ce/0.7_rtype*0.19_rtype
   Ce2=Ce/0.7_rtype*0.51_rtype
-  Cee=Ce1+Ce2
+  ! DPAB
+  Cee=(Ce1+Ce2)*1.0_rtype
 
   do k = 1, nlev
      do i = 1, shcol
 
         ! Compute buoyant production term
-        a_prod_bu=(ggr/basetemp)*wthv_sec(i,k)
+        if (do_15closure) then
+          a_prod_bu=-1._rtype*tk(i,k)*brunt(i,k)
+        else
+          a_prod_bu=(ggr/basetemp)*wthv_sec(i,k)
+        endif
 
         tke(i,k)=max(0._rtype,tke(i,k))
 
@@ -4809,6 +4843,7 @@ subroutine check_length_scale_shoc_length(nlev,shcol,host_dx,host_dy,shoc_mix)
 
   do k=1,nlev
     do i=1,shcol
+    
       shoc_mix(i,k)=min(maxlen,shoc_mix(i,k))
       shoc_mix(i,k)=max(minlen,shoc_mix(i,k))
       shoc_mix(i,k)=min(bfb_sqrt(host_dx(i)*host_dy(i)),shoc_mix(i,k))
