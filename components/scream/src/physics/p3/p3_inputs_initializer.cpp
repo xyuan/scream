@@ -1,5 +1,7 @@
 #include "physics/p3/p3_inputs_initializer.hpp"
 #include "physics/share/physics_constants.hpp"
+#include "share/io/scorpio_input.hpp"
+#include "share/io/scream_scorpio_interface.hpp"
 
 #include <array>
 
@@ -46,6 +48,7 @@ add_field (const field_type &f, const field_type& f_ref,
 void P3InputsInitializer::initialize_fields ()
 {
 
+  using input_type = AtmosphereInput;
   // To simplify the initializer we first define all the fields we expect to have to initialize.
   std::vector<std::string> fields_to_init;
   fields_to_init.push_back("T_atm");
@@ -67,7 +70,14 @@ void P3InputsInitializer::initialize_fields ()
   fields_to_init.push_back("ni");
   fields_to_init.push_back("bm");
   fields_to_init.push_back("nccn_prescribed");
-  fields_to_init.push_back("inv_qc_relvar");  
+  fields_to_init.push_back("inv_qc_relvar");
+  // TODO: Delete eventually, should instead be set in run interface: 
+  fields_to_init.push_back("th_atm");  
+  fields_to_init.push_back("dz");  
+  fields_to_init.push_back("exner");  
+  fields_to_init.push_back("cld_frac_l");  
+  fields_to_init.push_back("cld_frac_i");  
+  fields_to_init.push_back("cld_frac_r");  
   // Safety check: if we're asked to init anything at all,
   // then we should have been asked to init 20 fields.
   int count = 0;
@@ -108,6 +118,62 @@ void P3InputsInitializer::initialize_fields ()
     host_mirrors.emplace(name,Kokkos::create_mirror_view(d_view));
   }
 
+  // Create device views
+  auto d_T_atm           = m_fields.at("T_atm").get_reshaped_view<Real**>();
+  auto d_ast             = m_fields.at("ast").get_reshaped_view<Real**>();
+  auto d_ni_activated    = m_fields.at("ni_activated").get_reshaped_view<Real**>();
+  auto d_nc_nuceat_tend  = m_fields.at("nc_nuceat_tend").get_reshaped_view<Real**>();
+  auto d_pmid            = m_fields.at("pmid").get_reshaped_view<Real**>();
+  auto d_dp              = m_fields.at("dp").get_reshaped_view<Real**>();
+  auto d_zi              = m_fields.at("zi").get_reshaped_view<Real**>();
+  auto d_qv_prev         = m_fields.at("qv_prev").get_reshaped_view<Real**>();
+  auto d_T_prev          = m_fields.at("T_prev").get_reshaped_view<Real**>();
+  auto d_qv              = m_fields.at("qv").get_reshaped_view<Real**>();
+  auto d_qc              = m_fields.at("qc").get_reshaped_view<Real**>();
+  auto d_qr              = m_fields.at("qr").get_reshaped_view<Real**>();
+  auto d_qi              = m_fields.at("qi").get_reshaped_view<Real**>();
+  auto d_qm              = m_fields.at("qm").get_reshaped_view<Real**>();
+  auto d_nc              = m_fields.at("nc").get_reshaped_view<Real**>();
+  auto d_nr              = m_fields.at("nr").get_reshaped_view<Real**>();
+  auto d_ni              = m_fields.at("ni").get_reshaped_view<Real**>();
+  auto d_bm              = m_fields.at("bm").get_reshaped_view<Real**>();
+  auto d_nccn_prescribed = m_fields.at("nccn_prescribed").get_reshaped_view<Real**>();
+  auto d_inv_qc_relvar   = m_fields.at("inv_qc_relvar").get_reshaped_view<Real**>();
+  // TODO: Delete eventually, should instead be set in run interface: 
+  auto d_th_atm          = m_fields.at("th_atm").get_reshaped_view<Real**>();  
+  auto d_dz              = m_fields.at("dz").get_reshaped_view<Real**>();  
+  auto d_exner           = m_fields.at("exner").get_reshaped_view<Real**>();  
+  auto d_cld_frac_l      = m_fields.at("cld_frac_l").get_reshaped_view<Real**>();  
+  auto d_cld_frac_i      = m_fields.at("cld_frac_i").get_reshaped_view<Real**>();  
+  auto d_cld_frac_r      = m_fields.at("cld_frac_r").get_reshaped_view<Real**>(); 
+  // Create host mirrors 
+  auto h_T_atm           = Kokkos::create_mirror_view(d_T_atm);
+  auto h_ast             = Kokkos::create_mirror_view(d_ast);
+  auto h_ni_activated    = Kokkos::create_mirror_view(d_ni_activated);
+  auto h_nc_nuceat_tend  = Kokkos::create_mirror_view(d_nc_nuceat_tend);
+  auto h_pmid            = Kokkos::create_mirror_view(d_pmid);
+  auto h_dp              = Kokkos::create_mirror_view(d_dp);
+  auto h_zi              = Kokkos::create_mirror_view(d_zi);
+  auto h_qv_prev         = Kokkos::create_mirror_view(d_qv_prev);
+  auto h_T_prev          = Kokkos::create_mirror_view(d_T_prev);
+  auto h_qv              = Kokkos::create_mirror_view(d_qv);
+  auto h_qc              = Kokkos::create_mirror_view(d_qc);
+  auto h_qr              = Kokkos::create_mirror_view(d_qr);
+  auto h_qi              = Kokkos::create_mirror_view(d_qi);
+  auto h_qm              = Kokkos::create_mirror_view(d_qm);
+  auto h_nc              = Kokkos::create_mirror_view(d_nc);
+  auto h_nr              = Kokkos::create_mirror_view(d_nr);
+  auto h_ni              = Kokkos::create_mirror_view(d_ni);
+  auto h_bm              = Kokkos::create_mirror_view(d_bm);
+  auto h_nccn_prescribed = Kokkos::create_mirror_view(d_nccn_prescribed);
+  auto h_inv_qc_relvar   = Kokkos::create_mirror_view(d_inv_qc_relvar);
+  // TODO: Delete eventually, should instead be set in run interface: 
+  auto h_th_atm          = Kokkos::create_mirror_view(d_th_atm);  
+  auto h_dz              = Kokkos::create_mirror_view(d_dz);  
+  auto h_exner           = Kokkos::create_mirror_view(d_exner);  
+  auto h_cld_frac_l      = Kokkos::create_mirror_view(d_cld_frac_l);  
+  auto h_cld_frac_i      = Kokkos::create_mirror_view(d_cld_frac_i);  
+  auto h_cld_frac_r      = Kokkos::create_mirror_view(d_cld_frac_r);  
   // Initialize all variables on using the host mirrors:
   // For now use dummy values copied from `p3_ic_cases.cpp`
   using consts          = scream::physics::Constants<Real>;
@@ -148,6 +214,12 @@ void P3InputsInitializer::initialize_fields ()
     for (k = 0; k < nk; ++k) host_mirrors.at("pmid")(i,k) = 100 + 1e5/double(nk)*k;
     // dp is actually an input variable, but needed here to compute theta.
     for (k = 0; k < nk; ++k) host_mirrors.at("dp")(i,k) = 1e5/double(nk);
+    // exner is actually an input variable, but needed here to compute theta.  TODO: Delete, should be handled locally
+    for (k = 0; k < nk; ++k) host_mirrors.at("exner")(i,k) = std::pow((1e5/host_mirrors.at("pmid")(i,k)), (287.15/1005.0));
+    // cloud fraction is an input variable, just set to 1 everywhere TODO: Delete, should be handled locally
+    for (k = 0; k < nk; ++k) host_mirrors.at("cld_frac_i")(i,k) = 1.0;
+    for (k = 0; k < nk; ++k) host_mirrors.at("cld_frac_l")(i,k) = 1.0;
+    for (k = 0; k < nk; ++k) host_mirrors.at("cld_frac_r")(i,k) = 1.0;
     // inv_qc_relvar=mean(qc)/var(qc) measures subgrid qc variability. It is computed in SHOC
     // and used by P3. It can range between 0.1 and 10.0. Setting to a typical value of 1.0
     // here.
@@ -159,6 +231,7 @@ void P3InputsInitializer::initialize_fields ()
     for (k = 0; k < nk; ++k) {
       host_mirrors.at("T_atm")(i,k) = 150 + 150/double(nk)*k;
       if (i > 0) host_mirrors.at("T_atm")(i,k) += ((i % 3) - 0.5)/double(nk)*k;
+      host_mirrors.at("th_atm")(i,k) = host_mirrors.at("T_atm")(i,k)*std::pow(Real(consts::P0/host_mirrors.at("pmid")(i,k)), Real(consts::RD/consts::CP)); //TODO: Delete, should be handled locally
     }
 
     // The next section modifies inout variables to satisfy weird conditions
@@ -201,6 +274,7 @@ void P3InputsInitializer::initialize_fields ()
         0.5*(host_mirrors.at("pmid")(i,k) + host_mirrors.at("pmid")(i,k+1));
       const auto dp = phi - plo;
       host_mirrors.at("zi")(i,k)   = log(consts::P0/host_mirrors.at("pmid")(i,k))*consts::RD*host_mirrors.at("T_atm")(i,k)/g/0.029;
+      host_mirrors.at("dz")(i,k) = consts::RD*host_mirrors.at("T_atm")(i,k)/(g*host_mirrors.at("pmid")(i,k))*dp; //TODO: Delete, should be handled locally
     }
   }
 

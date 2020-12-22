@@ -84,7 +84,7 @@ void P3Microphysics::set_grids(const std::shared_ptr<const GridsManager> grids_m
   m_required_fields.emplace("nr",     scalar3d_layout_mid, 1/kg, grid_name);
   m_required_fields.emplace("ni",     scalar3d_layout_mid, 1/kg, grid_name);
   m_required_fields.emplace("bm",     scalar3d_layout_mid, 1/kg, grid_name);
-//  m_required_fields.emplace("th_atm", scalar3d_layout_mid, K, grid_name);
+  m_required_fields.emplace("th_atm", scalar3d_layout_mid, K, grid_name);  //TODO: Delete, don't acutally need this as required.
   //
   m_computed_fields.emplace("qv",     scalar3d_layout_mid, Q, grid_name);
   m_computed_fields.emplace("qc",     scalar3d_layout_mid, Q, grid_name);
@@ -119,6 +119,17 @@ void P3Microphysics::set_grids(const std::shared_ptr<const GridsManager> grids_m
   m_computed_fields.emplace("liq_ice_exchange", scalar3d_layout_mid, nondim, grid_name);
   m_computed_fields.emplace("vap_liq_exchange", scalar3d_layout_mid, nondim, grid_name);
   m_computed_fields.emplace("vap_ice_exchange", scalar3d_layout_mid, nondim, grid_name);
+  // TODO: Delete these, should be handled locally.
+  m_required_fields.emplace("dz", scalar3d_layout_mid, K, grid_name);
+  m_required_fields.emplace("exner", scalar3d_layout_mid, K, grid_name);
+  m_required_fields.emplace("cld_frac_l", scalar3d_layout_mid, K, grid_name);
+  m_required_fields.emplace("cld_frac_i", scalar3d_layout_mid, K, grid_name);
+  m_required_fields.emplace("cld_frac_r", scalar3d_layout_mid, K, grid_name);
+  m_computed_fields.emplace("dz", scalar3d_layout_mid, K, grid_name);
+  m_computed_fields.emplace("exner", scalar3d_layout_mid, K, grid_name);
+  m_computed_fields.emplace("cld_frac_l", scalar3d_layout_mid, K, grid_name);
+  m_computed_fields.emplace("cld_frac_i", scalar3d_layout_mid, K, grid_name);
+  m_computed_fields.emplace("cld_frac_r", scalar3d_layout_mid, K, grid_name);
 }
 
 // =========================================================================================
@@ -144,6 +155,7 @@ void P3Microphysics::initialize_impl (const util::TimeStamp& t0)
 //  std::vector<std::string> p3_inputs = {"q","T","FQ","ast","ni_activated","nc_nuceat_tend","pmid","dp","zi","qv_prev","T_prev"};
   std::vector<std::string> p3_inputs = {"T_atm","ast","ni_activated","nc_nuceat_tend","pmid","dp","zi","qv_prev","T_prev",
                                         "qv", "qc", "qr", "qi", "qm", "nc", "nr", "ni", "bm","nccn_prescribed","inv_qc_relvar"
+                                       ,"th_atm","exner","dz","cld_frac_l","cld_frac_r","cld_frac_i"  // TODO: Delete these, should be local.
                                        };
   using strvec = std::vector<std::string>;
   const strvec& allowed_to_init = m_p3_params.get<strvec>("Initializable Inputs",strvec(0));
@@ -203,11 +215,16 @@ void P3Microphysics::run_impl (const Real dt)
   auto th_atm = m_p3_fields_out["th_atm"].get_reshaped_view<Pack**>();
   // --Diagnostic Input Variables:
   // local arrays
-  view_2d cld_frac_i("cld_frac_i",m_num_cols,m_num_levs);
-  view_2d cld_frac_l("cld_frac_l",m_num_cols,m_num_levs);
-  view_2d cld_frac_r("cld_frac_r",m_num_cols,m_num_levs);
-  view_2d dz("dz",m_num_cols,m_num_levs);
-  view_2d exner("exner",m_num_cols,m_num_levs);
+////  view_2d cld_frac_i("cld_frac_i",m_num_cols,m_num_levs);
+////  view_2d cld_frac_l("cld_frac_l",m_num_cols,m_num_levs);
+////  view_2d cld_frac_r("cld_frac_r",m_num_cols,m_num_levs);
+////  view_2d dz("dz",m_num_cols,m_num_levs);
+////  view_2d exner("exner",m_num_cols,m_num_levs);
+  auto cld_frac_i = m_p3_fields_out["cld_frac_i"].get_reshaped_view<Pack**>();
+  auto cld_frac_l = m_p3_fields_out["cld_frac_l"].get_reshaped_view<Pack**>();
+  auto cld_frac_r = m_p3_fields_out["cld_frac_r"].get_reshaped_view<Pack**>();
+  auto dz         = m_p3_fields_out["dz"].get_reshaped_view<Pack**>();
+  auto exner      = m_p3_fields_out["exner"].get_reshaped_view<Pack**>();
   // field managed arrays
   auto nc_nuceat_tend  = m_p3_fields_in["nc_nuceat_tend"].get_reshaped_view<const Pack**>();
   auto nccn_prescribed = m_p3_fields_in["nccn_prescribed"].get_reshaped_view<const Pack**>();
@@ -317,7 +334,7 @@ void P3Microphysics::run_impl (const Real dt)
   });
 //  Kokkos::fence();
 // --Eventually delete from here...
-  Real q_before;
+  Real q_before = 0.0;
   Kokkos::parallel_reduce(
     "q_before",
     1,
@@ -346,7 +363,7 @@ void P3Microphysics::run_impl (const Real dt)
   auto elapsed_microsec = P3F::p3_main(prog_state, diag_inputs, diag_outputs, infrastructure,
                                        history_only, m_num_cols, m_num_levs);
 // Eventually delete from here...
-  Real q_after; 
+  Real q_after = 0.0; 
   Kokkos::parallel_reduce(
     "q_after",
     1,
