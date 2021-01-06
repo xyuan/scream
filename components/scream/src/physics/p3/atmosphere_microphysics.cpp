@@ -304,6 +304,7 @@ void P3Microphysics::run_impl (const Real dt)
         const Spack oT_atm(T_atm(icol,ipack)[ivec]);
         const Spack zi_top(zi(icol,ipack)[ivec]);
         const Spack zi_bot(zi(icol,ipack_p1)[ivec_p1]);
+//        printf("ASD - inv_qc_relvar(%2d,%2d) = %f\n",icol,jlev,inv_qc_relvar(icol,ipack)[ivec]);
         
         auto oexner  = physics::get_exner(opmid,Smask(true));
         exner(icol,ipack)[ivec] = oexner[0];
@@ -334,23 +335,31 @@ void P3Microphysics::run_impl (const Real dt)
   });
 //  Kokkos::fence();
 // --Eventually delete from here...
-  Real q_before = 0.0;
-  Kokkos::parallel_reduce(
-    "q_before",
-    1,
-    KOKKOS_LAMBDA(const int& i_dum, Real& sum) {
-  for (int i_col=0;i_col<m_num_cols;i_col++)
-  {
-    for (int i_lev=0;i_lev<m_num_levs;i_lev++)
-    {
-      int ipack = i_lev / Spack::n;
-      int ivec  = i_lev % Spack::n;
-      sum += (qv(i_col,ipack)[ivec] + qc(i_col,ipack)[ivec] + qr(i_col,ipack)[ivec] + qi(i_col,ipack)[ivec] + qm(i_col,ipack)[ivec]);
-    }
-  }
-  },q_before);
+  int ipack = 71/Spack::n;
+  int ivec  = 71%Spack::n;
+//  auto qv_host = Kokkos::create_mirror_view(qv);
+//  Kokkos::deep_copy(qv_host,qv);
+//  auto qv_host = m_p3_host_views_out.at("qv");
+//  Real q_before = qv_host(0);
+//  Real q_before = qv_host(0,ipack)[ivec]; //0.0;
+//  Kokkos::parallel_reduce(
+//    "q_before",
+//    1,
+//    KOKKOS_LAMBDA(const int& i_dum, Real& sum) {
+//  for (int i_col=0;i_col<m_num_cols;i_col++)
+//  {
+//    for (int i_lev=0;i_lev<m_num_levs;i_lev++)
+//    {
+//      int ipack = i_lev / Spack::n;
+//      int ivec  = i_lev % Spack::n;
+//      sum += (qv(i_col,ipack)[ivec] + qc(i_col,ipack)[ivec] + qr(i_col,ipack)[ivec] + qi(i_col,ipack)[ivec] + qm(i_col,ipack)[ivec]);
+//    }
+//  }
+//  },q_before);
 // to here.
   // Pack our data into structs and ship it off to p3_main.
+//  auto qv_p1 = inv_qc_relvar(0,0);
+//  auto qv_p2 = qv_p1[0];
   P3F::P3PrognosticState prog_state{ qc, nc, qr, nr, qi, qm, ni, bm, qv, th_atm };
   P3F::P3DiagnosticInputs diag_inputs{ nc_nuceat_tend, nccn_prescribed, ni_activated, inv_qc_relvar, 
                                        cld_frac_i, cld_frac_l, cld_frac_r, pmid, dz, dp, exner, qv_prev, T_prev };
@@ -363,24 +372,25 @@ void P3Microphysics::run_impl (const Real dt)
   auto elapsed_microsec = P3F::p3_main(prog_state, diag_inputs, diag_outputs, infrastructure,
                                        history_only, m_num_cols, m_num_levs);
 // Eventually delete from here...
-  Real q_after = 0.0; 
-  Kokkos::parallel_reduce(
-    "q_after",
-    1,
-    KOKKOS_LAMBDA(const int& i_dum, Real& sum) {
-  for (int i_col=0;i_col<m_num_cols;i_col++)
-  {
-    for (int i_lev=0;i_lev<m_num_levs;i_lev++)
-    {
-      int ipack = i_lev / Spack::n;
-      int ivec  = i_lev % Spack::n;
-      sum += (qv(i_col,ipack)[ivec] + qc(i_col,ipack)[ivec] + qr(i_col,ipack)[ivec] + qi(i_col,ipack)[ivec] + qm(i_col,ipack)[ivec]);
-      qv_prev(i_col,ipack)[ivec] = qv(i_col,ipack)[ivec];
-      T_prev(i_col,ipack)[ivec] = T_atm(i_col,ipack)[ivec];
-    }
-  }
-  },q_after);
-  printf("ASD = q_diff::  %.10e, %.10e, %.10e -- %d, %d\n",q_before,q_after,q_after-q_before,m_num_cols,m_num_levs);
+//  Kokkos::deep_copy(qv_host,qv);
+//  Real q_after = qv_host(0,ipack)[ivec]; //0.0; 
+//  Kokkos::parallel_reduce(
+//    "q_after",
+//    1,
+//    KOKKOS_LAMBDA(const int& i_dum, Real& sum) {
+//  for (int i_col=0;i_col<m_num_cols;i_col++)
+//  {
+//    for (int i_lev=0;i_lev<m_num_levs;i_lev++)
+//    {
+//      int ipack = i_lev / Spack::n;
+//      int ivec  = i_lev % Spack::n;
+//      sum += (qv(i_col,ipack)[ivec] + qc(i_col,ipack)[ivec] + qr(i_col,ipack)[ivec] + qi(i_col,ipack)[ivec] + qm(i_col,ipack)[ivec]);
+//      qv_prev(i_col,ipack)[ivec] = qv(i_col,ipack)[ivec];
+//      T_prev(i_col,ipack)[ivec] = T_atm(i_col,ipack)[ivec];
+//    }
+//  }
+//  },q_after);
+//  printf("ASD = q_diff::  %.10e, %.10e, %.10e -- %d, %d\n",q_before,q_after,q_after-q_before,m_num_cols,m_num_levs);
 // to here.
 
   // Copy outputs back to device
@@ -405,9 +415,11 @@ void P3Microphysics::finalize_impl()
 void P3Microphysics::register_fields (FieldRepository<Real>& field_repo) const {
   for (auto& fid : m_required_fields) {
     field_repo.register_field<Pack>(fid);
+    //field_repo.register_field(fid);
   }
   for (auto& fid : m_computed_fields) {
     field_repo.register_field<Pack>(fid);
+    //field_repo.register_field(fid);
   }
 }
 
