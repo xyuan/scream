@@ -66,7 +66,7 @@ real(rtype), parameter :: w2tune=1.0_rtype
 ! third moment of vertical velocity
 real(rtype), parameter :: w3clip=1.2_rtype
 ! mixing length scaling parameter
-real(rtype), parameter :: length_fac=0.5_rtype
+real(rtype), parameter :: length_fac=1.0_rtype
 ! coefficient for diag third moment parameters
 real(rtype), parameter :: c_diag_3rd_mom = 7.0_rtype
 
@@ -3172,10 +3172,10 @@ subroutine isotropic_ts(nlev, shcol, brunt_int, tke, a_diss, brunt, isotropy)
   real(rtype) :: tscale, lambda, buoy_sgs_save
 
   !Parameters
-  real(rtype), parameter :: lambda_low   = 0.001_rtype
-  real(rtype), parameter :: lambda_high  = 0.04_rtype
-  real(rtype), parameter :: lambda_slope = 0.65_rtype
-  real(rtype), parameter :: brunt_low    = 0.02_rtype
+  real(rtype), parameter :: lambda_low   = 0.0005_rtype
+  real(rtype), parameter :: lambda_high  = 0.08_rtype
+  real(rtype), parameter :: lambda_slope = 2.65_rtype
+  real(rtype), parameter :: brunt_low    = 0.04_rtype
   real(rtype), parameter :: maxiso       = 20000.0_rtype ! Return to isotropic timescale [s]
 
 #ifdef SCREAM_CONFIG_IS_CMAKE
