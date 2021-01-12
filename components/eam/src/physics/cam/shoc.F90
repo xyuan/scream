@@ -56,11 +56,11 @@ real(rtype) :: vk    ! von karmann constant [-]
 !  All are unitless
 
 ! temperature variance
-real(rtype), parameter :: thl2tune=1.0_rtype
+real(rtype), parameter :: thl2tune=1.0
 ! moisture variance
-real(rtype), parameter :: qw2tune=1.0_rtype
+real(rtype), parameter :: qw2tune=1.0
 ! temp moisture covariance
-real(rtype), parameter :: qwthl2tune=1.0_rtype
+real(rtype), parameter :: qwthl2tune=1.0
 ! vertical velocity variance
 real(rtype), parameter :: w2tune=1.0_rtype
 ! third moment of vertical velocity
@@ -68,7 +68,7 @@ real(rtype), parameter :: w3clip=1.2_rtype
 ! mixing length scaling parameter
 real(rtype), parameter :: length_fac=0.5_rtype
 ! coefficient for diag third moment parameters
-real(rtype), parameter :: c_diag_3rd_mom = 7.0_rtype
+real(rtype), parameter :: c_diag_3rd_mom = 1.0_rtype
 
 ! =========
 ! Below are options to activate certain features in SHOC
@@ -1434,19 +1434,19 @@ subroutine diag_second_moments(&
 
   ! Calculate the temperature variance
   call calc_shoc_varorcovar(&
-         shcol,nlev,nlevi,thl2tune,&              ! Input
+         shcol,nlev,nlevi,thl2tune,shoc_mix,&              ! Input
          isotropy_zi,tkh_zi,dz_zi,thetal,thetal,& ! Input
          thl_sec)                                 ! Input/Output
 
   ! Calculate the moisture variance
   call calc_shoc_varorcovar(&
-         shcol,nlev,nlevi,qw2tune,&               ! Input
+         shcol,nlev,nlevi,qw2tune,shoc_mix,&               ! Input
          isotropy_zi,tkh_zi,dz_zi,qw,qw,&         ! Input
          qw_sec)                                  ! Input/Output
 
   ! Calculate the temperature and moisture covariance
   call calc_shoc_varorcovar(&
-         shcol,nlev,nlevi,qwthl2tune,&            ! Input
+         shcol,nlev,nlevi,qwthl2tune,shoc_mix,&            ! Input
          isotropy_zi,tkh_zi,dz_zi,thetal,qw,&     ! Input
          qwthl_sec)                               ! Input/Output
 
@@ -1479,7 +1479,7 @@ subroutine diag_second_moments(&
 end subroutine diag_second_moments
 
 subroutine calc_shoc_varorcovar(&
-         shcol,nlev,nlevi,tunefac,&                ! Input
+         shcol,nlev,nlevi,tunefac,shoc_mix,&                ! Input
          isotropy_zi,tkh_zi,dz_zi,invar1,invar2,&  ! Input
          varorcovar)                               ! Input/Output
 
@@ -1512,6 +1512,8 @@ subroutine calc_shoc_varorcovar(&
   real(rtype), intent(in) :: invar1(shcol,nlev)
   ! Input variable 2 [units vary]
   real(rtype), intent(in) :: invar2(shcol,nlev)
+  ! shocmix 
+  real(rtype), intent(in) :: shoc_mix(shcol,nlev)
 
 ! INPUT/OUTPUT VARIABLES
   ! variance or covariance [units vary]
@@ -1535,7 +1537,9 @@ subroutine calc_shoc_varorcovar(&
     do i=1,shcol
 
       grid_dz2=bfb_square(1._rtype/dz_zi(i,k)) ! vertical grid diff squared
-      sm=isotropy_zi(i,k)*tkh_zi(i,k) ! coefficient for variances
+!      sm=isotropy_zi(i,k)*tkh_zi(i,k) ! coefficient for variances
+      sm=shoc_mix(i,k)*shoc_mix(i,k)
+!      sm=2.0e4_rtype
 
       ! Compute the variance or covariance
       varorcovar(i,k)=tunefac*sm*grid_dz2*(invar1(i,kt)-invar1(i,k))*&
@@ -2102,7 +2106,7 @@ subroutine clipping_diag_third_shoc_moments(&
       if (tsign * w3(i,k) .gt. cond) w3(i,k) = tsign * cond
       
       ! DPAB
-!      w3(i,k) = 100.0_rtype
+!      w3(i,k) = 0.1_rtype
 
     enddo !end i loop (column loop)
   enddo ! end k loop (vertical loop)
@@ -3206,7 +3210,7 @@ subroutine isotropic_ts(nlev, shcol, brunt_int, tke, a_diss, brunt, isotropy)
   real(rtype) :: tscale, lambda, buoy_sgs_save
 
   !Parameters
-  real(rtype), parameter :: lambda_low   = 0.0005_rtype
+  real(rtype), parameter :: lambda_low   = 0.04_rtype
   real(rtype), parameter :: lambda_high  = 0.04_rtype
   real(rtype), parameter :: lambda_slope = 2.65_rtype
   real(rtype), parameter :: brunt_low    = 0.04_rtype
