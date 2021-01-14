@@ -122,19 +122,31 @@ struct Baseline {
 
   Int generate_baseline (const std::string& filename, bool use_fortran) {
     auto fid = ekat::FILEPtr(fopen(filename.c_str(), "w"));
+    std::string init_filename = filename + "_init";
+    auto fid_init = ekat::FILEPtr(fopen(init_filename.c_str(), "w"));
     EKAT_REQUIRE_MSG( fid, "generate_baseline can't write " << filename);
     Int nerr = 0;
 
     // These times are thrown out, I just wanted to be able to use auto
     Int total_duration_microsec = 0;
-
+    bool write_init = true;
     for (auto ps : params_) {
       // Run reference p3 on this set of parameters.
       for (Int r = -1; r < m_repeat; ++r) {
         const auto d = ic::Factory::create(ps.ic, m_ic_ncol);
         set_params(ps, *d);
         p3_init();
-
+        // --------
+        int icol = 0;
+        if (write_init) {write(fid_init, d);} // Save the fields to the baseline file.
+        auto& di = *d;
+        Real qsum_before = 0.0;
+        for (int k=0; k<72; k++) {
+          qsum_before += di.dz(icol,k);//(di.qv(icol,k) + di.qc(icol,k) + di.qr(icol,k) + di.qi(icol,k) + di.qm(icol,k));
+        }
+        printf("ASD init vals- %.10e\n",qsum_before);
+        write_init = false;
+        // --------
         if (m_repeat > 0 && r == -1) {
           std::cout << "Running P3 with ni=" << d->ncol << ", nk=" << d->nlev
                     << ", dt=" << d->dt << ", ts=" << d->it << " predict_nc=" << d->do_predict_nc;
@@ -146,7 +158,20 @@ struct Baseline {
         }
 
         for (int it=0; it<ps.it; it++) {
+          // -------
+          qsum_before = 0.0;
+          for (int k=0; k<72; k++) {
+            qsum_before += di.nc_nuceat_tend(icol,k);//(di.qv(icol,k) + di.qc(icol,k) + di.qr(icol,k) + di.qi(icol,k) + di.qm(icol,k));
+          }
+          // -------
           Int current_microsec = p3_main(*d, use_fortran);
+          // -------
+          Real qsum_after = 0.0;
+          for (int k=0; k<72; k++) {
+            qsum_after += di.nc_nuceat_tend(icol,k);//(di.qv(icol,k) + di.qc(icol,k) + di.qr(icol,k) + di.qi(icol,k) + di.qm(icol,k));
+          }
+          printf("ASD - %.10e, %.10e, %.10e\n",qsum_before,qsum_after,qsum_after-qsum_before);
+          // -------
 
           if (r != -1 && m_repeat > 0) { // do not count the "cold" run
             total_duration_microsec += current_microsec;

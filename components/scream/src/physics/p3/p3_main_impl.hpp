@@ -949,6 +949,7 @@ Int Functions<S,D>
   // we do not want to measure init stuff
   auto start = std::chrono::steady_clock::now();
 
+  view_1d<Real> q_tot("total water content", policy.league_size());
   // p3_main loop
   Kokkos::parallel_for(
     "p3 main loop",
@@ -1164,8 +1165,21 @@ Int Functions<S,D>
     check_values(oqv, tmparr1, ktop, kbot, infrastructure.it, debug_ABORT, 900,
                  team, ocol_location);
 #endif
+//    uview_1d<Spack> q_sum("qsum",0.0);
+//    const auto sum_mass = [&] (const Int& k, Real& q_sum) {
+//      q_sum(k) += oqv(k);
+//    };
+//    Kokkos::parallel_reduce("water column total", Kokkos::TeamThreadRange(team, nk_pack), sum_mass, q_sum);
+//    q_tot(i) = q_sum;
   });
   Kokkos::fence();
+
+//  Real q_tot = 0.0;
+//  Kokkos::parallel_reduce( "check p3", policy, KOKKOS_LAMBDA(const MemberType& team,Real& q_tot_i ) {
+//    Kokkos::parallel_reduce( "p3 check over levs", Kokkos::TeamThreadRange(team,nk_pack), KOKKOS_LAMBDA(const int k, Real& q_tot_k) {
+//      q_tot_k(k) += 
+//    },q_tot_i);
+//  },q_tot);
 
   auto finish = std::chrono::steady_clock::now();
   auto duration = std::chrono::duration_cast<std::chrono::microseconds>(finish - start);

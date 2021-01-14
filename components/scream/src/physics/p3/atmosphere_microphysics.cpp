@@ -285,78 +285,79 @@ void P3Microphysics::run_impl (const Real dt)
 //  const auto policy = ekat::ExeSpaceUtils<ExeSpace>::get_default_team_policy(1,1);
   // TODO: Improve the performance of this step.  Currently just using a parallel_for loop over
   // 1 to ensure code will work on GPU.  Perhaps need to use ekat::subview.
-  Kokkos::parallel_for(
-    "set_p3_local_vars",
-    1,
-    KOKKOS_LAMBDA(const int& i_dum) {
-    for (int icol=0;icol<m_num_cols;icol++)
-    {
-      for (int jlev=0;jlev<m_num_levs;jlev++)
-      {
-        int ipack = jlev / Spack::n;
-        int ivec  = jlev % Spack::n;
-        int ipack_p1 = (jlev+1) / Spack::n;
-        int ivec_p1  = (jlev+1) % Spack::n;
-        int ipack_m1 = (jlev-1) / Spack::n;
-        int ivec_m1  = (jlev-1) % Spack::n;
-        
-        const Spack opmid(pmid(icol,ipack)[ivec]);
-        const Spack oT_atm(T_atm(icol,ipack)[ivec]);
-        const Spack zi_top(zi(icol,ipack)[ivec]);
-        const Spack zi_bot(zi(icol,ipack_p1)[ivec_p1]);
-//        printf("ASD - inv_qc_relvar(%2d,%2d) = %f\n",icol,jlev,inv_qc_relvar(icol,ipack)[ivec]);
-        
-        auto oexner  = physics::get_exner(opmid,Smask(true));
-        exner(icol,ipack)[ivec] = oexner[0];
-
-        auto oth = physics::T_to_th(oT_atm,oexner,Smask(true));
-        th_atm(icol,ipack)[ivec] = oth[0];
-
-        auto odz = physics::get_dz(zi_top,zi_bot,Smask(true));
-        dz(icol,ipack)[ivec] = odz[0];
-
-        if (ast(icol,ipack)[ivec]>mincld)
-        {
-          cld_frac_l(icol,ipack)[ivec] = ast(icol,ipack)[ivec]; 
-        }
-        cld_frac_i(icol,ipack)[ivec] = cld_frac_l(icol,ipack)[ivec];
-        cld_frac_r(icol,ipack)[ivec] = cld_frac_l(icol,ipack)[ivec];
-        if (jlev != 0)
-        {
-          if (qr(icol,ipack)[ivec]>=qsmall or qi(icol,ipack)[ivec]>=qsmall)
-          {
-            cld_frac_r(icol,ipack)[ivec] = ast(icol,ipack_m1)[ivec_m1]>cld_frac_r(icol,ipack)[ivec] ? 
-                                             ast(icol,ipack_m1)[ivec_m1] :
-                                             cld_frac_r(icol,ipack)[ivec];
-          }
-        }
-      }
-    }
-  });
+//ASD PUT BACK SOON  Kokkos::parallel_for(
+//ASD PUT BACK SOON    "set_p3_local_vars",
+//ASD PUT BACK SOON    m_num_cols,
+//ASD PUT BACK SOON    KOKKOS_LAMBDA(const int& icol) {
+//    for (int icol=0;icol<m_num_cols;icol++)
+//    {
+//ASD PUT BACK SOON      for (int jlev=0;jlev<m_num_levs;jlev++)
+//ASD PUT BACK SOON      {
+//ASD PUT BACK SOON        int ipack = jlev / Spack::n;
+//ASD PUT BACK SOON        int ivec  = jlev % Spack::n;
+//ASD PUT BACK SOON        int ipack_p1 = (jlev+1) / Spack::n;
+//ASD PUT BACK SOON        int ivec_p1  = (jlev+1) % Spack::n;
+//ASD PUT BACK SOON        int ipack_m1 = (jlev-1) / Spack::n;
+//ASD PUT BACK SOON        int ivec_m1  = (jlev-1) % Spack::n;
+//ASD PUT BACK SOON        
+//ASD PUT BACK SOON        const Spack opmid(pmid(icol,ipack)[ivec]);
+//ASD PUT BACK SOON        const Spack oT_atm(T_atm(icol,ipack)[ivec]);
+//ASD PUT BACK SOON        const Spack zi_top(zi(icol,ipack)[ivec]);
+//ASD PUT BACK SOON        const Spack zi_bot(zi(icol,ipack_p1)[ivec_p1]);
+//ASD PUT BACK SOON//        printf("ASD - inv_qc_relvar(%2d,%2d) = %f\n",icol,jlev,inv_qc_relvar(icol,ipack)[ivec]);
+//ASD PUT BACK SOON        
+//ASD PUT BACK SOON        auto oexner  = physics::get_exner(opmid,Smask(true));
+//ASD PUT BACK SOON        exner(icol,ipack)[ivec] = oexner[0];
+//ASD PUT BACK SOON
+//ASD PUT BACK SOON        auto oth = physics::T_to_th(oT_atm,oexner,Smask(true));
+//ASD PUT BACK SOON        th_atm(icol,ipack)[ivec] = oth[0];
+//ASD PUT BACK SOON
+//ASD PUT BACK SOON        auto odz = physics::get_dz(zi_top,zi_bot,Smask(true));
+//ASD PUT BACK SOON        dz(icol,ipack)[ivec] = odz[0];
+//ASD PUT BACK SOON
+//ASD PUT BACK SOON        if (ast(icol,ipack)[ivec]>mincld)
+//ASD PUT BACK SOON        {
+//ASD PUT BACK SOON          cld_frac_l(icol,ipack)[ivec] = ast(icol,ipack)[ivec]; 
+//ASD PUT BACK SOON        }
+//ASD PUT BACK SOON        cld_frac_i(icol,ipack)[ivec] = cld_frac_l(icol,ipack)[ivec];
+//ASD PUT BACK SOON        cld_frac_r(icol,ipack)[ivec] = cld_frac_l(icol,ipack)[ivec];
+//ASD PUT BACK SOON        if (jlev != 0)
+//ASD PUT BACK SOON        {
+//ASD PUT BACK SOON          if (qr(icol,ipack)[ivec]>=qsmall or qi(icol,ipack)[ivec]>=qsmall)
+//ASD PUT BACK SOON          {
+//ASD PUT BACK SOON            cld_frac_r(icol,ipack)[ivec] = ast(icol,ipack_m1)[ivec_m1]>cld_frac_r(icol,ipack)[ivec] ? 
+//ASD PUT BACK SOON                                             ast(icol,ipack_m1)[ivec_m1] :
+//ASD PUT BACK SOON                                             cld_frac_r(icol,ipack)[ivec];
+//ASD PUT BACK SOON          }
+//ASD PUT BACK SOON        }
+//ASD PUT BACK SOON      }
+//ASD PUT BACK SOON//    }
+//ASD PUT BACK SOON  });
 //  Kokkos::fence();
 // --Eventually delete from here...
-  int ipack = 71/Spack::n;
-  int ivec  = 71%Spack::n;
+//  int ipack = 71/Spack::n;
+//  int ivec  = 71%Spack::n;
 //  auto qv_host = Kokkos::create_mirror_view(qv);
 //  Kokkos::deep_copy(qv_host,qv);
 //  auto qv_host = m_p3_host_views_out.at("qv");
 //  Real q_before = qv_host(0);
-//  Real q_before = qv_host(0,ipack)[ivec]; //0.0;
-//  Kokkos::parallel_reduce(
-//    "q_before",
-//    1,
-//    KOKKOS_LAMBDA(const int& i_dum, Real& sum) {
+  Real q_before = 0.0;//qv_host(0,ipack)[ivec]; //0.0;
+  Kokkos::parallel_reduce(
+    "q_before",
+    1,
+    KOKKOS_LAMBDA(const int& i_dum, Real& sum) {
 //  for (int i_col=0;i_col<m_num_cols;i_col++)
 //  {
-//    for (int i_lev=0;i_lev<m_num_levs;i_lev++)
-//    {
-//      int ipack = i_lev / Spack::n;
-//      int ivec  = i_lev % Spack::n;
-//      sum += (qv(i_col,ipack)[ivec] + qc(i_col,ipack)[ivec] + qr(i_col,ipack)[ivec] + qi(i_col,ipack)[ivec] + qm(i_col,ipack)[ivec]);
-//    }
+    int i_col = 0;
+    for (int i_lev=0;i_lev<m_num_levs;i_lev++)
+    {
+      int ipack = i_lev / Spack::n;
+      int ivec  = i_lev % Spack::n;
+      sum += pmid(i_col,ipack)[ivec];//(qv(i_col,ipack)[ivec] + qc(i_col,ipack)[ivec] + qr(i_col,ipack)[ivec] + qi(i_col,ipack)[ivec] + qm(i_col,ipack)[ivec]);
+    }
 //  }
-//  },q_before);
-// to here.
+  },q_before);
+// ----to here.
   // Pack our data into structs and ship it off to p3_main.
 //  auto qv_p1 = inv_qc_relvar(0,0);
 //  auto qv_p2 = qv_p1[0];
@@ -373,29 +374,31 @@ void P3Microphysics::run_impl (const Real dt)
                                        history_only, m_num_cols, m_num_levs);
 // Eventually delete from here...
 //  Kokkos::deep_copy(qv_host,qv);
-//  Real q_after = qv_host(0,ipack)[ivec]; //0.0; 
-//  Kokkos::parallel_reduce(
-//    "q_after",
-//    1,
-//    KOKKOS_LAMBDA(const int& i_dum, Real& sum) {
+//  Real q_after = qv_host(0); //0.0; 
+  Real q_after = 0.0;//qv_host(0,ipack)[ivec]; //0.0; 
+  Kokkos::parallel_reduce(
+    "q_after",
+    1,
+    KOKKOS_LAMBDA(const int& i_dum, Real& sum) {
 //  for (int i_col=0;i_col<m_num_cols;i_col++)
 //  {
-//    for (int i_lev=0;i_lev<m_num_levs;i_lev++)
-//    {
-//      int ipack = i_lev / Spack::n;
-//      int ivec  = i_lev % Spack::n;
-//      sum += (qv(i_col,ipack)[ivec] + qc(i_col,ipack)[ivec] + qr(i_col,ipack)[ivec] + qi(i_col,ipack)[ivec] + qm(i_col,ipack)[ivec]);
+    int i_col = 0;
+    for (int i_lev=0;i_lev<m_num_levs;i_lev++)
+    {
+      int ipack = i_lev / Spack::n;
+      int ivec  = i_lev % Spack::n;
+      sum += pmid(i_col,ipack)[ivec];//(qv(i_col,ipack)[ivec] + qc(i_col,ipack)[ivec] + qr(i_col,ipack)[ivec] + qi(i_col,ipack)[ivec] + qm(i_col,ipack)[ivec]);
 //      qv_prev(i_col,ipack)[ivec] = qv(i_col,ipack)[ivec];
 //      T_prev(i_col,ipack)[ivec] = T_atm(i_col,ipack)[ivec];
-//    }
+    }
 //  }
-//  },q_after);
-//  printf("ASD = q_diff::  %.10e, %.10e, %.10e -- %d, %d\n",q_before,q_after,q_after-q_before,m_num_cols,m_num_levs);
-// to here.
+  },q_after);
+  printf("ASD = q_diff::  %.10e, %.10e, %.10e -- %d, %d\n",q_before,q_after,q_after-q_before,m_num_cols,m_num_levs);
+// --to here.
 
   // Copy outputs back to device
   for (auto& it : m_p3_fields_out) {
-    Kokkos::deep_copy(it.second.get_view(),m_p3_host_views_out.at(it.first));
+    Kokkos::deep_copy(m_p3_host_views_out.at(it.first),it.second.get_view());
   }
 
   // Get a copy of the current timestamp (at the beginning of the step) and

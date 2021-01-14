@@ -4,6 +4,7 @@
 #include "share/io/scorpio_input.hpp"
 #include "share/io/scream_scorpio_interface.hpp"
 
+#include "ekat/util/ekat_file_utils.hpp"
 #include <array>
 
 namespace scream
@@ -129,206 +130,354 @@ void P3InputsInitializer::initialize_fields ()
     host_mirrors.emplace(name,h_view);//Kokkos::create_mirror_view(d_view));
   }
 
-//  // Create device views
-//  auto d_T_atm           = m_fields.at("T_atm").get_reshaped_view<Real**>();
-//  auto d_ast             = m_fields.at("ast").get_reshaped_view<Real**>();
-//  auto d_ni_activated    = m_fields.at("ni_activated").get_reshaped_view<Real**>();
-//  auto d_nc_nuceat_tend  = m_fields.at("nc_nuceat_tend").get_reshaped_view<Real**>();
-//  auto d_pmid            = m_fields.at("pmid").get_reshaped_view<Real**>();
-//  auto d_dp              = m_fields.at("dp").get_reshaped_view<Real**>();
-//  auto d_zi              = m_fields.at("zi").get_reshaped_view<Real**>();
-//  auto d_qv_prev         = m_fields.at("qv_prev").get_reshaped_view<Real**>();
-//  auto d_T_prev          = m_fields.at("T_prev").get_reshaped_view<Real**>();
-//  auto d_qv              = m_fields.at("qv").get_reshaped_view<Real**>();
-//  auto d_qc              = m_fields.at("qc").get_reshaped_view<Real**>();
-//  auto d_qr              = m_fields.at("qr").get_reshaped_view<Real**>();
-//  auto d_qi              = m_fields.at("qi").get_reshaped_view<Real**>();
-//  auto d_qm              = m_fields.at("qm").get_reshaped_view<Real**>();
-//  auto d_nc              = m_fields.at("nc").get_reshaped_view<Real**>();
-//  auto d_nr              = m_fields.at("nr").get_reshaped_view<Real**>();
-//  auto d_ni              = m_fields.at("ni").get_reshaped_view<Real**>();
-//  auto d_bm              = m_fields.at("bm").get_reshaped_view<Real**>();
-//  auto d_nccn_prescribed = m_fields.at("nccn_prescribed").get_reshaped_view<Real**>();
-//  auto d_inv_qc_relvar   = m_fields.at("inv_qc_relvar").get_reshaped_view<Real**>();
-//  // TODO: Delete eventually, should instead be set in run interface: 
-//  auto d_th_atm          = m_fields.at("th_atm").get_reshaped_view<Real**>();  
-//  auto d_dz              = m_fields.at("dz").get_reshaped_view<Real**>();  
-//  auto d_exner           = m_fields.at("exner").get_reshaped_view<Real**>();  
-//  auto d_cld_frac_l      = m_fields.at("cld_frac_l").get_reshaped_view<Real**>();  
-//  auto d_cld_frac_i      = m_fields.at("cld_frac_i").get_reshaped_view<Real**>();  
-//  auto d_cld_frac_r      = m_fields.at("cld_frac_r").get_reshaped_view<Real**>(); 
-//  // Create host mirrors 
-//  auto h_T_atm           = Kokkos::create_mirror_view(d_T_atm);
-//  auto h_ast             = Kokkos::create_mirror_view(d_ast);
-//  auto h_ni_activated    = Kokkos::create_mirror_view(d_ni_activated);
-//  auto h_nc_nuceat_tend  = Kokkos::create_mirror_view(d_nc_nuceat_tend);
-//  auto h_pmid            = Kokkos::create_mirror_view(d_pmid);
-//  auto h_dp              = Kokkos::create_mirror_view(d_dp);
-//  auto h_zi              = Kokkos::create_mirror_view(d_zi);
-//  auto h_qv_prev         = Kokkos::create_mirror_view(d_qv_prev);
-//  auto h_T_prev          = Kokkos::create_mirror_view(d_T_prev);
-//  auto h_qv              = Kokkos::create_mirror_view(d_qv);
-//  auto h_qc              = Kokkos::create_mirror_view(d_qc);
-//  auto h_qr              = Kokkos::create_mirror_view(d_qr);
-//  auto h_qi              = Kokkos::create_mirror_view(d_qi);
-//  auto h_qm              = Kokkos::create_mirror_view(d_qm);
-//  auto h_nc              = Kokkos::create_mirror_view(d_nc);
-//  auto h_nr              = Kokkos::create_mirror_view(d_nr);
-//  auto h_ni              = Kokkos::create_mirror_view(d_ni);
-//  auto h_bm              = Kokkos::create_mirror_view(d_bm);
-//  auto h_nccn_prescribed = Kokkos::create_mirror_view(d_nccn_prescribed);
-//  auto h_inv_qc_relvar   = Kokkos::create_mirror_view(d_inv_qc_relvar);
-//  // TODO: Delete eventually, should instead be set in run interface: 
-//  auto h_th_atm          = Kokkos::create_mirror_view(d_th_atm);  
-//  auto h_dz              = Kokkos::create_mirror_view(d_dz);  
-//  auto h_exner           = Kokkos::create_mirror_view(d_exner);  
-//  auto h_cld_frac_l      = Kokkos::create_mirror_view(d_cld_frac_l);  
-//  auto h_cld_frac_i      = Kokkos::create_mirror_view(d_cld_frac_i);  
-//  auto h_cld_frac_r      = Kokkos::create_mirror_view(d_cld_frac_r);  
-  // Initialize all variables on using the host mirrors:
+  // Create device views
+  auto d_T_atm           = m_fields.at("T_atm").get_reshaped_view<Pack**>();
+  auto d_ast             = m_fields.at("ast").get_reshaped_view<Pack**>();
+  auto d_ni_activated    = m_fields.at("ni_activated").get_reshaped_view<Pack**>();
+  auto d_nc_nuceat_tend  = m_fields.at("nc_nuceat_tend").get_reshaped_view<Pack**>();
+  auto d_pmid            = m_fields.at("pmid").get_reshaped_view<Pack**>();
+  auto d_dp              = m_fields.at("dp").get_reshaped_view<Pack**>();
+  auto d_zi              = m_fields.at("zi").get_reshaped_view<Pack**>();
+  auto d_qv_prev         = m_fields.at("qv_prev").get_reshaped_view<Pack**>();
+  auto d_T_prev          = m_fields.at("T_prev").get_reshaped_view<Pack**>();
+  auto d_qv              = m_fields.at("qv").get_reshaped_view<Pack**>();
+  auto d_qc              = m_fields.at("qc").get_reshaped_view<Pack**>();
+  auto d_qr              = m_fields.at("qr").get_reshaped_view<Pack**>();
+  auto d_qi              = m_fields.at("qi").get_reshaped_view<Pack**>();
+  auto d_qm              = m_fields.at("qm").get_reshaped_view<Pack**>();
+  auto d_nc              = m_fields.at("nc").get_reshaped_view<Pack**>();
+  auto d_nr              = m_fields.at("nr").get_reshaped_view<Pack**>();
+  auto d_ni              = m_fields.at("ni").get_reshaped_view<Pack**>();
+  auto d_bm              = m_fields.at("bm").get_reshaped_view<Pack**>();
+  auto d_nccn_prescribed = m_fields.at("nccn_prescribed").get_reshaped_view<Pack**>();
+  auto d_inv_qc_relvar   = m_fields.at("inv_qc_relvar").get_reshaped_view<Pack**>();
+  // TODO: Delete eventually, should instead be set in run interface: 
+  auto d_th_atm          = m_fields.at("th_atm").get_reshaped_view<Pack**>();  
+  auto d_dz              = m_fields.at("dz").get_reshaped_view<Pack**>();  
+  auto d_exner           = m_fields.at("exner").get_reshaped_view<Pack**>();  
+  auto d_cld_frac_l      = m_fields.at("cld_frac_l").get_reshaped_view<Pack**>();  
+  auto d_cld_frac_i      = m_fields.at("cld_frac_i").get_reshaped_view<Pack**>();  
+  auto d_cld_frac_r      = m_fields.at("cld_frac_r").get_reshaped_view<Pack**>();
+  // Create Host Views
+  auto h_T_atm            = Kokkos::create_mirror_view(d_T_atm          ); 
+  auto h_ast              = Kokkos::create_mirror_view(d_ast            ); 
+  auto h_ni_activated     = Kokkos::create_mirror_view(d_ni_activated   ); 
+  auto h_nc_nuceat_tend   = Kokkos::create_mirror_view(d_nc_nuceat_tend ); 
+  auto h_pmid             = Kokkos::create_mirror_view(d_pmid           ); 
+  auto h_dp               = Kokkos::create_mirror_view(d_dp             ); 
+  auto h_zi               = Kokkos::create_mirror_view(d_zi             ); 
+  auto h_qv_prev          = Kokkos::create_mirror_view(d_qv_prev        ); 
+  auto h_T_prev           = Kokkos::create_mirror_view(d_T_prev         ); 
+  auto h_qv               = Kokkos::create_mirror_view(d_qv             ); 
+  auto h_qc               = Kokkos::create_mirror_view(d_qc             ); 
+  auto h_qr               = Kokkos::create_mirror_view(d_qr             ); 
+  auto h_qi               = Kokkos::create_mirror_view(d_qi             ); 
+  auto h_qm               = Kokkos::create_mirror_view(d_qm             ); 
+  auto h_nc               = Kokkos::create_mirror_view(d_nc             ); 
+  auto h_nr               = Kokkos::create_mirror_view(d_nr             ); 
+  auto h_ni               = Kokkos::create_mirror_view(d_ni             ); 
+  auto h_bm               = Kokkos::create_mirror_view(d_bm             ); 
+  auto h_nccn_prescribed  = Kokkos::create_mirror_view(d_nccn_prescribed); 
+  auto h_inv_qc_relvar    = Kokkos::create_mirror_view(d_inv_qc_relvar  ); 
+  // TODO: Delete eventually, should instead be set in run interface: 
+  auto h_th_atm           = Kokkos::create_mirror_view(d_th_atm         ); 
+  auto h_dz               = Kokkos::create_mirror_view(d_dz             ); 
+  auto h_exner            = Kokkos::create_mirror_view(d_exner          ); 
+  auto h_cld_frac_l       = Kokkos::create_mirror_view(d_cld_frac_l     ); 
+  auto h_cld_frac_i       = Kokkos::create_mirror_view(d_cld_frac_i     ); 
+  auto h_cld_frac_r       = Kokkos::create_mirror_view(d_cld_frac_r     ); 
+  // Initalize from text file 
+  std::ifstream fid("p3_init_vals.txt");
+  std::string tmp_line;
+  int icol_in_max = 0;
+  while(getline(fid,tmp_line))
+  {
+    std::stringstream s(tmp_line);
+    std::string field;
+    std::vector<Real> field_vals;
+    while (getline(s,field,' '))
+    {
+      field_vals.push_back(std::stod(field));
+    }
+    int icol  = (int)field_vals[0];
+    int ipack = (int)field_vals[1] / Spack::n;
+    int ivec  = (int)field_vals[1] % Spack::n;
+    icol_in_max = std::max(icol,icol_in_max);
+    int cnt = 1;
+    cnt++;
+    h_qv(icol,ipack)[ivec]=field_vals[cnt];
+    cnt++;
+    h_th_atm(icol,ipack)[ivec]=field_vals[cnt];
+    cnt++;
+    h_pmid(icol,ipack)[ivec]=field_vals[cnt];
+    cnt++;
+    h_dz(icol,ipack)[ivec]=field_vals[cnt];
+    cnt++;
+    h_nc_nuceat_tend(icol,ipack)[ivec]=field_vals[cnt];
+    cnt++;
+    h_nccn_prescribed(icol,ipack)[ivec]=field_vals[cnt];
+    cnt++;
+    h_ni_activated(icol,ipack)[ivec]=field_vals[cnt];
+    cnt++;
+    h_inv_qc_relvar(icol,ipack)[ivec]=field_vals[cnt];
+    cnt++;
+    h_qc(icol,ipack)[ivec]=field_vals[cnt];
+    cnt++;
+    h_nc(icol,ipack)[ivec]=field_vals[cnt];
+    cnt++;
+    h_qr(icol,ipack)[ivec]=field_vals[cnt];
+    cnt++;
+    h_nr(icol,ipack)[ivec]=field_vals[cnt];
+    cnt++;
+    h_qi(icol,ipack)[ivec]=field_vals[cnt];
+    cnt++;
+    h_ni(icol,ipack)[ivec]=field_vals[cnt];
+    cnt++;
+    h_qm(icol,ipack)[ivec]=field_vals[cnt];
+    cnt++;
+    h_bm(icol,ipack)[ivec]=field_vals[cnt];
+    cnt++;
+    //h_precip_liq_surf(icol,ipack)[ivec]=field_vals[cnt];    //
+    cnt++;
+    //h_precip_ice_surf(icol,ipack)[ivec]=field_vals[cnt];    //
+    cnt++;
+    //h_diag_eff_radius_qc(icol,ipack)[ivec]=field_vals[cnt]; //
+    cnt++;
+    //h_diag_eff_radius_qi(icol,ipack)[ivec]=field_vals[cnt]; //
+    cnt++;
+    //h_rho_qi(icol,ipack)[ivec]=field_vals[cnt]; //
+    cnt++;
+    h_dp(icol,ipack)[ivec]=field_vals[cnt];
+    cnt++;
+    h_exner(icol,ipack)[ivec]=field_vals[cnt];
+    cnt++;
+    //h_qv2qi_depos_tend(icol,ipack)[ivec]=field_vals[cnt]; //
+    cnt++;
+    //h_precip_total_tend(icol,ipack)[ivec]=field_vals[cnt]; //
+    cnt++;
+    //h_nevapr(icol,ipack)[ivec]=field_vals[cnt]; //
+    cnt++;
+    //h_qr_evap_tend(icol,ipack)[ivec]=field_vals[cnt]; //
+    cnt++;
+    //h_precip_liq_flux(icol,ipack)[ivec]=field_vals[cnt]; //
+    cnt++;
+    //h_precip_ice_flux(icol,ipack)[ivec]=field_vals[cnt]; //
+    cnt++;
+    h_cld_frac_r(icol,ipack)[ivec]=field_vals[cnt];
+    cnt++;
+    h_cld_frac_l(icol,ipack)[ivec]=field_vals[cnt];
+    cnt++;
+    h_cld_frac_i(icol,ipack)[ivec]=field_vals[cnt];
+    cnt++;
+    //h_mu_c(icol,ipack)[ivec]=field_vals[cnt]; //
+    cnt++;
+    //h_lamc(icol,ipack)[ivec]=field_vals[cnt]; //
+    cnt++;
+    //h_liq_ice_exchange(icol,ipack)[ivec]=field_vals[cnt]; //
+    cnt++;
+    //h_vap_liq_exchange(icol,ipack)[ivec]=field_vals[cnt]; //
+    cnt++;
+    //h_vap_ice_exchange(icol,ipack)[ivec]=field_vals[cnt]; //
+    cnt++;
+    h_qv_prev(icol,ipack)[ivec]=field_vals[cnt]; 
+    cnt++;
+    h_T_prev(icol,ipack)[ivec]=field_vals[cnt];
+  }
   // For now use dummy values copied from `p3_ic_cases.cpp`
   using consts          = scream::physics::Constants<Real>;
   auto temp = m_fields.at("qc");
   auto mdims = temp.get_header().get_identifier().get_layout();
   Int ncol = mdims.dim(0); 
   Int nk   = mdims.dim(1);
-//  Kokkos::parallel_for(
-//    "init p3 vals",
-//    1,
-//    KOKKOS_LAMBDA(const int& i_dum) {
 
-//ASD  Kokkos::parallel_for(
-//ASD    "iter columns",
-//ASD    ncol,
-//ASD    KOKKOS_LAMBDA(const int &i) {
-//ASD//ASD  for (Int i = 0; i < ncol; ++i) {
-//ASD    // For column i = 0, use the ICs as originally coded in python and
-//ASD    // subsequently modified here. For columns i > 0, introduce some small
-//ASD    // variations.
-//ASD    for (int k = 0; k < nk; ++k) 
-//ASD    {
-//ASD      int ipack = k / Spack::n;
-//ASD      int ivec  = k % Spack::n;
-//ASD      int ipack_m20 = (nk-20+k) / Spack::n;
-//ASD      int ivec_m20  = (nk-20+k) % Spack::n;
-//ASD    // TODO : AaronDonahue: you were going to gather all of the k for loops together and 
-//ASD    //        use the exampler from atmosphere_microphysics.cpp to assign values using ipack and ilev, instead of i,k.
-//ASD    // max cld at ~700mb, decreasing to 0 at 900mb.
-//ASD      if (k < 15) 
-//ASD      {
-//ASD        host_mirrors.at("qc")(i,ipack_m20)[ivec_m20] = 1e-4*(1 - double(k)/14);
-//ASD        host_mirrors.at("qr")(i,ipack_m20)[ivec_m20] = 1e-5*(1 - double(k)/19);
-//ASD      }
-//ASD      host_mirrors.at("nc")(i,ipack)[ivec] = 1e6;
-//ASD      host_mirrors.at("nr")(i,ipack)[ivec] = 1e6;
-//ASD    //                                                      v (in the python)
-//ASD      if (k < 15)
-//ASD      {
-//ASD        host_mirrors.at("qi")(i,ipack_m20)[ivec_m20] = 1e-4; //*(1 - double(k)/14)
-//ASD        host_mirrors.at("qm")(i,ipack_m20)[ivec_m20] = 1e-4*(1 - double(k)/14);
-//ASD        host_mirrors.at("bm")(i,ipack_m20)[ivec_m20] = 1e-2;
-//ASD      }
-//ASD      host_mirrors.at("ni")(i,ipack)[ivec] = 1e6;
-//ASD    // guess at reasonable value based on: m3/kg is 1/density and liquid water has
-//ASD    // a density of 1000 kg/m3
-//ASD
-//ASD    // qv goes to zero halfway through profile (to avoid condensate near model
-//ASD    // top)
-//ASD      const auto tmp = -5e-4 + 1e-3/double(nk)*k;
-//ASD      host_mirrors.at("qv")(i,ipack)[ivec] = tmp > 0 ? tmp : 0;
-//ASD      if (k < 15) host_mirrors.at("qv")(i,ipack_m20)[ivec_m20] = 5e-3;
-//ASD    // pres is actually an input variable, but needed here to compute theta.
-//ASD      host_mirrors.at("pmid")(i,ipack)[ivec] = double(100) + 1e5/double(nk)*double(k);
-//ASD      host_mirrors.at("dp")(i,ipack)[ivec] = 1e5/double(nk);
-//ASD      host_mirrors.at("exner")(i,ipack)[ivec] = std::pow((1e5/host_mirrors.at("pmid")(i,ipack)[ivec]), (287.15/1005.0));
-//ASD      host_mirrors.at("cld_frac_i")(i,ipack)[ivec] = 1.0;
-//ASD      host_mirrors.at("cld_frac_l")(i,ipack)[ivec] = 1.0;
-//ASD      host_mirrors.at("cld_frac_r")(i,ipack)[ivec] = 1.0;
-//ASD    // inv_qc_relvar=mean(qc)/var(qc) measures subgrid qc variability. It is computed in SHOC
-//ASD    // and used by P3. It can range between 0.1 and 10.0. Setting to a typical value of 1.0
-//ASD    // here.
-//ASD      host_mirrors.at("inv_qc_relvar")(i,ipack)[ivec] = double(i)+double(k)/100.0;
-//ASD
-//ASD    // To get potential temperature, start by making absolute temperature vary
-//ASD    // between 150K at top of atmos and 300k at surface, then convert to potential
-//ASD    // temp.
-//ASD      host_mirrors.at("T_atm")(i,ipack)[ivec] = 150 + 150/double(nk)*double(k);
-//ASD//      if (i > 0) host_mirrors.at("T_atm")(i,ipack)[ivec] += ((i % 3) - 0.5)/double(nk)*k;
-//ASD      auto pmid_tmp = host_mirrors.at("pmid")(i,ipack)[ivec];
-//ASD      auto tatm_tmp = host_mirrors.at("T_atm")(i,ipack)[ivec];
-//ASD      auto thatm_tmp = host_mirrors.at("th_atm")(i,ipack)[ivec];
-//ASD      auto p1_tmp = Real(consts::P0/host_mirrors.at("pmid")(i,ipack)[ivec]);
-//ASD      auto p2_tmp = Real(consts::RD/consts::CP);
-//ASD      printf("ASD [%d] - (%2d,%2d) -> (%2d,%2d) and (%2d,%2d) :: %f, %e, %e, %e, %e, %e\n",Spack::n, 
-//ASD         i,k,
-//ASD         ipack,ivec,
-//ASD         ipack_m20,ivec_m20,
-//ASD         host_mirrors.at("inv_qc_relvar")(i,ipack)[ivec],
-//ASD         pmid_tmp,
-//ASD         tatm_tmp,
-//ASD         thatm_tmp,
-//ASD         p1_tmp,
-//ASD         p2_tmp
-//ASD         );
-//ASD      host_mirrors.at("th_atm")(i,ipack)[ivec] = host_mirrors.at("T_atm")(i,ipack)[ivec]*std::pow(Real(consts::P0/host_mirrors.at("pmid")(i,ipack)[ivec]), Real(consts::RD/consts::CP)); //TODO: Delete, should be handled locally
-//ASD    }
-//ASD    int ipack_nkm1 = (nk-1) / Spack::n;
-//ASD    int ivec_nkm1  = (nk-1) % Spack::n;
-//ASD    int ipack_nkm2 = (nk-2) / Spack::n;
-//ASD    int ivec_nkm2  = (nk-2) % Spack::n;
-//ASD    // The next section modifies inout variables to satisfy weird conditions
-//ASD    // needed for code coverage.
-//ASD    host_mirrors.at("qi")(i,ipack_nkm1)[ivec_nkm1] = 1e-9;
-//ASD    host_mirrors.at("qv")(i,ipack_nkm1)[ivec_nkm1] = 5e-2; // also needs to be supersaturated to avoid getting set
-//ASD    // to 0 earlier.
-//ASD
-//ASD    // make lowest-level qc and qr>0 to trigger surface rain and drizzle
-//ASD    // calculation.
-//ASD    host_mirrors.at("qr")(i,ipack_nkm1)[ivec_nkm1] = 1e-6;
-//ASD    host_mirrors.at("qc")(i,ipack_nkm1)[ivec_nkm1] = 1e-6;
-//ASD
-//ASD    // make qi>1e-8 where qr=0 to test rain collection conditional.
-//ASD    host_mirrors.at("qi")(i,(nk-25)/Spack::n)[(nk-25)%Spack::n] = 5e-8;
-//ASD
-//ASD    // make qc>0 and qr>0 where T<233.15 to test homogeneous freezing.
-//ASD    host_mirrors.at("qc")(i,35/Spack::n)[35%Spack::n] = 1e-7;
-//ASD    host_mirrors.at("qv")(i,35/Spack::n)[35%Spack::n] = 1e-6;
-//ASD
-//ASD    // deposition/condensation-freezing needs t<258.15 and >5% supersat.
-//ASD    host_mirrors.at("qv")(i,33/Spack::n)[33%Spack::n] = 1e-4;
-//ASD
-//ASD    // compute vertical grid spacing dz (in m) from pres and theta.
-//ASD    static constexpr double
-//ASD      g = 9.8; // gravity, m/s^2
-//ASD    for (int k = 0; k < nk; ++k) {
-//ASD      int ipack = k / Spack::n;
-//ASD      int ivec  = k % Spack::n;
-//ASD      int ipack_m1 = (k-1) / Spack::n;
-//ASD      int ivec_m1  = (k-1) % Spack::n;
-//ASD      int ipack_p1 = (k+1) / Spack::n;
-//ASD      int ivec_p1  = (k+1) % Spack::n;
-//ASD      host_mirrors.at("qv_prev")(i,ipack)[ivec] = host_mirrors.at("qv")(i,ipack)[ivec];
-//ASD      host_mirrors.at("T_prev")(i,ipack)[ivec] = host_mirrors.at("T_atm")(i,ipack)[ivec];
-//ASD      double plo, phi; // pressure at cell edges, Pa
-//ASD      plo = (k == 0  ) ?
-//ASD        std::max<double>(i, host_mirrors.at("pmid")(i,0)[0] - 0.5*(host_mirrors.at("pmid")(i,0)[1] - host_mirrors.at("pmid")(i,0)[0])/(1 - 0)) :
-//ASD        0.5*(host_mirrors.at("pmid")(i,ipack_m1)[ivec_m1] + host_mirrors.at("pmid")(i,ipack)[ivec]);
-//ASD      phi = (k == nk-1) ?
-//ASD        host_mirrors.at("pmid")(i,ipack_nkm1)[ivec_nkm1] + 0.5*(host_mirrors.at("pmid")(i,ipack_nkm1)[ivec_nkm1] - host_mirrors.at("pmid")(i,ipack_nkm2)[ivec_nkm2])/(1 - 0) :
-//ASD        0.5*(host_mirrors.at("pmid")(i,ipack)[ivec] + host_mirrors.at("pmid")(i,ipack_p1)[ivec_p1]);
-//ASD      const auto dp = phi - plo;
-//ASD      host_mirrors.at("zi")(i,ipack)[ivec] = log(consts::P0/host_mirrors.at("pmid")(i,ipack)[ivec])*consts::RD*host_mirrors.at("T_atm")(i,ipack)[ivec]/g/0.029;
-//ASD      host_mirrors.at("dz")(i,ipack)[ivec] = consts::RD*host_mirrors.at("T_atm")(i,ipack)[ivec]/(g*host_mirrors.at("pmid")(i,ipack)[ivec])*dp; //TODO: Delete, should be handled locally
-//ASD    }
-//ASD//ASD  } // i for loop
-//ASD  }); // iter column Kokkos Loop
-  Kokkos::fence();
-
-  // Deep copy from host view back to device view
-  for (auto name : fields_to_init)
+  for (int icol_i = icol_in_max;icol_i<ncol;icol_i++)
   {
-    Kokkos::deep_copy(device_views.at(name),host_mirrors.at(name));
+    for (int k = 0;k<nk;k++)
+    {
+    int icol  = icol_i % icol_in_max;
+    int ipack = k / Spack::n;
+    int ivec  = k % Spack::n;
+    h_qv(icol_i,ipack)[ivec]              = h_qv(icol,ipack)[ivec]             ;
+    h_th_atm(icol_i,ipack)[ivec]          = h_th_atm(icol,ipack)[ivec]         ;
+    h_pmid(icol_i,ipack)[ivec]            = h_pmid(icol,ipack)[ivec]           ;
+    h_dz(icol_i,ipack)[ivec]              = h_dz(icol,ipack)[ivec]             ;
+    h_nc_nuceat_tend(icol_i,ipack)[ivec]  = h_nc_nuceat_tend(icol,ipack)[ivec] ;
+    h_nccn_prescribed(icol_i,ipack)[ivec] = h_nccn_prescribed(icol,ipack)[ivec];
+    h_ni_activated(icol_i,ipack)[ivec]    = h_ni_activated(icol,ipack)[ivec]   ;
+    h_inv_qc_relvar(icol_i,ipack)[ivec]   = h_inv_qc_relvar(icol,ipack)[ivec]  ;
+    h_qc(icol_i,ipack)[ivec]              = h_qc(icol,ipack)[ivec]             ;
+    h_nc(icol_i,ipack)[ivec]              = h_nc(icol,ipack)[ivec]             ;
+    h_qr(icol_i,ipack)[ivec]              = h_qr(icol,ipack)[ivec]             ;
+    h_nr(icol_i,ipack)[ivec]              = h_nr(icol,ipack)[ivec]             ;
+    h_qi(icol_i,ipack)[ivec]              = h_qi(icol,ipack)[ivec]             ;
+    h_ni(icol_i,ipack)[ivec]              = h_ni(icol,ipack)[ivec]             ;
+    h_qm(icol_i,ipack)[ivec]              = h_qm(icol,ipack)[ivec]             ;
+    h_bm(icol_i,ipack)[ivec]              = h_bm(icol,ipack)[ivec]             ;
+    h_dp(icol_i,ipack)[ivec]              = h_dp(icol,ipack)[ivec]             ;
+    h_exner(icol_i,ipack)[ivec]           = h_exner(icol,ipack)[ivec]          ;
+    h_cld_frac_r(icol_i,ipack)[ivec]      = h_cld_frac_r(icol,ipack)[ivec]     ;
+    h_cld_frac_l(icol_i,ipack)[ivec]      = h_cld_frac_l(icol,ipack)[ivec]     ;
+    h_cld_frac_i(icol_i,ipack)[ivec]      = h_cld_frac_i(icol,ipack)[ivec]     ;
+    h_qv_prev(icol_i,ipack)[ivec]         = h_qv_prev(icol,ipack)[ivec]        ;
+    h_T_prev(icol_i,ipack)[ivec]          = h_T_prev(icol,ipack)[ivec]         ;
+    }
   }
+
+//  Kokkos::parallel_for(
+//    "iter columns",
+//    ncol,
+//    KOKKOS_LAMBDA(const int &i) {
+//    // For column i = 0, use the ICs as originally coded in python and
+//    // subsequently modified here. For columns i > 0, introduce some small
+//    // variations.
+//    for (int k = 0; k < nk; ++k) 
+//    {
+//      int ipack = k / Spack::n;
+//      int ivec  = k % Spack::n;
+//      int ipack_m20 = (nk-20+k) / Spack::n;
+//      int ivec_m20  = (nk-20+k) % Spack::n;
+//    // TODO : AaronDonahue: you were going to gather all of the k for loops together and 
+//    //        use the exampler from atmosphere_microphysics.cpp to assign values using ipack and ilev, instead of i,k.
+//    // max cld at ~700mb, decreasing to 0 at 900mb.
+//      if (k < 15) 
+//      {
+//        //device_views.at("qc")(i,ipack_m20)[ivec_m20] = 1e-4*(1 - double(k)/14);
+//        //device_views.at("qr")(i,ipack_m20)[ivec_m20] = 1e-5*(1 - double(k)/19);
+//        d_qc(i,ipack_m20)[ivec_m20] = 1e-4*(1 - double(k)/14);
+//      }
+//      if (k < 20)
+//      {
+//        d_qr(i,ipack_m20)[ivec_m20] = 1e-5*(1 - double(k)/19);
+//      }
+//      d_nc(i,ipack)[ivec] = 1e6;
+//      d_nr(i,ipack)[ivec] = 1e6;
+//    //                                                      v (in the python)
+//      if (k < 15)
+//      {
+//        d_qi(i,ipack_m20)[ivec_m20] = 1e-4; //*(1 - double(k)/14)
+//        d_qm(i,ipack_m20)[ivec_m20] = 1e-4*(1 - double(k)/14);
+//        d_bm(i,ipack_m20)[ivec_m20] = 1e-2;
+//      }
+//      d_ni(i,ipack)[ivec] = 1e6;
+//    // guess at reasonable value based on: m3/kg is 1/density and liquid water has
+//    // a density of 1000 kg/m3
+//
+//    // qv goes to zero halfway through profile (to avoid condensate near model
+//    // top)
+//      const auto tmp = -5e-4 + 1e-3/double(nk)*k;
+//      d_qv(i,ipack)[ivec] = tmp > 0 ? tmp : 0;
+//    // pres is actually an input variable, but needed here to compute theta.
+//      d_pmid(i,ipack)[ivec] = double(100) + 1e5/double(nk)*k;
+//      d_dp(i,ipack)[ivec] = 1e5/double(nk);
+//      d_exner(i,ipack)[ivec] = std::pow((1e5/d_pmid(i,ipack)[ivec]), (287.15/1005.0));
+//      d_cld_frac_i(i,ipack)[ivec] = 1.0;
+//      d_cld_frac_l(i,ipack)[ivec] = 1.0;
+//      d_cld_frac_r(i,ipack)[ivec] = 1.0;
+//    // inv_qc_relvar=mean(qc)/var(qc) measures subgrid qc variability. It is computed in SHOC
+//    // and used by P3. It can range between 0.1 and 10.0. Setting to a typical value of 1.0
+//    // here.
+//      d_inv_qc_relvar(i,ipack)[ivec] =  1.0;
+//
+//    // To get potential temperature, start by making absolute temperature vary
+//    // between 150K at top of atmos and 300k at surface, then convert to potential
+//    // temp.
+//      d_T_atm(i,ipack)[ivec] = 150 + 150/double(nk)*k;
+//      d_th_atm(i,ipack)[ivec] = d_T_atm(i,ipack)[ivec]*std::pow(Real(consts::P0/d_pmid(i,ipack)[ivec]), Real(consts::RD/consts::CP)); //TODO: Delete, should be handled locally
+//    }
+//    for (int k=0;k < 15;k++) {
+//      int ipack_m20 = (nk-20+k) / Spack::n;
+//      int ivec_m20  = (nk-20+k) % Spack::n;
+//      d_qv(i,ipack_m20)[ivec_m20] = 5e-3;
+//    }
+//    int ipack_nkm1 = (nk-1) / Spack::n;
+//    int ivec_nkm1  = (nk-1) % Spack::n;
+//    int ipack_nkm2 = (nk-2) / Spack::n;
+//    int ivec_nkm2  = (nk-2) % Spack::n;
+//    int ipack, ivec;
+//    // The next section modifies inout variables to satisfy weird conditions
+//    // needed for code coverage.
+//    d_qi(i,ipack_nkm1)[ivec_nkm1] = 1e-9;
+//    d_qv(i,ipack_nkm1)[ivec_nkm1] = 5e-2; // also needs to be supersaturated to avoid getting set
+//    // to 0 earlier.
+//
+//    // make lowest-level qc and qr>0 to trigger surface rain and drizzle
+//    // calculation.
+//    d_qr(i,ipack_nkm1)[ivec_nkm1] = 1e-6;
+//    d_qc(i,ipack_nkm1)[ivec_nkm1] = 1e-6;
+//
+//    // make qi>1e-8 where qr=0 to test rain collection conditional.
+//    ipack = (nk-25)/Spack::n;
+//    ivec  = (nk-25)%Spack::n;
+//    d_qi(i,ipack)[ivec] = 5e-8;
+//
+//    // make qc>0 and qr>0 where T<233.15 to test homogeneous freezing.
+//    ipack = 35/Spack::n;
+//    ivec  = 35%Spack::n;
+//    d_qc(i,ipack)[ivec] = 1e-7;
+//    d_qv(i,ipack)[ivec] = 1e-6;
+//
+//    // deposition/condensation-freezing needs t<258.15 and >5% supersat.
+//    ipack = 33/Spack::n;
+//    ivec  = 33%Spack::n;
+//    d_qv(i,ipack)[ivec] = 1e-4;
+//
+//    // compute vertical grid spacing dz (in m) from pres and theta.
+//    static constexpr Real
+//      g = 9.8; // gravity, m/s^2
+//    for (int k = 0; k < nk; ++k) {
+//      int ipack = k / Spack::n;
+//      int ivec  = k % Spack::n;
+//      int ipack_m1 = (k-1) / Spack::n;
+//      int ivec_m1  = (k-1) % Spack::n;
+//      int ipack_p1 = (k+1) / Spack::n;
+//      int ivec_p1  = (k+1) % Spack::n;
+//      d_qv_prev(i,ipack)[ivec] = d_qv(i,ipack)[ivec];
+//      d_T_prev(i,ipack)[ivec] =  d_T_atm(i,ipack)[ivec];
+//      Real plo, phi; // pressure at cell edges, Pa
+//      int ivec_p = 1 / Spack::n;
+//      int ipack_p = 1 % Spack::n;
+//      Real tmp_p = d_pmid(i,0)[0] - 0.5*(d_pmid(i,ivec_p)[ipack_p] - d_pmid(i,0)[0])/(1 - 0);
+//      if (double(i)>tmp_p) { tmp_p = double(i); }
+//      plo = (k == 0  ) ?
+//        tmp_p :
+//        0.5*(d_pmid(i,ipack_m1)[ivec_m1] + d_pmid(i,ipack)[ivec]);
+//      phi = (k == nk-1) ?
+//        d_pmid(i,ipack_nkm1)[ivec_nkm1] + 0.5*(d_pmid(i,ipack_nkm1)[ivec_nkm1] - d_pmid(i,ipack_nkm2)[ivec_nkm2])/(1 - 0) :
+//        0.5*(d_pmid(i,ipack)[ivec] + d_pmid(i,ipack_p1)[ivec_p1]);
+//      const auto dp = phi - plo;
+//      d_zi(i,ipack)[ivec] = log(consts::P0/d_pmid(i,ipack)[ivec])*consts::RD*d_T_atm(i,ipack)[ivec]/g/0.029;
+//      d_dz(i,ipack)[ivec] = consts::RD*d_T_atm(i,ipack)[ivec]/(g*d_pmid(i,ipack)[ivec])*dp; //TODO: Delete, should be handled locally
+//    }
+//  }); // iter column Kokkos Loop
+
+  // Copy Host Views back to Device
+  Kokkos::deep_copy(d_T_atm          , h_T_atm          ); 
+  Kokkos::deep_copy(d_ast            , h_ast            ); 
+  Kokkos::deep_copy(d_ni_activated   , h_ni_activated   ); 
+  Kokkos::deep_copy(d_nc_nuceat_tend , h_nc_nuceat_tend ); 
+  Kokkos::deep_copy(d_pmid           , h_pmid           ); 
+  Kokkos::deep_copy(d_dp             , h_dp             ); 
+  Kokkos::deep_copy(d_zi             , h_zi             ); 
+  Kokkos::deep_copy(d_qv_prev        , h_qv_prev        ); 
+  Kokkos::deep_copy(d_T_prev         , h_T_prev         ); 
+  Kokkos::deep_copy(d_qv             , h_qv             ); 
+  Kokkos::deep_copy(d_qc             , h_qc             ); 
+  Kokkos::deep_copy(d_qr             , h_qr             ); 
+  Kokkos::deep_copy(d_qi             , h_qi             ); 
+  Kokkos::deep_copy(d_qm             , h_qm             ); 
+  Kokkos::deep_copy(d_nc             , h_nc             ); 
+  Kokkos::deep_copy(d_nr             , h_nr             ); 
+  Kokkos::deep_copy(d_ni             , h_ni             ); 
+  Kokkos::deep_copy(d_bm             , h_bm             ); 
+  Kokkos::deep_copy(d_nccn_prescribed, h_nccn_prescribed); 
+  Kokkos::deep_copy(d_inv_qc_relvar  , h_inv_qc_relvar  ); 
+  // TODO: Delete eventually, should instead be set in run interface: 
+  Kokkos::deep_copy(d_th_atm         , h_th_atm    ); 
+  Kokkos::deep_copy(d_dz             , h_dz        ); 
+  Kokkos::deep_copy(d_exner          , h_exner     ); 
+  Kokkos::deep_copy(d_cld_frac_l     , h_cld_frac_l); 
+  Kokkos::deep_copy(d_cld_frac_i     , h_cld_frac_i); 
+  Kokkos::deep_copy(d_cld_frac_r     , h_cld_frac_r); 
 
   if (m_remapper) {
     m_remapper->registration_ends();
