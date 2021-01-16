@@ -68,7 +68,7 @@ real(rtype), parameter :: w3clip=1.2_rtype
 ! mixing length scaling parameter
 real(rtype), parameter :: length_fac=2.0_rtype
 ! coefficient for diag third moment parameters
-real(rtype), parameter :: c_diag_3rd_mom = 7.0_rtype
+real(rtype), parameter :: c_diag_3rd_mom = 1.0_rtype
 
 ! =========
 ! Below are options to activate certain features in SHOC
@@ -2081,7 +2081,7 @@ subroutine clipping_diag_third_shoc_moments(&
       if (tsign * w3(i,k) .gt. cond) w3(i,k) = tsign * cond
       
       !+DPAB
-!      w3(i,k) = 0.10_rtype
+!      w3(i,k) = 1.00_rtype
 
     enddo !end i loop (column loop)
   enddo ! end k loop (vertical loop)
@@ -3182,7 +3182,7 @@ subroutine isotropic_ts(nlev, shcol, brunt_int, tke, a_diss, brunt, isotropy)
   real(rtype), parameter :: lambda_high  = 0.01_rtype
   real(rtype), parameter :: lambda_slope = 2.65_rtype
   real(rtype), parameter :: brunt_low    = 0.04_rtype
-  real(rtype), parameter :: maxiso       = 20000.0_rtype ! Return to isotropic timescale [s]
+  real(rtype), parameter :: maxiso       = 2000.0_rtype ! Return to isotropic timescale [s]
 
 #ifdef SCREAM_CONFIG_IS_CMAKE
   if (use_cxx) then
