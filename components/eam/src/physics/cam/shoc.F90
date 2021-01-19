@@ -66,7 +66,7 @@ real(rtype), parameter :: w2tune=1.0_rtype
 ! third moment of vertical velocity
 real(rtype), parameter :: w3clip=1.2_rtype
 ! mixing length scaling parameter
-real(rtype), parameter :: length_fac=0.5_rtype
+real(rtype), parameter :: length_fac=2.0_rtype
 ! coefficient for diag third moment parameters
 real(rtype), parameter :: c_diag_3rd_mom = 7.0_rtype
 
@@ -2081,7 +2081,7 @@ subroutine clipping_diag_third_shoc_moments(&
       if (tsign * w3(i,k) .gt. cond) w3(i,k) = tsign * cond
       
       !+DPAB
-!      w3(i,k) = 1.00_rtype
+!      w3(i,k) = 0.10_rtype
 
     enddo !end i loop (column loop)
   enddo ! end k loop (vertical loop)
