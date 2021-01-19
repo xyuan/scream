@@ -6,6 +6,7 @@
 
 #include "ekat/util/ekat_file_utils.hpp"
 #include <array>
+#include <fstream>
 
 namespace scream
 {
@@ -187,7 +188,7 @@ void P3InputsInitializer::initialize_fields ()
   auto h_cld_frac_i       = Kokkos::create_mirror_view(d_cld_frac_i     ); 
   auto h_cld_frac_r       = Kokkos::create_mirror_view(d_cld_frac_r     ); 
   // Initalize from text file 
-  std::ifstream fid("p3_init_vals.txt");
+  std::ifstream fid("p3_init_vals.txt", std::ifstream::in);
   std::string tmp_line;
   int icol_in_max = 0;
   while(getline(fid,tmp_line))
