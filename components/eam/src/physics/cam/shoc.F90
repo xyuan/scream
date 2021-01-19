@@ -66,7 +66,7 @@ real(rtype), parameter :: w2tune=1.0_rtype
 ! third moment of vertical velocity
 real(rtype), parameter :: w3clip=1.2_rtype
 ! mixing length scaling parameter
-real(rtype), parameter :: length_fac=2.0_rtype
+real(rtype), parameter :: length_fac=0.5_rtype
 ! coefficient for diag third moment parameters
 real(rtype), parameter :: c_diag_3rd_mom = 7.0_rtype
 
@@ -3108,13 +3108,13 @@ subroutine adv_sgs_tke(nlev, shcol, dtime, shoc_mix, wthv_sec, &
   endif
 #endif
 
-  Cs=0.15_rtype
+  Cs=0.18_rtype
   Ck=0.1_rtype
   Ce=bfb_cube(Ck)/bfb_quad(Cs)
 
   Ce1=Ce/0.7_rtype*0.19_rtype
   Ce2=Ce/0.7_rtype*0.51_rtype
-  Cee=(Ce1+Ce2)*0.5_rtype
+  Cee=Ce1+Ce2
 
   do k = 1, nlev
      do i = 1, shcol
