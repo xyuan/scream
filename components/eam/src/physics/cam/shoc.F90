@@ -56,11 +56,11 @@ real(rtype) :: vk    ! von karmann constant [-]
 !  All are unitless
 
 ! temperature variance
-real(rtype), parameter :: thl2tune=1.0_rtype
+real(rtype), parameter :: thl2tune=0.1_rtype
 ! moisture variance
-real(rtype), parameter :: qw2tune=1.0_rtype
+real(rtype), parameter :: qw2tune=0.1_rtype
 ! temp moisture covariance
-real(rtype), parameter :: qwthl2tune=1.0_rtype
+real(rtype), parameter :: qwthl2tune=0.1_rtype
 ! vertical velocity variance
 real(rtype), parameter :: w2tune=1.0_rtype
 ! third moment of vertical velocity
@@ -1715,6 +1715,7 @@ subroutine diag_third_shoc_moments(&
   real(rtype) :: isotropy_zi(shcol,nlevi)
   real(rtype) :: brunt_zi(shcol,nlevi)
   real(rtype) :: thetal_zi(shcol,nlevi)
+  real(rtype) :: wthl_sec_zi(shcol,nlevi)
 
 #ifdef SCREAM_CONFIG_IS_CMAKE
   if (use_cxx) then
@@ -1732,6 +1733,7 @@ subroutine diag_third_shoc_moments(&
   ! Interpolate variables onto the interface levels
   call linear_interp(zt_grid,zi_grid,isotropy,isotropy_zi,nlev,nlevi,shcol,0._rtype)
   call linear_interp(zt_grid,zi_grid,brunt,brunt_zi,nlev,nlevi,shcol,largeneg)
+  call linear_interp(zt_grid,zi_grid,wthl_sec,wthl_sec_zi,nlev,nlevi,shcol,largeneg)
   call linear_interp(zt_grid,zi_grid,w_sec,w_sec_zi,nlev,nlevi,shcol,(2._rtype/3._rtype)*mintke)
   call linear_interp(zt_grid,zi_grid,thetal,thetal_zi,nlev,nlevi,shcol,0._rtype)
 
@@ -1746,6 +1748,7 @@ subroutine diag_third_shoc_moments(&
   ! perform clipping to prevent unrealistically large values from occuring
   call clipping_diag_third_shoc_moments(&
           nlevi,shcol,w_sec_zi,&    !Input
+          wthl_sec_zi,&             !Input
           w3)                       !Input/Output
 
   return
@@ -2035,12 +2038,14 @@ pure function w3_diag_third_shoc_moment(aa0, aa1, x0, x1, f5) result(w3)
   real(rtype) :: w3
 
   w3 = (aa1-1.2_rtype*x1-1.5_rtype*f5)/(c_diag_3rd_mom-1.2_rtype*x0+aa0)
+  w3 = (-1.0_rtype*f5)/c_diag_3rd_mom
 
   return
 end function w3_diag_third_shoc_moment
 
 subroutine clipping_diag_third_shoc_moments(&
            nlevi,shcol,w_sec_zi,& ! Input
+           wthl_sec_zi,&
 	   w3)                    ! Input/Output
 
 #ifdef SCREAM_CONFIG_IS_CMAKE
@@ -2055,6 +2060,7 @@ subroutine clipping_diag_third_shoc_moments(&
   integer, intent(in) :: shcol
 
   real(rtype), intent(in) :: w_sec_zi(shcol,nlevi)
+  real(rtype), intent(in) :: wthl_sec_zi(shcol,nlevi)
   real(rtype), intent(inout) :: w3(shcol,nlevi)
 
   real(rtype) :: tsign
@@ -2081,7 +2087,10 @@ subroutine clipping_diag_third_shoc_moments(&
       if (tsign * w3(i,k) .gt. cond) w3(i,k) = tsign * cond
       
       !+DPAB
-!      w3(i,k) = 0.10_rtype
+      w3(i,k) = 0.02_rtype
+!      w3(i,k) = -0.5_rtype*wthl_sec_zi(i,k)
+!      w3(i,k) = 0.8_rtype*bfb_sqrt(bfb_cube(w_sec_zi(i,k)))
+!      w3(i,k) = tsign * cond
 
     enddo !end i loop (column loop)
   enddo ! end k loop (vertical loop)
@@ -2643,7 +2652,7 @@ subroutine shoc_assumed_pdf_inplume_correlations(&
   else
     r_qwthl_1=max(-1.0_rtype,min(1.0_rtype,(qwthlsec-a*(qw1_1-qw_first) &
       *(thl1_1-thl_first)-(1._rtype-a)*(qw1_2-qw_first) &
-      *(thl1_2-thl_first))/testvar))
+      *(thl1_2-thl_first))/testvar))      
   endif
 
 end subroutine shoc_assumed_pdf_inplume_correlations
@@ -3309,6 +3318,8 @@ subroutine eddy_diffusivities(nlev, shcol, obklen, pblh, zt_grid, &
            ! Default definition of eddy diffusivity for heat and momentum
            tkh(i,k) = Ckh*isotropy(i,k)*tke(i,k)
            tk(i,k)  = Ckm*isotropy(i,k)*tke(i,k)
+!            tkh(i,k) = Ckh*shoc_mix(i,k)*bfb_sqrt(tke(i,k))
+!            tk(i,k) =  Ckm*shoc_mix(i,k)*bfb_sqrt(tke(i,k))
         endif
 
      enddo
@@ -4773,11 +4784,11 @@ subroutine compute_conv_time_shoc_length(shcol,pblh,conv_vel,tscale)
   do i=1,shcol
     conv_vel(i) = bfb_pow(max(0._rtype,conv_vel(i)), (1._rtype/3._rtype))
 
-    if (conv_vel(i) .gt. 0._rtype) then
-      tscale(i)=pblh(i)/conv_vel(i)
-    else
-      tscale(i)=100._rtype
-    endif
+!    if (conv_vel(i) .gt. 0._rtype) then
+!      tscale(i)=pblh(i)/conv_vel(i)
+!    else
+      tscale(i)=1200._rtype
+!    endif
   enddo
 
 end subroutine compute_conv_time_shoc_length
@@ -4860,6 +4871,8 @@ subroutine check_length_scale_shoc_length(nlev,shcol,host_dx,host_dy,shoc_mix)
       shoc_mix(i,k)=min(maxlen,shoc_mix(i,k))
       shoc_mix(i,k)=max(minlen,shoc_mix(i,k))
       shoc_mix(i,k)=min(bfb_sqrt(host_dx(i)*host_dy(i)),shoc_mix(i,k))
+      !+DPAB
+!      shoc_mix(i,k)=300._rtype
     enddo
   enddo
 
