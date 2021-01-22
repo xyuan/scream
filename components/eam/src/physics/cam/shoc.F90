@@ -194,6 +194,10 @@ subroutine shoc_main ( &
      uw_sec, vw_sec, w3,&                 ! Output (diagnostic)
      wqls_sec, brunt, shoc_ql2)           ! Output (diagnostic)
 
+#ifdef SCREAM_CONFIG_IS_CMAKE
+    use shoc_iso_f, only: shoc_main_f
+#endif
+
   implicit none
 
 ! INPUT VARIABLES
@@ -339,6 +343,28 @@ subroutine shoc_main ( &
               se_a(shcol),ke_a(shcol),&
               wv_a(shcol),wl_a(shcol)
 
+#ifdef SCREAM_CONFIG_IS_CMAKE
+  if (use_cxx) then
+    call shoc_main_f(shcol, nlev, nlevi, dtime, nadv, &   ! Input
+    host_dx, host_dy,thv, &              ! Input
+    zt_grid,zi_grid,pres,presi,pdel,&    ! Input
+    wthl_sfc, wqw_sfc, uw_sfc, vw_sfc, & ! Input
+    wtracer_sfc,num_qtracers,w_field, &  ! Input
+    exner,phis, &                        ! Input
+    host_dse, tke, thetal, qw, &         ! Input/Output
+    u_wind, v_wind,qtracers,&            ! Input/Output
+    wthv_sec,tkh,tk,&                    ! Input/Output
+    shoc_ql,shoc_cldfrac,&               ! Input/Output
+    pblh,&                               ! Output
+    shoc_mix, isotropy,&                 ! Output (diagnostic)
+    w_sec, thl_sec, qw_sec, qwthl_sec,&  ! Output (diagnostic)
+    wthl_sec, wqw_sec, wtke_sec,&        ! Output (diagnostic)
+    uw_sec, vw_sec, w3,&                 ! Output (diagnostic)
+    wqls_sec, brunt, shoc_ql2)           ! Output (diagnostic)
+     return
+  endif
+#endif
+
   ! Compute integrals of static energy, kinetic energy, water vapor, and liquid water
   ! for the computation of total energy before SHOC is called.  This is for an
   ! effort to conserve energy since liquid water potential temperature (which SHOC
@@ -386,11 +412,11 @@ subroutine shoc_main ( &
 
     ! Update the turbulent length scale
     call shoc_length(&
-       shcol,nlev,nlevi,&               ! Input
-       host_dx,host_dy,pblh,&               ! Input
-       tke,zt_grid,zi_grid,dz_zt,dz_zi,&        ! Input
-       thetal,wthv_sec,thv,&                ! Input
-       brunt,shoc_mix)                      ! Output
+       shcol,nlev,nlevi,&                ! Input
+       host_dx,host_dy,pblh,&            ! Input
+       tke,zt_grid,zi_grid,dz_zt,dz_zi,& ! Input
+       thetal,wthv_sec,thv,&             ! Input
+       brunt,shoc_mix)                   ! Output
 
     ! Advance the SGS TKE equation
     call shoc_tke(&
@@ -4101,6 +4127,10 @@ subroutine pblintd(&
        ustar,obklen,kbfs,cldn,&       ! Input
        pblh)                          ! Output
 
+#ifdef SCREAM_CONFIG_IS_CMAKE
+  use shoc_iso_f, only: pblintd_f
+#endif
+
     !-----------------------------------------------------------------------
     !
     ! Purpose:
@@ -4159,6 +4189,18 @@ subroutine pblintd(&
     real(rtype) :: tlv(shcol)              ! ref. level pot tmp + tmp excess
 
     logical(btype)  :: check(shcol)            ! True=>chk if Richardson no.>critcal
+
+#ifdef SCREAM_CONFIG_IS_CMAKE
+  if (use_cxx) then
+    call pblintd_f(&
+      shcol,nlev,nlevi,&             ! Input
+      z,zi,thl,ql,&                  ! Input
+      q,u,v,&                        ! Input
+      ustar,obklen,kbfs,cldn,&       ! Input
+      pblh)                          ! Output
+    return
+  endif
+#endif
 
     !
     ! Compute Obukhov length virtual temperature flux and various arrays for use later:
@@ -4266,10 +4308,6 @@ subroutine pblintd_init(&
        z,&                      ! Input
        check,rino,pblh)         ! Output
 
-#ifdef SCREAM_CONFIG_IS_CMAKE
-    use shoc_iso_f, only: pblintd_init_f
-#endif
-
     !------------------------------Arguments--------------------------------
     ! Input arguments
     !
@@ -4288,13 +4326,6 @@ subroutine pblintd_init(&
     !---------------------------Local workspace-----------------------------
     !
     integer  :: i                       ! longitude index
-
-#ifdef SCREAM_CONFIG_IS_CMAKE
-   if (use_cxx) then
-      call pblintd_init_f(shcol,nlev,z,check,rino,pblh) 
-      return
-   endif
-#endif
 
     do i=1,shcol
        check(i)     = .true.
@@ -4406,7 +4437,6 @@ subroutine pblintd_surf_temp(&
 
     !===================
     ! const parameter for Diagnosis of PBL depth
-    real(rtype), parameter :: onet  = 1._rtype/3._rtype  ! 1/3 power in wind gradient expression
     real(rtype), parameter :: fak   =  8.5_rtype      ! Constant in surface temperature excess
     real(rtype), parameter :: betam = 15.0_rtype      ! Constant in wind gradient expression
     real(rtype), parameter :: sffrac=  0.1_rtype      ! Surface layer fraction of boundary layer
@@ -4430,7 +4460,7 @@ subroutine pblintd_surf_temp(&
        check(i)  = (kbfs(i) > 0._rtype)
        tlv(i)    = thv(i,nlev)
        if (check(i)) then
-          phiminv      = bfb_pow((1._rtype - binm*pblh(i)/obklen(i)), onet)
+          phiminv      = bfb_cbrt(1._rtype - binm*pblh(i)/obklen(i))
           rino(i,nlev) = 0.0_rtype
           tlv(i)       = thv(i,nlev) + kbfs(i)*fak/( ustar(i)*phiminv )
        end if
