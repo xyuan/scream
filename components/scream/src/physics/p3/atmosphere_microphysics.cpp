@@ -260,8 +260,18 @@ void P3Microphysics::run_impl (const Real dt)
   auto zi     = m_p3_fields_in["zi"].get_reshaped_view<const Pack**>();
   auto pmid            = m_p3_fields_in["pmid"].get_reshaped_view<const Pack**>();
 
+
   // Assign values to local arrays used by P3, these are now stored in p3_loc.
   const Int nk_pack = ekat::npack<Spack>(m_num_levs);
+  if (infrastructure.it==0) {
+    perturb_p3_inputs perturb_vals(m_num_cols,nk_pack,T_atm,ast,prog_state,diag_inputs);
+    Kokkos::parallel_for(
+      "perturb p3_inputs",
+      Kokkos::RangePolicy<>(0,m_num_cols),
+      perturb_vals
+    ); //Kokkos parallel_for
+    Kokkos::fence();
+  }
   run_local_vars p3_loc(m_num_cols,nk_pack,pmid,T_atm,ast,zi);
   Kokkos::parallel_for(
     "p3_main_local_vals",

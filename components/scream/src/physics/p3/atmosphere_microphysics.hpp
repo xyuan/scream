@@ -69,6 +69,76 @@ public:
   const std::set<FieldIdentifier>& get_computed_fields () const { return m_computed_fields; }
 
   /*--------------------------------------------------------------------------------------------*/
+  // Structure for Barry to adjust inputs for p3_main
+  struct perturb_p3_inputs {
+    perturb_p3_inputs(const int ncol, const int npack,
+                      view_2d T_atm_, view_2d_const ast_,
+                      P3F::P3PrognosticState prog_state_,
+                      P3F::P3DiagnosticInputs diag_inputs_
+                     ) :
+       m_ncol(ncol),
+       m_npack(npack),
+       T_atm(T_atm_),
+       ast(ast_),
+       prog_state(prog_state_),
+       diag_inputs(diag_inputs_)
+    {
+      // Nothing else to initialize at the moment.
+    };
+    KOKKOS_INLINE_FUNCTION
+    void operator() (const int icol) const {
+      int ipack, ivec;
+      for (ipack=0;ipack<m_npack;ipack++) {
+        for (ivec=0;ivec<Spack::n;ivec++) {
+          int klev = Spack::n*ipack + ivec;  // This helps us understand which level you are at.
+          // Note: to access a specific location in the packed array you will want to cite:
+          // X(icol,ipack)[ivec] which corresponds to column: icol and level:: klev
+          //
+          // Here is just an example of how inputs can be changed or set.  Here we just increase the
+          // water vapor (qv) by 2%
+          prog_state.qv(icol,ipack)[ivec] *= 1.02;
+          // Note that prog_state has the following fields:  with the rough guideline of:
+          //                                        min,          mean,          max,           std. dev
+          //  qv - water vapor mass                 1.091168e-06, 0.0023912028,  0.019145101,   0.0041951612
+          //  qc - liquid cloud water mass          0.0,          3.1082718e-06, 0.00017147193, 8.0436148e-06
+          //  nc - liquid cloud droplet number      1e-12,        1359252.5,     1.0021075e+08, 3703237.2
+          //  qr - rain cloud water mass            0.0,          2.493683e-06,  9.9274068e-05, 5.7564075e-06
+          //  nr - rain cloud droplet number        1e-12,        33330.402,     2404459.0,     77104.625
+          //  qi - ice cloud water mass             0.0,          2.9173616e-06, 7.4146192e-05, 5.808166e-06
+          //  ni - ice cloud particle number        1e-12,        10715.925,     633733.38,     37686.18
+          //  qm - rimed ice water mass (qm <= qi)
+          //  bm - rimed ice particle number
+          //  th - potential temperature
+          //  (note, th is actually calculated just before p3_main using T, better to update T instead).
+          // diag_inputs have the following fields:
+          //  nc_nuceat_tend - CCN activated number tendency
+          //  nccn - CCN prescribed number density
+          //  ni_activate - ativated ice nuclei concentration
+          //  inv_qc_relvar - assumed SGS 1/( var(qc)/mean(qc) )
+          //  cld_frac_i - ice cloud fraction
+          //  cld_frac_r - rain cloud fraction
+          //  cld_frac_l - liquid cloud fraction
+          //  (note cld_frac_i and cld_frac_l are the same for now)
+          //    note - all three cld fractions will be updated just prior to p3_main call.  So for this perturbation it is better to update `ast`
+          //  pres - midlevel pressure
+          //  dz - vertical level height in m
+          //  dpres - pressure level thickness in Pa
+          //  exner - exner formula, which is dependent on pres.
+          //    note exner will be updated using pres before p3_main is called. 
+          //  qv_prev - the qv value from the previous timestep, shouldn't deviate to far from qv
+          //  t_prev - the previous value of temperature T (not th) from last timestep, shouldn't deviate too far from T.
+        }
+      }
+    } //operator
+    // Vars
+    int m_ncol, m_npack;
+    view_2d       T_atm;
+    view_2d_const ast;
+    P3F::P3PrognosticState prog_state;
+    P3F::P3DiagnosticInputs diag_inputs;
+  }; // perturb_p3_inputs
+
+  /*--------------------------------------------------------------------------------------------*/
   // Most individual processes have a pre-processing step that constructs needed variables from
   // the set of fields stored in the field manager.  A structure like this defines those operations,
   // which can then be called during run_imple in the main .cpp code.
@@ -130,7 +200,7 @@ public:
         }
         //
       }
-    }
+    } // operator
 
     int m_ncol, m_npack;
     Real mincld = 0.0001;  // TODO: These should be stored somewhere as more universal constants.  Or maybe in the P3 class hpp
