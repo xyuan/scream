@@ -129,6 +129,7 @@ void P3Microphysics::initialize_impl (const util::TimeStamp& t0)
   // Initialize all of the structures that are passed to p3_main in run_impl.
   // Note: Some variables in the structures are not stored in the field manager.  For these
   //       variables a local view is constructed.
+  const Int nk_pack = ekat::npack<Spack>(m_num_levs);
   // --Prognostic State Variables:
   prog_state.qc     = m_p3_fields_out["qc"].get_reshaped_view<Pack**>();
   prog_state.nc     = m_p3_fields_out["nc"].get_reshaped_view<Pack**>();
@@ -139,6 +140,8 @@ void P3Microphysics::initialize_impl (const util::TimeStamp& t0)
   prog_state.ni     = m_p3_fields_out["ni"].get_reshaped_view<Pack**>();
   prog_state.bm     = m_p3_fields_out["bm"].get_reshaped_view<Pack**>();
   prog_state.qv     = m_p3_fields_out["qv"].get_reshaped_view<Pack**>();
+  view_2d th_atm("th_atm",m_num_cols,nk_pack);
+  prog_state.th = th_atm;
   // --Diagnostic Input Variables:
   diag_inputs.nc_nuceat_tend  = m_p3_fields_in["nc_nuceat_tend"].get_reshaped_view<const Pack**>();
   diag_inputs.nccn            = m_p3_fields_in["nccn_prescribed"].get_reshaped_view<const Pack**>();
@@ -151,10 +154,10 @@ void P3Microphysics::initialize_impl (const util::TimeStamp& t0)
   // --Diagnostic Outputs
   view_1d precip_liq_surf("precip_liq_surf",m_num_cols);
   view_1d precip_ice_surf("precip_ice_surf",m_num_cols);
-  view_2d qv2qi_depos_tend("qv2qi_depos_tend",m_num_cols,m_num_levs);
-  view_2d rho_qi("rho_qi",m_num_cols,m_num_levs);
-  view_2d precip_liq_flux("precip_liq_flux",m_num_cols,m_num_levs);
-  view_2d precip_ice_flux("precip_ice_flux",m_num_cols,m_num_levs);
+  view_2d qv2qi_depos_tend("qv2qi_depos_tend",m_num_cols,nk_pack);
+  view_2d rho_qi("rho_qi",m_num_cols,nk_pack);
+  view_2d precip_liq_flux("precip_liq_flux",m_num_cols,nk_pack);
+  view_2d precip_ice_flux("precip_ice_flux",m_num_cols,nk_pack);
 
   diag_outputs.mu_c               = m_p3_fields_out["mu_c"].get_reshaped_view<Pack**>();
   diag_outputs.lamc               = m_p3_fields_out["lamc"].get_reshaped_view<Pack**>();
@@ -258,33 +261,51 @@ void P3Microphysics::run_impl (const Real dt)
   auto T_atm  = m_p3_fields_out["T_atm"].get_reshaped_view<Pack**>();
   auto ast    = m_p3_fields_in["ast"].get_reshaped_view<const Pack**>();
   auto zi     = m_p3_fields_in["zi"].get_reshaped_view<const Pack**>();
-  auto pmid            = m_p3_fields_in["pmid"].get_reshaped_view<const Pack**>();
+  auto pmid   = m_p3_fields_in["pmid"].get_reshaped_view<const Pack**>();
 
-  // Assign values to local arrays used by P3, these are now stored in p3_loc.
+  // Assign values to local arrays used by P3, these are now stored in p3_pre (preamble).
   const Int nk_pack = ekat::npack<Spack>(m_num_levs);
-  run_local_vars p3_loc(m_num_cols,nk_pack,pmid,T_atm,ast,zi);
+  run_local_vars p3_pre(m_num_cols,nk_pack,pmid,T_atm,ast,zi);
   Kokkos::parallel_for(
-    "p3_main_local_vals",
+    "p3_main_preamble",
     Kokkos::RangePolicy<>(0,m_num_cols),
-    p3_loc
-  ); // Kokkos::parallel_for(p3_main_local_vals)
+    p3_pre
+  ); // Kokkos::parallel_for(p3_main_preamble)
   Kokkos::fence();
 
   // Update the variables in the p3 input structures with local values.
-  prog_state.th          = p3_loc.th_atm;
+  Kokkos::deep_copy(prog_state.th, p3_pre.th_atm);
 
-  diag_inputs.cld_frac_l = p3_loc.cld_frac_l;
-  diag_inputs.cld_frac_i = p3_loc.cld_frac_i;
-  diag_inputs.cld_frac_r = p3_loc.cld_frac_r;
-  diag_inputs.dz         = p3_loc.dz;
-  diag_inputs.exner      = p3_loc.exner;
+  diag_inputs.cld_frac_l = p3_pre.cld_frac_l;
+  diag_inputs.cld_frac_i = p3_pre.cld_frac_i;
+  diag_inputs.cld_frac_r = p3_pre.cld_frac_r;
+  diag_inputs.dz         = p3_pre.dz;
+  diag_inputs.exner      = p3_pre.exner;
 
   infrastructure.dt = dt;
   infrastructure.it++;
 
+  view_2d th_temp("th_temp",m_num_cols,nk_pack);
+  Kokkos::deep_copy(th_temp,prog_state.th);
   // Run p3 main
   P3F::p3_main(prog_state, diag_inputs, diag_outputs, infrastructure,
                                        history_only, m_num_cols, m_num_levs);
+  // AaronDonahue to myself: Something is going wrong in packs 2 and 3 thats causing p3_main to set th to nan.  Need to investigate whats happening here.
+  for (int ii=0;ii<m_num_cols;ii++) {
+    for (int kk=0;kk<nk_pack;kk++) {
+      for (int nn=0;nn<Spack::n;nn++) {
+        if (ii==0) { printf("ASD temp mid - (%d,%d)[%d] : %e, %e, %e\n",ii,kk,nn,th_temp(ii,kk)[nn],prog_state.th(ii,kk)[nn],diag_inputs.t_prev(ii,kk)[nn]); }
+      }
+    }
+  }
+  // Update variables passed to the rest of the model (postamble).
+  post_proc_vars p3_post(m_num_cols,nk_pack,T_atm,prog_state,diag_inputs,diag_outputs);
+  Kokkos::parallel_for(
+    "p3_main_postamble",
+    Kokkos::RangePolicy<>(0,m_num_cols),
+    p3_post
+  ); // Kokkos::parallel_for(p3_main_postamble)
+  Kokkos::fence();
 
   // Get a copy of the current timestamp (at the beginning of the step) and
   // advance it, updating the p3 fields.

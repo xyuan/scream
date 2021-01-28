@@ -19,7 +19,7 @@ TEST_CASE("p3-stand-alone", "") {
   using namespace scream;
   using namespace scream::control;
 
-  constexpr int num_iters = 10;
+  constexpr int num_iters = 1;
 
   // Load ad parameter list
   std::string fname = "input.yaml";

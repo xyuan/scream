@@ -923,6 +923,7 @@ Int Functions<S,D>
   get_latent_heat(nj, nk, latent_heat_vapor, latent_heat_sublim, latent_heat_fusion);
 
   const Int nk_pack = ekat::npack<Spack>(nk);
+  printf("ASD - nkpack = %d\n",nk_pack);
   const auto policy = ekat::ExeSpaceUtils<ExeSpace>::get_default_team_policy(nj, nk_pack);
 
   ekat::WorkspaceManager<Spack, Device> workspace_mgr(nk_pack, 47, policy);
@@ -1046,6 +1047,11 @@ Int Functions<S,D>
     const auto oqv_prev            = ekat::subview(diagnostic_inputs.qv_prev, i);
     const auto ot_prev             = ekat::subview(diagnostic_inputs.t_prev, i);
 
+    for (int ii=0;ii<nk_pack;ii++) {
+      for (int kk=0;kk<Spack::n;kk++) {
+        printf("ASD oth(%d,%d)[%d] = %e\n",i,ii,kk,oth(ii)[kk]);
+      }
+    }
     // Need to watch out for race conditions with these shared variables
     bool &nucleationPossible  = bools(i, 0);
     bool &hydrometeorsPresent = bools(i, 1);

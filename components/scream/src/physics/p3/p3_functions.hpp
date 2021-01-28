@@ -126,23 +126,23 @@ struct Functions
     // Assumed SGS 1/(var(qc)/mean(qc)) [kg2/kg2]
     view_2d<const Spack> inv_qc_relvar;
     // Ice cloud fraction
-    view_2d<const Spack> cld_frac_i;
+    view_2d<Spack> cld_frac_i;
     // Liquid cloud fraction
-    view_2d<const Spack> cld_frac_l;
+    view_2d<Spack> cld_frac_l;
     // Rain cloud fraction
-    view_2d<const Spack> cld_frac_r;
+    view_2d<Spack> cld_frac_r;
     // Pressure [Pa]
     view_2d<const Spack> pres;
     // Vertical grid spacing [m]
-    view_2d<const Spack> dz;
+    view_2d<Spack> dz;
     // Pressure thickness [Pa]
     view_2d<const Spack> dpres;
     // Exner expression
-    view_2d<const Spack> exner;
+    view_2d<Spack> exner;
     // qv from previous step [kg/kg]
-    view_2d<const Spack> qv_prev;
+    view_2d<Spack> qv_prev;
     // T from previous step [K]
-    view_2d<const Spack> t_prev;
+    view_2d<Spack> t_prev;
   };
 
   // This struct stores diagnostic outputs computed by P3.

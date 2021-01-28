@@ -127,10 +127,10 @@ public:
           // dz is calculated as the difference between the two layer interfaces.  Note that the lower the index the higher the altitude.
           // We also want to make sure we use the top level index for assignment since dz[0] = zi[0]-zi[1], for example.
           dz(icol,ipack_m1)[ivec_m1] = zi(icol,ipack_m1)[ivec_m1]-zi(icol,ipack)[ivec]; 
-        }
-        //
-      }
-    }
+          if (icol==0) { printf("ASD temp before - (%d,%d)[%d] : %e, %e, %e, %e\n",icol,ipack,ivec,oT_atm[ivec],oth[ivec],th_atm(icol,ipack)[ivec],oexner[ivec]); }
+        }  // for kk
+      } // for ipack
+    } // operator
 
     int m_ncol, m_npack;
     Real mincld = 0.0001;  // TODO: These should be stored somewhere as more universal constants.  Or maybe in the P3 class hpp
@@ -145,6 +145,55 @@ public:
     view_2d       cld_frac_r;
     view_2d       dz;
   }; // run_local_vars
+  /*--------------------------------------------------------------------------------------------*/
+  // Most individual processes have a post-processing step that processes the output in such a way
+  // that they are useful to other processes.  A structure like this defines those operations,
+  // which can then be called during run_imple in the main .cpp code.
+  // Structure to handle the local post-processing of data needed by main code.
+  struct post_proc_vars {
+    post_proc_vars(const int ncol, const int npack,
+          view_2d T_atm_, 
+          P3F::P3PrognosticState prog_state_,
+          P3F::P3DiagnosticInputs diag_inputs_, P3F::P3DiagnosticOutputs diag_outputs_) :
+      m_ncol(ncol),
+      m_npack(npack),
+      T_atm(T_atm_),
+      prog_state(prog_state_),
+      diag_inputs(diag_inputs_),
+      diag_outputs(diag_outputs_)
+    {
+      // Nothing else to initialize yet.
+    }
+    KOKKOS_INLINE_FUNCTION
+    void operator()(const int icol) const {
+      int ipack, ivec;
+      for (ipack=0;ipack<m_npack;ipack++) {
+        // Update T - T is the field managed variable, but p3 provides th.
+        const Spack oexner(diag_inputs.exner(icol,ipack));
+        const Spack oth_atm(prog_state.th(icol,ipack));
+        const Smask oth_atm_mask(!isnan(oth_atm) and oth_atm>0.0);
+        auto oT = physics_fun::th_to_T(oth_atm,oexner,oth_atm_mask);
+        for (ivec = 0;ivec<Spack::n;ivec++) {
+          if (icol==0) { printf("ASD temp - (%d,%d)[%d] : %e, %e, %e, %e\n",icol,ipack,ivec,prog_state.th(icol,ipack)[ivec],oth_atm[ivec],oT[ivec],oexner[ivec]); }
+        }
+        for (ivec = 0;ivec<Spack::n;ivec++) {
+          diag_inputs.qv_prev(icol,ipack)[ivec] = prog_state.qv(icol,ipack)[ivec];
+          T_atm(icol,ipack)[ivec] = oT[ivec];
+        } // for ivec
+//        T_atm(icol,ipack) = oT;
+        // Update qv_prev and T_prev - which is used in the next P3 step
+//        const Spack oqv(prog_state.qv(icol,ipack));
+//        const Smask oqv_mask(!isnan(oqv) and oqv>=0.0);
+//        qv_prev(icol,ipack).set(Smask(true),qv(icol,ipack));
+//        diag_inputs.t_prev(icol,ipack).set(oth_atm_mask,oT);
+      } // for ipack
+    } // operator
+    int m_ncol, m_npack;
+    view_2d       T_atm;
+    P3F::P3PrognosticState prog_state;
+    P3F::P3DiagnosticInputs diag_inputs;
+    P3F::P3DiagnosticOutputs diag_outputs;
+  }; //post_proc_vars
   /* --------------------------------------------------------------------------------------------*/
 
 protected:
