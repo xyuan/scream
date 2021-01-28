@@ -113,23 +113,36 @@ public:
         cld_frac_i(icol,ipack).set(oasti_mask,oast);
         cld_frac_r(icol,ipack).set(oasti_mask,oast);
         Int kstr = ipack==0 ? 1 : 0;  // If ipack == 0 then we need to skip the first index for rain fraction (i.e. TOM)
-        for (int kk=kstr;kk<Spack::n;kk++)
+        for (ivec=kstr;ivec<Spack::n;ivec++)
         {
           // Hard-coded max-overlap cloud fraction calculation.  Cycle through the layers from top to bottom and determine if the rain fraction needs to
           // be updated to match the cloud fraction in the layer above.  It is necessary to calculate the location of the layer directly above this one,
           // labeled ipack_m1 and ivec_m1 respectively.  Note, the top layer has no layer above it, which is why we have the kstr index in the loop.
-          ivec  = kk % Spack::n;
-          Int ipack_m1 = (ipack*Spack::n + kk) / Spack::n;
-          Int ivec_m1  = (ipack*Spack::n + kk) % Spack::n;
-          cld_frac_r(icol,ipack)[kk] = ast(icol,ipack_m1)[ivec_m1]>cld_frac_r(icol,ipack)[kk] ? 
+          //ivec  = kk % Spack::n;
+          //Int ipack_m1 = (ipack*Spack::n + kk) / Spack::n;
+          //Int ivec_m1  = (ipack*Spack::n + kk) % Spack::n;
+          Int kk = ipack*Spack::n + ivec;
+          Int ipack_m1 = (kk-1) / Spack::n;
+          Int ivec_m1  = (kk-1) % Spack::n;
+          cld_frac_r(icol,ipack)[ivec] = ast(icol,ipack_m1)[ivec_m1]>cld_frac_r(icol,ipack)[ivec] ? 
                                               ast(icol,ipack_m1)[ivec_m1] :
-                                              cld_frac_r(icol,ipack)[kk];
+                                              cld_frac_r(icol,ipack)[ivec];
           // dz is calculated as the difference between the two layer interfaces.  Note that the lower the index the higher the altitude.
           // We also want to make sure we use the top level index for assignment since dz[0] = zi[0]-zi[1], for example.
-          dz(icol,ipack_m1)[ivec_m1] = zi(icol,ipack_m1)[ivec_m1]-zi(icol,ipack)[ivec]; 
-          if (icol==0) { printf("ASD temp before - (%d,%d)[%d] : %e, %e, %e, %e\n",icol,ipack,ivec,oT_atm[ivec],oth[ivec],th_atm(icol,ipack)[ivec],oexner[ivec]); }
-        }  // for kk
+          dz(icol,ipack_m1)[ivec_m1] = zi(icol,ipack_m1)[ivec_m1]-zi(icol,ipack)[ivec];
+          if (icol==0) {printf(" --- dz(%2d,%2d)[%2d] = zi(%2d,%2d)[%2d] - zi(%2d,%2d)[%2d] = %e - %e = %e\n",icol,ipack_m1,ivec_m1,icol,ipack_m1,ivec_m1,icol,ipack,ivec,zi(icol,ipack_m1)[ivec_m1],zi(icol,ipack)[ivec],dz(icol,ipack_m1)[ivec_m1]); }
+        }  // for ivec
       } // for ipack
+      // -- delete
+      for (ipack=0;ipack<m_npack;ipack++) {
+        for (ivec=0;ivec<Spack::n;ivec++) {
+          Int kk = ipack*Spack::n + ivec;
+          Int ipack_m1 = (kk-1) / Spack::n;
+          Int ivec_m1  = (kk-1) % Spack::n;
+          if (icol==0) { printf("ASD temp before - (%2d,%2d)[%2d], %2d, (%2d)[%2d] : %e, %e, %e, %e,  %e\n",icol,ipack,ivec,kk,ipack_m1,ivec_m1,th_atm(icol,ipack)[ivec],
+                              ast(icol,ipack)[ivec], cld_frac_r(icol,ipack)[ivec], dz(icol,ipack)[ivec], zi(icol,ipack)[ivec]); }
+        } //for ivec - to delete
+      } //for ipack - to delete
     } // operator
 
     int m_ncol, m_npack;

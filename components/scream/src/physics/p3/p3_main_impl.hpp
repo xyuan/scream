@@ -1047,11 +1047,11 @@ Int Functions<S,D>
     const auto oqv_prev            = ekat::subview(diagnostic_inputs.qv_prev, i);
     const auto ot_prev             = ekat::subview(diagnostic_inputs.t_prev, i);
 
-    for (int ii=0;ii<nk_pack;ii++) {
-      for (int kk=0;kk<Spack::n;kk++) {
-        printf("ASD oth(%d,%d)[%d] = %e\n",i,ii,kk,oth(ii)[kk]);
-      }
-    }
+//    for (int ii=0;ii<nk_pack;ii++) {
+//      for (int kk=0;kk<Spack::n;kk++) {
+//        printf("ASD oth(%d,%d)[%d] = %e\n",i,ii,kk,oth(ii)[kk]);
+//      }
+//    }
     // Need to watch out for race conditions with these shared variables
     bool &nucleationPossible  = bools(i, 0);
     bool &hydrometeorsPresent = bools(i, 1);
