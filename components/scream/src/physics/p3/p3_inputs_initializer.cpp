@@ -203,8 +203,6 @@ void P3InputsInitializer::initialize_fields ()
     int icol  = icol_i % icol_in_max;
     int ipack = k / Spack::n;
     int ivec  = k % Spack::n;
-    int ipack_m1 = (k-1) / Spack::n;
-    int ivec_m1  = (k-1) % Spack::n;
     int ipack_p1 = (k+1) / Spack::n;
     int ivec_p1  = (k+1) % Spack::n;
     h_qv(icol_i,ipack)[ivec]              = h_qv(icol,ipack)[ivec]                              ;

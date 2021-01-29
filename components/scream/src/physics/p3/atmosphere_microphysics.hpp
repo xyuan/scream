@@ -112,8 +112,7 @@ public:
         cld_frac_l(icol,ipack).set(oasti_mask,oast);
         cld_frac_i(icol,ipack).set(oasti_mask,oast);
         cld_frac_r(icol,ipack).set(oasti_mask,oast);
-        Int kstr = ipack==0 ? 1 : 0;  // If ipack == 0 then we need to skip the first index for rain fraction (i.e. TOM)
-        for (ivec=kstr;ivec<Spack::n;ivec++)
+        for (ivec=0;ivec<Spack::n;ivec++)
         {
           // Hard-coded max-overlap cloud fraction calculation.  Cycle through the layers from top to bottom and determine if the rain fraction needs to
           // be updated to match the cloud fraction in the layer above.  It is necessary to calculate the location of the layer directly above this one,
@@ -124,13 +123,18 @@ public:
           Int kk = ipack*Spack::n + ivec;
           Int ipack_m1 = (kk-1) / Spack::n;
           Int ivec_m1  = (kk-1) % Spack::n;
-          cld_frac_r(icol,ipack)[ivec] = ast(icol,ipack_m1)[ivec_m1]>cld_frac_r(icol,ipack)[ivec] ? 
-                                              ast(icol,ipack_m1)[ivec_m1] :
-                                              cld_frac_r(icol,ipack)[ivec];
+          Int ipack_p1 = (kk+1) / Spack::n;
+          Int ivec_p1  = (kk+1) % Spack::n;
+          // Make sure to only handle rain fraction at levels below the top of the model (i.e. when kk>0)
+          if (kk>0) {  
+            cld_frac_r(icol,ipack)[ivec] = ast(icol,ipack_m1)[ivec_m1]>cld_frac_r(icol,ipack)[ivec] ? 
+                                                ast(icol,ipack_m1)[ivec_m1] :
+                                                cld_frac_r(icol,ipack)[ivec];
+          }
           // dz is calculated as the difference between the two layer interfaces.  Note that the lower the index the higher the altitude.
           // We also want to make sure we use the top level index for assignment since dz[0] = zi[0]-zi[1], for example.
-          dz(icol,ipack_m1)[ivec_m1] = zi(icol,ipack_m1)[ivec_m1]-zi(icol,ipack)[ivec];
-          if (icol==0) {printf(" --- dz(%2d,%2d)[%2d] = zi(%2d,%2d)[%2d] - zi(%2d,%2d)[%2d] = %e - %e = %e\n",icol,ipack_m1,ivec_m1,icol,ipack_m1,ivec_m1,icol,ipack,ivec,zi(icol,ipack_m1)[ivec_m1],zi(icol,ipack)[ivec],dz(icol,ipack_m1)[ivec_m1]); }
+          dz(icol,ipack)[ivec] = zi(icol,ipack)[ivec]-zi(icol,ipack_p1)[ivec_p1];
+          if (icol==0) {printf(" --- dz(%2d,%2d)[%2d] = zi(%2d,%2d)[%2d] - zi(%2d,%2d)[%2d] = %e - %e = %e\n",icol,ipack,ivec,icol,ipack_p1,ivec_p1,icol,ipack,ivec,zi(icol,ipack)[ivec],zi(icol,ipack)[ivec],dz(icol,ipack)[ivec]); }
         }  // for ivec
       } // for ipack
       // -- delete

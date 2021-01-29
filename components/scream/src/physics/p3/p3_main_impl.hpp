@@ -800,7 +800,7 @@ void Functions<S,D>
       nc(k).set(qc_gt_small,nc_incld*cld_frac_l(k)); //cld_dsd2 might have changed incld nc... need consistency.
       diag_eff_radius_qc(k)       .set(qc_gt_small, sp(0.5) * (mu_c(k) + 3) / lamc(k));
       qv(k)              .set(qc_small, qv(k)+qc(k));
-      th_atm(k)              .set(qc_small, th_atm(k)-exner(k)*qc(k)*latent_heat_vapor(k)*inv_cp);
+      th_atm(k)          .set(qc_small, th_atm(k)-exner(k)*qc(k)*latent_heat_vapor(k)*inv_cp);
       vap_liq_exchange(k).set(qc_small, vap_liq_exchange(k) - qc(k));
       qc(k)              .set(qc_small, 0);
       nc(k)              .set(qc_small, 0);
@@ -826,7 +826,7 @@ void Functions<S,D>
       ze_rain(k).set(qr_gt_small, max(ze_rain(k), sp(1.e-22)));
 
       qv(k)              .set(qr_small, qv(k) + qr(k));
-      th_atm(k)              .set(qr_small, th_atm(k) - exner(k)*qr(k)*latent_heat_vapor(k)*inv_cp);
+      th_atm(k)          .set(qr_small, th_atm(k) - exner(k)*qr(k)*latent_heat_vapor(k)*inv_cp);
       vap_liq_exchange(k).set(qr_small, vap_liq_exchange(k) - qr(k));
       qr(k)              .set(qr_small, 0);
       nr(k)              .set(qr_small, 0);
@@ -923,7 +923,6 @@ Int Functions<S,D>
   get_latent_heat(nj, nk, latent_heat_vapor, latent_heat_sublim, latent_heat_fusion);
 
   const Int nk_pack = ekat::npack<Spack>(nk);
-  printf("ASD - nkpack = %d\n",nk_pack);
   const auto policy = ekat::ExeSpaceUtils<ExeSpace>::get_default_team_policy(nj, nk_pack);
 
   ekat::WorkspaceManager<Spack, Device> workspace_mgr(nk_pack, 47, policy);
@@ -1047,11 +1046,12 @@ Int Functions<S,D>
     const auto oqv_prev            = ekat::subview(diagnostic_inputs.qv_prev, i);
     const auto ot_prev             = ekat::subview(diagnostic_inputs.t_prev, i);
 
-//    for (int ii=0;ii<nk_pack;ii++) {
-//      for (int kk=0;kk<Spack::n;kk++) {
-//        printf("ASD oth(%d,%d)[%d] = %e\n",i,ii,kk,oth(ii)[kk]);
-//      }
-//    }
+    //ASD - delete -
+    for (int ii=0;ii<nk_pack;ii++) {
+      for (int kk=0;kk<Spack::n;kk++) {
+        if(isnan(oth(ii)[kk]) or isnan(T_atm(ii)[kk])) {printf("ASD: begin oth(%d,%d)[%d] = %e\n",i,ii,kk,oth(ii)[kk]);}
+      }
+    }
     // Need to watch out for race conditions with these shared variables
     bool &nucleationPossible  = bools(i, 0);
     bool &hydrometeorsPresent = bools(i, 1);
@@ -1072,6 +1072,12 @@ Int Functions<S,D>
       ze_ice, ze_rain, odiag_eff_radius_qc, odiag_eff_radius_qi, inv_cld_frac_i, inv_cld_frac_l,
       inv_cld_frac_r, inv_exner, T_atm, oqv, inv_dz,
       diagnostic_outputs.precip_liq_surf(i), diagnostic_outputs.precip_ice_surf(i), zero_init);
+    //ASD - delete -
+    for (int ii=0;ii<nk_pack;ii++) {
+      for (int kk=0;kk<Spack::n;kk++) {
+        if(isnan(oth(ii)[kk]) or isnan(T_atm(ii)[kk])) {printf("ASD: init oth(%d,%d)[%d] = %e\n",i,ii,kk,oth(ii)[kk]);}
+      }
+    }
 
     p3_main_part1(
       team, nk, infrastructure.predictNc, infrastructure.prescribedCCN, infrastructure.dt,
@@ -1081,6 +1087,12 @@ Int Functions<S,D>
       rhofaci, acn, oqv, oth, oqc, onc, oqr, onr, oqi, oni, oqm,
       obm, qc_incld, qr_incld, qi_incld, qm_incld, nc_incld, nr_incld,
       ni_incld, bm_incld, nucleationPossible, hydrometeorsPresent);
+    //ASD - delete -
+    for (int ii=0;ii<nk_pack;ii++) {
+      for (int kk=0;kk<Spack::n;kk++) {
+        if(isnan(oth(ii)[kk]) or isnan(T_atm(ii)[kk])) {printf("ASD: part1 oth(%d,%d)[%d] = %e\n",i,ii,kk,oth(ii)[kk]);}
+      }
+    }
 
     // There might not be any work to do for this team
     if (!(nucleationPossible || hydrometeorsPresent)) {
@@ -1101,6 +1113,12 @@ Int Functions<S,D>
       mu_r, lamr, logn0r, oqv2qi_depos_tend, oprecip_total_tend, onevapr, oqr_evap_tend,
       ovap_liq_exchange, ovap_ice_exchange, oliq_ice_exchange,
       pratot, prctot, hydrometeorsPresent, nk);
+    //ASD - delete -
+    for (int ii=0;ii<nk_pack;ii++) {
+      for (int kk=0;kk<Spack::n;kk++) {
+        if(isnan(oth(ii)[kk]) or isnan(T_atm(ii)[kk])) {printf("ASD: part2 oth(%d,%d)[%d] = %e\n",i,ii,kk,oth(ii)[kk]);}
+      }
+    }
 
     //NOTE: At this point, it is possible to have negative (but small) nc, nr, ni.  This is not
     //      a problem; those values get clipped to zero in the sedimentation section (if necessary).
@@ -1136,11 +1154,25 @@ Int Functions<S,D>
       kdir, infrastructure.dt, inv_dt, oqi, qi_incld, oni, ni_incld,
       oqm, qm_incld, obm, bm_incld, qtend_ignore, ntend_ignore,
       ice_table_vals, diagnostic_outputs.precip_ice_surf(i));
+    //ASD - delete -
+    for (int ii=0;ii<nk_pack;ii++) {
+      for (int kk=0;kk<Spack::n;kk++) {
+        if(isnan(oth(ii)[kk]) or isnan(T_atm(ii)[kk])) {printf("ASD: sedimentation oth(%d,%d)[%d] = %e\n",i,ii,kk,oth(ii)[kk]);}
+      }
+    }
 
     // homogeneous freezing of cloud and rain
     homogeneous_freezing(
       T_atm, oexner, olatent_heat_fusion, team, nk, ktop, kbot, kdir, oqc, onc, oqr, onr, oqi,
       oni, oqm, obm, oth);
+    //ASD - delete -
+    for (int ii=0;ii<nk_pack;ii++) {
+      for (int kk=0;kk<Spack::n;kk++) {
+        if(isnan(oth(ii)[kk]) or isnan(T_atm(ii)[kk])) {printf("ASD: homog_freeze oth(%d,%d)[%d] = %e, %e, %e, %e, %e\n",
+          i,ii,kk,oth(ii)[kk],T_atm(ii)[kk], oexner(ii)[kk],
+          oqc(ii)[kk], oqr(ii)[kk]);}
+      }
+    }
 
     //
     // final checks to ensure consistency of mass/number
@@ -1152,6 +1184,12 @@ Int Functions<S,D>
       oqm, obm, olatent_heat_vapor, olatent_heat_sublim, omu_c, nu, olamc, mu_r, lamr,
       ovap_liq_exchange, ze_rain, ze_ice, diag_vm_qi, odiag_eff_radius_qi, diag_diam_qi,
       orho_qi, diag_equiv_reflectivity, odiag_eff_radius_qc);
+    //ASD - delete -
+    for (int ii=0;ii<nk_pack;ii++) {
+      for (int kk=0;kk<Spack::n;kk++) {
+        if(isnan(oth(ii)[kk]) or isnan(T_atm(ii)[kk])) {printf("ASD: part3 oth(%d,%d)[%d] = %e\n",i,ii,kk,oth(ii)[kk]);}
+      }
+    }
 
     //
     // merge ice categories with similar properties

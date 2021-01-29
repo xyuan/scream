@@ -285,19 +285,19 @@ void P3Microphysics::run_impl (const Real dt)
   infrastructure.dt = dt;
   infrastructure.it++;
 
-  view_2d th_temp("th_temp",m_num_cols,nk_pack);
-  Kokkos::deep_copy(th_temp,prog_state.th);
+//  view_2d th_temp("th_temp",m_num_cols,nk_pack);
+//  Kokkos::deep_copy(th_temp,prog_state.th);
   // Run p3 main
   P3F::p3_main(prog_state, diag_inputs, diag_outputs, infrastructure,
                                        history_only, m_num_cols, m_num_levs);
-  // AaronDonahue to myself: Something is going wrong in packs 2 and 3 thats causing p3_main to set th to nan.  Need to investigate whats happening here.
-  for (int ii=0;ii<m_num_cols;ii++) {
-    for (int kk=0;kk<nk_pack;kk++) {
-      for (int nn=0;nn<Spack::n;nn++) {
-        if (ii==0) { printf("ASD temp mid - (%d,%d)[%d] : %e, %e, %e\n",ii,kk,nn,th_temp(ii,kk)[nn],prog_state.th(ii,kk)[nn],diag_inputs.t_prev(ii,kk)[nn]); }
-      }
-    }
-  }
+//  // AaronDonahue to myself: Something is going wrong in packs 2 and 3 thats causing p3_main to set th to nan.  Need to investigate whats happening here.
+//  for (int ii=0;ii<m_num_cols;ii++) {
+//    for (int kk=0;kk<nk_pack;kk++) {
+//      for (int nn=0;nn<Spack::n;nn++) {
+//        if (ii==0) { printf("ASD temp mid - (%d,%d)[%d] : %e, %e, %e\n",ii,kk,nn,th_temp(ii,kk)[nn],prog_state.th(ii,kk)[nn],diag_inputs.t_prev(ii,kk)[nn]); }
+//      }
+//    }
+//  }
   // Update variables passed to the rest of the model (postamble).
   post_proc_vars p3_post(m_num_cols,nk_pack,T_atm,prog_state,diag_inputs,diag_outputs);
   Kokkos::parallel_for(
