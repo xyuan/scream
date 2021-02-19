@@ -144,7 +144,10 @@ create_src_layout (const FieldLayout& tgt_layout) const {
   auto dims = tgt_layout.dims();
 
   // Note down the position of the first 'GaussPoint' tag.
-  int pos = std::distance(tags.cbegin(),ekat::find(tags,SFTN::GP));
+  auto it_pos = ekat::find(tags,SFTN::GP);
+  EKAT_REQUIRE_MSG (it_pos!=tags.end(),
+      "Error! Did not find the tag 'GaussPoint' in the dynamics layout.\n");
+  int pos = std::distance(tags.cbegin(),it_pos);
 
   // We replace 'Element' with 'Column'. The number of columns is taken from the src grid.
   tags[0] = SFTN::COL;
@@ -180,7 +183,7 @@ create_tgt_layout (const FieldLayout& src_layout) const {
   dims[0] = this->m_tgt_grid->get_num_local_dofs() / (HOMMEXX_NP*HOMMEXX_NP);
 
   // For position of GP and NP, it's easier to switch between 2d and 3d
-  auto lt = get_layout_type(tags);
+  auto lt = get_layout_type(src_layout.tags());
   switch (lt) {
     case LayoutType::Scalar2D:
     case LayoutType::Vector2D:
@@ -196,7 +199,7 @@ create_tgt_layout (const FieldLayout& src_layout) const {
     case LayoutType::Vector3D:
     case LayoutType::Tensor3D:
       {
-        // Replace last tag/tim with GP/NP, then push back GP/NP and VL/nvl
+        // Replace last tag/dim (currently VL/nvl) with GP/NP, then push back GP/NP and VL/nvl
 
         // Note down num levels
         const int nvl = dims.back();
