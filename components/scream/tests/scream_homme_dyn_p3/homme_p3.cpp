@@ -8,7 +8,6 @@
 
 // P3 includes
 #include "physics/p3/atmosphere_microphysics.hpp"
-#include "physics/p3/scream_p3_interface.hpp"
 
 TEST_CASE("scream_homme_p3", "scream_homme_p3") {
   using namespace scream;
@@ -29,7 +28,7 @@ TEST_CASE("scream_homme_p3", "scream_homme_p3") {
   std::cout << "Create factory ... ";
   auto& proc_factory = AtmosphereProcessFactory::instance();
   proc_factory.register_product("dynamics",&create_atmosphere_process<HommeDynamics>);
-  proc_factory.register_product("P3",&create_atmosphere_process<P3Microphysics>);
+  proc_factory.register_product("p3",&create_atmosphere_process<P3Microphysics>);
 
   // Need to register grids managers before we create the driver
   auto& gm_factory = GridsManagerFactory::instance();
