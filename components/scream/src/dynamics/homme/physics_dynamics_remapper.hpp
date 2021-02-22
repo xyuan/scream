@@ -23,13 +23,6 @@
 namespace scream
 {
 
-template<typename DataType,typename RealType>
-::Homme::ExecViewUnmanaged<DataType>
-getHommeView(const Field<RealType>& f) {
-  auto scream_view = f.template get_reshaped_view<DataType>();
-  return ::Homme::ExecViewUnmanaged<DataType>(scream_view.data(),scream_view.layout());
-}
-
 // Performs remap from physics to dynamics grids, and viceversa
 template<typename RealType>
 class PhysicsDynamicsRemapper : public AbstractRemapper<RealType>
@@ -91,14 +84,20 @@ protected:
   std::vector<field_type>   m_dyn;
 
   std::vector<bool>         m_is_state_field;
-  std::vector<bool>         m_is_tracer_field;
 
   grid_ptr_type     m_dyn_grid;
   grid_ptr_type     m_phys_grid;
 
-  std::shared_ptr<Homme::BoundaryExchange>  m_be[HOMMEXX_NUM_TIME_LEVELS][HOMMEXX_Q_NUM_TIME_LEVELS];
+  std::shared_ptr<Homme::BoundaryExchange>  m_be[HOMMEXX_NUM_TIME_LEVELS];
 
   KokkosTypes<DefaultDevice>::view_1d<int>  m_p2d;
+
+  template<typename DataType>
+  ::Homme::ExecViewUnmanaged<DataType>
+  getHommeView(const Field<RealType>& f) {
+    auto scream_view = f.template get_reshaped_view<DataType>();
+    return ::Homme::ExecViewUnmanaged<DataType>(scream_view.data(),scream_view.layout());
+  }
 
 public:
   // These functions should be morally privade, but CUDA does not allow extended host-device lambda
@@ -138,29 +137,29 @@ PhysicsDynamicsRemapper (const grid_ptr_type& phys_grid,
 template<typename RealType>
 FieldLayout PhysicsDynamicsRemapper<RealType>::
 create_src_layout (const FieldLayout& tgt_layout) const {
-  namespace SFTN = ShortFieldTagsNames;
+  using namespace ShortFieldTagsNames;
 
   auto tags = tgt_layout.tags();
   auto dims = tgt_layout.dims();
 
   // Note down the position of the first 'GaussPoint' tag.
-  auto it_pos = ekat::find(tags,SFTN::GP);
+  auto it_pos = ekat::find(tags,GP);
   EKAT_REQUIRE_MSG (it_pos!=tags.end(),
       "Error! Did not find the tag 'GaussPoint' in the dynamics layout.\n");
   int pos = std::distance(tags.begin(),it_pos);
 
   // We replace 'Element' with 'Column'. The number of columns is taken from the src grid.
-  tags[0] = SFTN::COL;
+  tags[0] = COL;
   dims[0] = this->m_src_grid->get_num_local_dofs();
 
   // Delete GP tags/dims
-  ekat::erase(tags,SFTN::GP);
-  ekat::erase(tags,SFTN::GP);
+  ekat::erase(tags,GP);
+  ekat::erase(tags,GP);
   dims.erase(dims.begin()+pos);
   dims.erase(dims.begin()+pos);
 
   // If the tgt layout contains the TimeLevel tag, we slice it off.
-  auto it_tl = ekat::find(tags,SFTN::TL);
+  auto it_tl = ekat::find(tags,TL);
   if (it_tl!=tags.end()) {
     pos = std::distance(tags.begin(),it_tl);
     tags.erase(tags.begin()+pos);
@@ -173,13 +172,13 @@ create_src_layout (const FieldLayout& tgt_layout) const {
 template<typename RealType>
 FieldLayout PhysicsDynamicsRemapper<RealType>::
 create_tgt_layout (const FieldLayout& src_layout) const {
-  namespace SFTN = ShortFieldTagsNames;
+  using namespace ShortFieldTagsNames;
 
   auto tags = src_layout.tags();
   auto dims = src_layout.dims();
 
   // Replace COL with EL, and num_cols with num_elems
-  tags[0] = SFTN::EL;
+  tags[0] = EL;
   dims[0] = this->m_tgt_grid->get_num_local_dofs() / (HOMMEXX_NP*HOMMEXX_NP);
 
   // For position of GP and NP, it's easier to switch between 2d and 3d
@@ -190,8 +189,8 @@ create_tgt_layout (const FieldLayout& src_layout) const {
     case LayoutType::Tensor2D:
       // Simple: GP/NP are at the end.
       // Push back GP/NP twice
-      tags.push_back(SFTN::GP);
-      tags.push_back(SFTN::GP);
+      tags.push_back(GP);
+      tags.push_back(GP);
       dims.push_back(HOMMEXX_NP);
       dims.push_back(HOMMEXX_NP);
       break;
@@ -203,13 +202,13 @@ create_tgt_layout (const FieldLayout& src_layout) const {
 
         // Note down num levels
         const int nvl = dims.back();
-        tags.back() = SFTN::GP;
+        tags.back() = GP;
         dims.back() = HOMMEXX_NP;
 
-        tags.push_back(SFTN::GP);
+        tags.push_back(GP);
         dims.push_back(HOMMEXX_NP);
 
-        tags.push_back(SFTN::VL);
+        tags.push_back(VL);
         dims.push_back(nvl);
         break;
       }
@@ -238,15 +237,9 @@ do_bind_field (const int ifield, const field_type& src, const field_type& tgt)
 
   const bool has_time_level  = ekat::contains(tgt_tags,FieldTag::TimeLevel);
   if (has_time_level) {
-    const auto& data = tgt.get_header().get_extra_data();
-
-    const bool is_tracer = data.find("Is Tracer State")!=data.end() &&
-                           ekat::any_cast<bool>(data.at("Is Tracer State"));
-    const bool valid_tl_dim = (tgt_dims[1]==HOMMEXX_NUM_TIME_LEVELS) || (tgt_dims[1]==HOMMEXX_Q_NUM_TIME_LEVELS);
-    EKAT_REQUIRE_MSG (valid_tl_dim, "Error! Field has the TimeLevel tag, but it does not appear to be either a 'state' or 'tracer state'.\n");
-    m_is_tracer_field.push_back(is_tracer);
-  } else {
-    m_is_tracer_field.push_back(false);
+    const bool valid_tl_dim = (tgt_dims[1]==HOMMEXX_NUM_TIME_LEVELS);
+    EKAT_REQUIRE_MSG (valid_tl_dim,
+        "Error! Field has the TimeLevel tag, but it does not appear to be 'state'.");
   }
   m_is_state_field.push_back(has_time_level);
   m_phys[ifield] = src;
@@ -266,7 +259,6 @@ do_unregister_field (const int ifield)
   m_phys.erase(m_phys.begin()+ifield);
   m_dyn.erase(m_dyn.begin()+ifield);
   m_is_state_field.erase(m_is_state_field.begin()+ifield);
-  m_is_tracer_field.erase(m_is_tracer_field.begin()+ifield);
 
   // If unregistering this field makes all fields bound, we can setup the BE
   if (this->m_state==RepoState::Closed &&
@@ -299,7 +291,7 @@ do_remap_fwd() const
     const auto& phys = m_phys[i];
     const auto& dyn  = m_dyn[i];
 
-    const int itl = m_is_state_field[i] ? (m_is_tracer_field[i] ? tl.np1_qdp : tl.np1) : -1;
+    const int itl = m_is_state_field[i] ? tl.np1 : -1;
 
     // phys->dyn requires a halo-exchange. Since not all entries in dyn
     // are overwritten before the exchange, to avoid leftover garbage,
@@ -341,7 +333,7 @@ do_remap_fwd() const
   }
 
   // Exchange only the current time levels
-  m_be[tl.np1][tl.np1_qdp]->exchange();
+  m_be[tl.np1]->exchange();
 }
 
 template<typename RealType>
@@ -368,7 +360,7 @@ do_remap_bwd() const {
     const bool phys_small_pack_alloc = phys_alloc_prop.template is_compatible<small_pack_type>();
     const bool dyn_small_pack_alloc  = dyn_alloc_prop.template  is_compatible<small_pack_type>();
 
-    const int itl = m_is_state_field[i] ? (m_is_tracer_field[i] ? tl.np1_qdp : tl.np1) : -1;
+    const int itl = m_is_state_field[i] ? tl.np1 : -1;
 
     const LayoutType lt = get_layout_type(ph.get_identifier().get_layout().tags());
     switch (lt) {
@@ -401,7 +393,6 @@ setup_boundary_exchange () {
   //       there should be no side effect if we re-build it. We waste some time, sure, but should yield a correct result.
 
   auto& c = Homme::Context::singleton();
-  auto& params = c.get<::Homme::SimulationParams>();
 
   using Scalar = Homme::Scalar;
 
@@ -466,7 +457,7 @@ setup_boundary_exchange () {
         break;
       case LayoutType::Tensor3D:
         if (m_is_state_field[i]) {
-          auto num_slices = m_is_tracer_field[i] ? params.qsize : layout.dim(2);
+          auto num_slices = layout.dim(2);
           // A vector state: we only exchange the timelevel we remapped
           if (layout.dims().back()==HOMMEXX_NUM_PHYSICAL_LEV) {
             num_3d_mid += num_slices;
@@ -504,83 +495,81 @@ setup_boundary_exchange () {
   constexpr int NINT = HOMMEXX_NUM_LEV_P;
   constexpr int NTL  = HOMMEXX_NUM_TIME_LEVELS;
   for (int it=0; it<HOMMEXX_NUM_TIME_LEVELS; ++it) {
-    for (int itq=0; itq<HOMMEXX_Q_NUM_TIME_LEVELS; ++itq) {
-      m_be[it][itq] = std::make_shared<Homme::BoundaryExchange>(conn,bm);
+    m_be[it]= std::make_shared<Homme::BoundaryExchange>(conn,bm);
 
-      auto be = m_be[it][itq];
-      be->set_num_fields(0,num_2d,num_3d_mid,num_3d_int);
+    auto be = m_be[it];
+    be->set_num_fields(0,num_2d,num_3d_mid,num_3d_int);
 
-      // If some fields are already bound, set them in the bd exchange
-      for (int i=0; i<num_fields; ++i) {
-        const auto& layout = m_dyn[i].get_header().get_identifier().get_layout();
-        const auto& dims = layout.dims();
-        const auto lt = get_layout_type(layout.tags());
-        switch (lt) {
-          case LayoutType::Scalar2D:
-            be->register_field(getHommeView<Real*[NP][NP]>(m_dyn[i]));
-            break;
-          case LayoutType::Vector2D:
-            if (m_is_state_field[i]) {
-              // A scalar state: exchange one time level only
-              be->register_field(getHommeView<Real**[NP][NP]>(m_dyn[i]),1,it);
-            } else {
-              // A 2d vector (not a state): exchange all slices
-              be->register_field(getHommeView<Real**[NP][NP]>(m_dyn[i]),dims[1],0);
+    // If some fields are already bound, set them in the bd exchange
+    for (int i=0; i<num_fields; ++i) {
+      const auto& layout = m_dyn[i].get_header().get_identifier().get_layout();
+      const auto& dims = layout.dims();
+      const auto lt = get_layout_type(layout.tags());
+      switch (lt) {
+        case LayoutType::Scalar2D:
+          be->register_field(getHommeView<Real*[NP][NP]>(m_dyn[i]));
+          break;
+        case LayoutType::Vector2D:
+          if (m_is_state_field[i]) {
+            // A scalar state: exchange one time level only
+            be->register_field(getHommeView<Real**[NP][NP]>(m_dyn[i]),1,it);
+          } else {
+            // A 2d vector (not a state): exchange all slices
+            be->register_field(getHommeView<Real**[NP][NP]>(m_dyn[i]),dims[1],0);
+          }
+          break;
+        case LayoutType::Tensor2D:
+          if (m_is_state_field[i]) {
+            // A vector state: exchange one time level only
+            be->register_field(getHommeView<Real***[NP][NP]>(m_dyn[i]),it,dims[2],0);
+          } else {
+            // A 2d tensor (not a state): exchange all slices
+            for (int idim=0; idim<dims[1]; ++idim) {
+              // Homme::BoundaryExchange only exchange one slice of the outer dim at a time,
+              // so loop on the outer dim and register each slice individually.
+              be->register_field(getHommeView<Real***[NP][NP]>(m_dyn[i]),idim,dims[2],0);
             }
-            break;
-          case LayoutType::Tensor2D:
-            if (m_is_state_field[i]) {
-              // A vector state: exchange one time level only
-              be->register_field(getHommeView<Real***[NP][NP]>(m_dyn[i]),it,dims[2],0);
-            } else {
-              // A 2d tensor (not a state): exchange all slices
-              for (int idim=0; idim<dims[1]; ++idim) {
-                // Homme::BoundaryExchange only exchange one slice of the outer dim at a time,
-                // so loop on the outer dim and register each slice individually.
-                be->register_field(getHommeView<Real***[NP][NP]>(m_dyn[i]),idim,dims[2],0);
-              }
-            }
-            break;
-          case LayoutType::Scalar3D:
+          }
+          break;
+        case LayoutType::Scalar3D:
+          if (dims.back()==HOMMEXX_NUM_PHYSICAL_LEV) {
+            be->register_field(getHommeView<Scalar*[NP][NP][NLEV]>(m_dyn[i]));
+          } else {
+            be->register_field(getHommeView<Scalar*[NP][NP][NINT]>(m_dyn[i]));
+          }
+          break;
+        case LayoutType::Vector3D:
+          if (m_is_state_field[i]) {
+            // A state: exchange one time level only
             if (dims.back()==HOMMEXX_NUM_PHYSICAL_LEV) {
-              be->register_field(getHommeView<Scalar*[NP][NP][NLEV]>(m_dyn[i]));
+              be->register_field(getHommeView<Scalar*[NTL][NP][NP][NLEV]>(m_dyn[i]),1,it);
             } else {
-              be->register_field(getHommeView<Scalar*[NP][NP][NINT]>(m_dyn[i]));
+              be->register_field(getHommeView<Scalar*[NTL][NP][NP][NINT]>(m_dyn[i]),1,it);
             }
-            break;
-          case LayoutType::Vector3D:
-            if (m_is_state_field[i]) {
-              // A state (not tracers): exchange one time level only
-              if (dims.back()==HOMMEXX_NUM_PHYSICAL_LEV) {
-                be->register_field(getHommeView<Scalar*[NTL][NP][NP][NLEV]>(m_dyn[i]),1,it);
-              } else {
-                be->register_field(getHommeView<Scalar*[NTL][NP][NP][NINT]>(m_dyn[i]),1,it);
-              }
+          } else {
+            // Not a state: exchange all slices
+            if (dims.back()==HOMMEXX_NUM_PHYSICAL_LEV) {
+              be->register_field(getHommeView<Scalar**[NP][NP][NLEV]>(m_dyn[i]),dims[1],0);
             } else {
-              // Not a state: exchange all slices
-              if (dims.back()==HOMMEXX_NUM_PHYSICAL_LEV) {
-                be->register_field(getHommeView<Scalar**[NP][NP][NLEV]>(m_dyn[i]),dims[1],0);
-              } else {
-                be->register_field(getHommeView<Scalar**[NP][NP][NINT]>(m_dyn[i]),dims[1],0);
-              }
+              be->register_field(getHommeView<Scalar**[NP][NP][NINT]>(m_dyn[i]),dims[1],0);
             }
-            break;
-          case LayoutType::Tensor3D:
-            if (m_is_state_field[i]) {
-              // This must either be qdp or v.
-              auto num_slices = m_is_tracer_field[i] ? params.qsize : layout.dim(2);
-              auto slice = m_is_tracer_field[i] ? itq : it;
-              be->register_field(getHommeView<Scalar***[NP][NP][NLEV]>(m_dyn[i]),slice,num_slices,0);
-            } else {
-              EKAT_ERROR_MSG ("Error! We were not expected a rank-6 fields in homme that is not a state.\n");
-            }
-            break;
-        default:
-          ekat::error::runtime_abort("Error! Invalid layout. This is an internal error. Please, contact developers\n");
-        }
+          }
+          break;
+        case LayoutType::Tensor3D:
+          if (m_is_state_field[i]) {
+            // This must either be v.
+            auto num_slices = layout.dim(2);
+            auto slice = it;
+            be->register_field(getHommeView<Scalar***[NP][NP][NLEV]>(m_dyn[i]),slice,num_slices,0);
+          } else {
+            EKAT_ERROR_MSG ("Error! We were not expected a rank-6 fields in homme that is not a state.\n");
+          }
+          break;
+      default:
+        ekat::error::runtime_abort("Error! Invalid layout. This is an internal error. Please, contact developers\n");
       }
-      be->registration_completed();
     }
+    be->registration_completed();
   }
 }
 
