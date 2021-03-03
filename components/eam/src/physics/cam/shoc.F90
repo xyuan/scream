@@ -56,9 +56,9 @@ real(rtype) :: vk    ! von karmann constant [-]
 !  All are unitless
 
 ! temperature variance
-real(rtype), parameter :: thl2tune=0.1_rtype
+real(rtype), parameter :: thl2tune=1.0_rtype
 ! moisture variance
-real(rtype), parameter :: qw2tune=0.1_rtype
+real(rtype), parameter :: qw2tune=1.0_rtype
 ! temp moisture covariance
 real(rtype), parameter :: qwthl2tune=1.0_rtype
 ! vertical velocity variance
@@ -66,9 +66,9 @@ real(rtype), parameter :: w2tune=1.0_rtype
 ! third moment of vertical velocity
 real(rtype), parameter :: w3clip=1.2_rtype
 ! mixing length scaling parameter
-real(rtype), parameter :: length_fac=2.0_rtype
+real(rtype), parameter :: length_fac=0.5_rtype
 ! coefficient for diag third moment parameters
-real(rtype), parameter :: c_diag_3rd_mom = 1.0_rtype
+real(rtype), parameter :: c_diag_3rd_mom = 7.0_rtype
 
 ! =========
 ! Below are options to activate certain features in SHOC
@@ -324,14 +324,11 @@ subroutine shoc_main ( &
   real(rtype) :: rho_zt(shcol,nlev)
   ! SHOC water vapor [kg/kg]
   real(rtype) :: shoc_qv(shcol,nlev)
-  real(rtype) :: isotropy2(shcol,nlev)
 
   ! Grid difference centereted on thermo grid [m]
   real(rtype) :: dz_zt(shcol,nlev)
   ! Grid difference centereted on interface grid [m]
   real(rtype) :: dz_zi(shcol,nlevi)
-  
-  real(rtype) :: iso_input(shcol,nlev)
 
   ! Surface friction velocity [m/s]
   real(rtype) :: ustar(shcol)
@@ -429,7 +426,7 @@ subroutine shoc_main ( &
        u_wind,v_wind,brunt,obklen,&         ! Input
        zt_grid,zi_grid,pblh,&               ! Input
        tke,tk,tkh,&                         ! Input/Output
-       isotropy,isotropy2)                  ! Output
+       isotropy)                            ! Output
 
     ! Update SHOC prognostic variables here
     !   via implicit diffusion solver
@@ -446,7 +443,7 @@ subroutine shoc_main ( &
     call diag_second_shoc_moments(&
        shcol,nlev,nlevi, &                    ! Input
        thetal,qw,u_wind,v_wind,tke, &         ! Input
-       isotropy,isotropy2,tkh,tk,&            ! Input
+       isotropy,tkh,tk,&                      ! Input
        dz_zi,zt_grid,zi_grid,shoc_mix, &      ! Input
        wthl_sfc, wqw_sfc, uw_sfc, vw_sfc, &   ! Input
        thl_sec, qw_sec,wthl_sec,wqw_sec,&     ! Output
@@ -458,7 +455,7 @@ subroutine shoc_main ( &
     call diag_third_shoc_moments(&
        shcol,nlev,nlevi,&                   ! Input
        w_sec,thl_sec,&                      ! Input
-       wthv_sec,isotropy,brunt,&            ! Input
+       wthl_sec,isotropy,brunt,&            ! Input
        thetal,tke,&                         ! Input
        dz_zt,dz_zi,zt_grid,zi_grid,&        ! Input
        w3)                                  ! Output
@@ -1030,7 +1027,7 @@ end subroutine sfc_fluxes
 subroutine diag_second_shoc_moments(&
          shcol,nlev,nlevi, &                    ! Input
          thetal,qw,u_wind,v_wind,tke, &         ! Input
-         isotropy,isotropy2,tkh,tk,&            ! Input
+         isotropy,tkh,tk,&                      ! Input
          dz_zi,zt_grid,zi_grid,shoc_mix, &      ! Input
          wthl_sfc, wqw_sfc, uw_sfc, vw_sfc, &   ! Input
          thl_sec,qw_sec,wthl_sec,wqw_sec,&      ! Output
@@ -1066,7 +1063,6 @@ subroutine diag_second_shoc_moments(&
   real(rtype), intent(in) :: tke(shcol,nlev)
   ! return to isotropy timescale [s]
   real(rtype), intent(in) :: isotropy(shcol,nlev)
-  real(rtype), intent(in) :: isotropy2(shcol,nlev)
   ! eddy coefficient for heat [m2/s]
   real(rtype), intent(in) :: tkh(shcol,nlev)
   ! eddy coefficient for momentum [m2/s]
@@ -1146,7 +1142,7 @@ subroutine diag_second_shoc_moments(&
   call diag_second_moments(&
      shcol, nlev, nlevi, &                  ! Input
      thetal, qw, u_wind, v_wind, tke, &     ! Input
-     isotropy, isotropy2, tkh, tk,&         ! Input
+     isotropy, tkh, tk,&                    ! Input
      dz_zi, zt_grid, zi_grid, shoc_mix, &   ! Input
      thl_sec, qw_sec,wthl_sec,wqw_sec,&     ! Input/Output
      qwthl_sec, uw_sec, vw_sec, wtke_sec, & ! Input/Output
@@ -1339,7 +1335,7 @@ end subroutine diag_second_moments_lbycond
 subroutine diag_second_moments(&
          shcol,nlev,nlevi, &                    ! Input
          thetal,qw,u_wind,v_wind,tke, &         ! Input
-         isotropy,isotropy2,tkh,tk,&                      ! Input
+         isotropy,tkh,tk,&                      ! Input
          dz_zi,zt_grid,zi_grid,shoc_mix, &      ! Input
          thl_sec,qw_sec,wthl_sec,wqw_sec,&      ! Input/Output
          qwthl_sec,uw_sec,vw_sec,wtke_sec, &    ! Input/Output
@@ -1378,7 +1374,6 @@ subroutine diag_second_moments(&
   real(rtype), intent(in) :: tke(shcol,nlev)
   ! return to isotropy timescale [s]
   real(rtype), intent(in) :: isotropy(shcol,nlev)
-  real(rtype), intent(in) :: isotropy2(shcol,nlev)
   ! eddy coefficient for heat [m2/s]
   real(rtype), intent(in) :: tkh(shcol,nlev)
   ! eddy coefficient for momentum [m2/s]
@@ -1417,7 +1412,6 @@ subroutine diag_second_moments(&
   ! LOCAL VARIABLES
   integer :: p
   real(rtype) :: isotropy_zi(shcol,nlevi)
-  real(rtype) :: isotropy2_zi(shcol,nlevi)
   real(rtype) :: tkh_zi(shcol,nlevi)
   real(rtype) :: tk_zi(shcol,nlevi)
 
@@ -1433,7 +1427,6 @@ subroutine diag_second_moments(&
 
   ! Interpolate some variables from the midpoint grid to the interface grid
   call linear_interp(zt_grid,zi_grid,isotropy,isotropy_zi,nlev,nlevi,shcol,0._rtype)
-  call linear_interp(zt_grid,zi_grid,isotropy2,isotropy2_zi,nlev,nlevi,shcol,0._rtype)
   call linear_interp(zt_grid,zi_grid,tkh,tkh_zi,nlev,nlevi,shcol,0._rtype)
   call linear_interp(zt_grid,zi_grid,tk,tk_zi,nlev,nlevi,shcol,0._rtype)
 
@@ -1443,20 +1436,20 @@ subroutine diag_second_moments(&
 
   ! Calculate the temperature variance
   call calc_shoc_varorcovar(&
-         shcol,nlev,nlevi,thl2tune,shoc_mix,&              ! Input
-         isotropy2_zi,tkh_zi,dz_zi,thetal,thetal,& ! Input
+         shcol,nlev,nlevi,thl2tune,&              ! Input
+         isotropy_zi,tkh_zi,dz_zi,thetal,thetal,& ! Input
          thl_sec)                                 ! Input/Output
 
   ! Calculate the moisture variance
   call calc_shoc_varorcovar(&
-         shcol,nlev,nlevi,qw2tune,shoc_mix,&               ! Input
-         isotropy2_zi,tkh_zi,dz_zi,qw,qw,&         ! Input
+         shcol,nlev,nlevi,qw2tune,&               ! Input
+         isotropy_zi,tkh_zi,dz_zi,qw,qw,&         ! Input
          qw_sec)                                  ! Input/Output
 
   ! Calculate the temperature and moisture covariance
   call calc_shoc_varorcovar(&
-         shcol,nlev,nlevi,qwthl2tune,shoc_mix,&            ! Input
-         isotropy2_zi,tkh_zi,dz_zi,thetal,qw,&     ! Input
+         shcol,nlev,nlevi,qwthl2tune,&            ! Input
+         isotropy_zi,tkh_zi,dz_zi,thetal,qw,&     ! Input
          qwthl_sec)                               ! Input/Output
 
   ! Calculate vertical flux for heat
@@ -1488,7 +1481,7 @@ subroutine diag_second_moments(&
 end subroutine diag_second_moments
 
 subroutine calc_shoc_varorcovar(&
-         shcol,nlev,nlevi,tunefac,shoc_mix,&                ! Input
+         shcol,nlev,nlevi,tunefac,&                ! Input
          isotropy_zi,tkh_zi,dz_zi,invar1,invar2,&  ! Input
          varorcovar)                               ! Input/Output
 
@@ -1521,8 +1514,6 @@ subroutine calc_shoc_varorcovar(&
   real(rtype), intent(in) :: invar1(shcol,nlev)
   ! Input variable 2 [units vary]
   real(rtype), intent(in) :: invar2(shcol,nlev)
-  ! shocmix
-  real(rtype), intent(in) :: shoc_mix(shcol,nlev)
 
 ! INPUT/OUTPUT VARIABLES
   ! variance or covariance [units vary]
@@ -1545,9 +1536,8 @@ subroutine calc_shoc_varorcovar(&
     kt=k-1 ! define upper grid point indicee
     do i=1,shcol
 
-      grid_dz2=bfb_square(1._rtype/dz_zi(i,k)) ! vertical grid diff squared  
-!      sm=isotropy_zi(i,k)*tkh_zi(i,k) ! coefficient for variances
-      sm=shoc_mix(i,k)*shoc_mix(i,k)
+      grid_dz2=bfb_square(1._rtype/dz_zi(i,k)) ! vertical grid diff squared
+      sm=isotropy_zi(i,k)*tkh_zi(i,k) ! coefficient for variances
 
       ! Compute the variance or covariance
       varorcovar(i,k)=tunefac*sm*grid_dz2*(invar1(i,kt)-invar1(i,k))*&
@@ -1748,7 +1738,6 @@ subroutine diag_third_shoc_moments(&
   real(rtype) :: isotropy_zi(shcol,nlevi)
   real(rtype) :: brunt_zi(shcol,nlevi)
   real(rtype) :: thetal_zi(shcol,nlevi)
-  real(rtype) :: wthl_sec_zi(shcol,nlevi)
 
 #ifdef SCREAM_CONFIG_IS_CMAKE
   if (use_cxx) then
@@ -1766,7 +1755,6 @@ subroutine diag_third_shoc_moments(&
   ! Interpolate variables onto the interface levels
   call linear_interp(zt_grid,zi_grid,isotropy,isotropy_zi,nlev,nlevi,shcol,0._rtype)
   call linear_interp(zt_grid,zi_grid,brunt,brunt_zi,nlev,nlevi,shcol,largeneg)
-  call linear_interp(zt_grid,zi_grid,wthl_sec,wthl_sec_zi,nlev,nlevi,shcol,largeneg)
   call linear_interp(zt_grid,zi_grid,w_sec,w_sec_zi,nlev,nlevi,shcol,(2._rtype/3._rtype)*mintke)
   call linear_interp(zt_grid,zi_grid,thetal,thetal_zi,nlev,nlevi,shcol,0._rtype)
 
@@ -1781,7 +1769,6 @@ subroutine diag_third_shoc_moments(&
   ! perform clipping to prevent unrealistically large values from occuring
   call clipping_diag_third_shoc_moments(&
           nlevi,shcol,w_sec_zi,&    !Input
-          wthl_sec_zi,&             !Input
           w3)                       !Input/Output
 
   return
@@ -1974,16 +1961,8 @@ subroutine f0_to_f5_diag_third_shoc_moment(&
 
   f4 = thedz * iso * w_sec_zi * (wsec_diff + &
        tke_diff)
-       
-  f5 = thedz * iso * w_sec_zi * wsec_diff     
-       
-!  f5 = thedz * wsec_diff * iso * tke
 
-   f5 = f5
-!  f5 = thedz * (iso/1000._rtype) * w_sec_zi * wsec_diff
-  !f5 = thedz * wsec_diff * iso * tke
-!  f5 = w_sec_zi*iso/10000._rtype   ! best
-!   f5 = wsec_diff * iso/5._rtype
+  f5 = thedz * iso * w_sec_zi * wsec_diff
 
   return
 end subroutine f0_to_f5_diag_third_shoc_moment
@@ -2079,14 +2058,12 @@ pure function w3_diag_third_shoc_moment(aa0, aa1, x0, x1, f5) result(w3)
   real(rtype) :: w3
 
   w3 = (aa1-1.2_rtype*x1-1.5_rtype*f5)/(c_diag_3rd_mom-1.2_rtype*x0+aa0)
-!  w3 = (-1.0_rtype*f5)/c_diag_3rd_mom
 
   return
 end function w3_diag_third_shoc_moment
 
 subroutine clipping_diag_third_shoc_moments(&
            nlevi,shcol,w_sec_zi,& ! Input
-           wthl_sec_zi,&
 	   w3)                    ! Input/Output
 
 #ifdef SCREAM_CONFIG_IS_CMAKE
@@ -2101,7 +2078,6 @@ subroutine clipping_diag_third_shoc_moments(&
   integer, intent(in) :: shcol
 
   real(rtype), intent(in) :: w_sec_zi(shcol,nlevi)
-  real(rtype), intent(in) :: wthl_sec_zi(shcol,nlevi)
   real(rtype), intent(inout) :: w3(shcol,nlevi)
 
   real(rtype) :: tsign
@@ -2126,17 +2102,7 @@ subroutine clipping_diag_third_shoc_moments(&
       cond = w3clip * bfb_sqrt(2._rtype * bfb_cube(theterm))
       if (w3(i,k) .lt. 0) tsign = -1._rtype
       if (tsign * w3(i,k) .gt. cond) w3(i,k) = tsign * cond
-!      w3(i,k) = w3(i,k)/1000._rtype
-!       w3(i,k) = cond
-!      w3(i,k) = w3(i,k) *100._rtype
-!      w3(i,k) = min(0.02_rtype,cond)
-      !+DPAB
-!      w3(i,k) = w3(i,k)*10._rtype
-      w3(i,k) = min(0.1,w3(i,k))
       w3(i,k) = 0.02_rtype
-!      w3(i,k) = -0.5_rtype*wthl_sec_zi(i,k)
-!      w3(i,k) = 0.8_rtype*bfb_sqrt(bfb_cube(w_sec_zi(i,k)))
-!      w3(i,k) = tsign * cond
 
     enddo !end i loop (column loop)
   enddo ! end k loop (vertical loop)
@@ -2698,7 +2664,7 @@ subroutine shoc_assumed_pdf_inplume_correlations(&
   else
     r_qwthl_1=max(-1.0_rtype,min(1.0_rtype,(qwthlsec-a*(qw1_1-qw_first) &
       *(thl1_1-thl_first)-(1._rtype-a)*(qw1_2-qw_first) &
-      *(thl1_2-thl_first))/testvar))      
+      *(thl1_2-thl_first))/testvar))
   endif
 
 end subroutine shoc_assumed_pdf_inplume_correlations
@@ -2925,7 +2891,7 @@ subroutine shoc_tke(&
          u_wind,v_wind,brunt,obklen,&! Input
          zt_grid,zi_grid,pblh,&      ! Input
          tke,tk,tkh, &               ! Input/Output
-         isotropy,isotropy2)         ! Output
+         isotropy)                   ! Output
 
   ! Purpose of this subroutine is to advance the SGS
   !  TKE equation due to shear production, buoyant
@@ -2976,7 +2942,7 @@ subroutine shoc_tke(&
 
 ! OUTPUT VARIABLES
   ! Return to isotropic timescale [s]
-  real(rtype), intent(out) :: isotropy(shcol,nlev), isotropy2(shcol,nlev)
+  real(rtype), intent(out) :: isotropy(shcol,nlev)
 
 ! LOCAL VARIABLES
   real(rtype) :: sterm(shcol,nlevi), sterm_zt(shcol,nlev)
@@ -3001,7 +2967,7 @@ subroutine shoc_tke(&
        sterm_zt, tk, tke, a_diss)
 
   !Compute isotropic time scale [s]
-  call isotropic_ts(nlev, shcol, brunt_int, tke, a_diss, brunt, isotropy, isotropy2)
+  call isotropic_ts(nlev, shcol, brunt_int, tke, a_diss, brunt, isotropy)
 
   !Compute eddy diffusivity for heat and momentum
   call eddy_diffusivities(nlev, shcol, obklen, pblh, zt_grid, &
@@ -3100,7 +3066,7 @@ subroutine compute_shr_prod(nlevi, nlev, shcol, dz_zi, u_wind, v_wind, sterm)
         ! calculate vertical gradient of u&v wind
         u_grad = grid_dz*(u_wind(i,km1)-u_wind(i,k))
         v_grad = grid_dz*(v_wind(i,km1)-v_wind(i,k))
-        sterm(i,k) = bfb_square(u_grad)+bfb_square(v_grad)
+        sterm(i,k) = 0.1_rtype*(bfb_square(u_grad)+bfb_square(v_grad))
      enddo
   enddo
 
@@ -3163,7 +3129,7 @@ subroutine adv_sgs_tke(nlev, shcol, dtime, shoc_mix, wthv_sec, &
   endif
 #endif
 
-  Cs=0.18_rtype
+  Cs=0.15_rtype
   Ck=0.1_rtype
   Ce=bfb_cube(Ck)/bfb_quad(Cs)
 
@@ -3198,7 +3164,7 @@ subroutine adv_sgs_tke(nlev, shcol, dtime, shoc_mix, wthv_sec, &
 
 end subroutine adv_sgs_tke
 
-subroutine isotropic_ts(nlev, shcol, brunt_int, tke, a_diss, brunt, isotropy, isotropy2)
+subroutine isotropic_ts(nlev, shcol, brunt_int, tke, a_diss, brunt, isotropy)
   !------------------------------------------------------------
   ! Compute the return to isotropic timescale as per
   ! Canuto et al. 2004.  This is used to define the
@@ -3227,17 +3193,15 @@ subroutine isotropic_ts(nlev, shcol, brunt_int, tke, a_diss, brunt, isotropy, is
   ! intent-out
   ! Return to isotropic timescale [s]
   real(rtype), intent(out) :: isotropy(shcol,nlev)
-  real(rtype), intent(out) :: isotropy2(shcol,nlev)
 
   !local vars
   integer     :: i, k
   real(rtype) :: tscale, lambda, buoy_sgs_save
 
   !Parameters
-  real(rtype), parameter :: lambda2      = 0.0_rtype
-  real(rtype), parameter :: lambda_low   = 0.005_rtype
+  real(rtype), parameter :: lambda_low   = 0.0005_rtype
   real(rtype), parameter :: lambda_high  = 0.04_rtype
-  real(rtype), parameter :: lambda_slope = 4.65_rtype
+  real(rtype), parameter :: lambda_slope = 2.65_rtype
   real(rtype), parameter :: brunt_low    = 0.04_rtype
   real(rtype), parameter :: maxiso       = 20000.0_rtype ! Return to isotropic timescale [s]
 
@@ -3264,7 +3228,6 @@ subroutine isotropic_ts(nlev, shcol, brunt_int, tke, a_diss, brunt, isotropy, is
 
         ! Compute the return to isotropic timescale
         isotropy(i,k)=min(maxiso,tscale/(1._rtype+lambda*buoy_sgs_save*bfb_square(tscale)))
-        isotropy2(i,k)=1.2_rtype*min(maxiso,tscale/(1._rtype+lambda2*buoy_sgs_save*bfb_square(tscale)))
      enddo
   enddo
 
@@ -3367,8 +3330,6 @@ subroutine eddy_diffusivities(nlev, shcol, obklen, pblh, zt_grid, &
            ! Default definition of eddy diffusivity for heat and momentum
            tkh(i,k) = Ckh*isotropy(i,k)*tke(i,k)
            tk(i,k)  = Ckm*isotropy(i,k)*tke(i,k)
-!            tkh(i,k) = Ckh*shoc_mix(i,k)*bfb_sqrt(tke(i,k))
-!            tk(i,k) =  Ckm*shoc_mix(i,k)*bfb_sqrt(tke(i,k))
         endif
 
      enddo
@@ -4796,6 +4757,7 @@ subroutine compute_conv_vel_shoc_length(nlev,shcol,pblh,zt_grid,dz_zt,thv,wthv_s
 #endif
 
   conv_vel(:) = 0._rtype
+
   do k=nlev,1,-1
     do i=1,shcol
       if (zt_grid(i,k) .lt. pblh(i)) then
@@ -4834,12 +4796,12 @@ subroutine compute_conv_time_shoc_length(shcol,pblh,conv_vel,tscale)
 #endif
 
   do i=1,shcol
-    conv_vel(i) = bfb_pow(max(0._rtype,conv_vel(i)), (1._rtype/3._rtype))
+!    conv_vel(i) = bfb_pow(max(0._rtype,conv_vel(i)), (1._rtype/3._rtype))
 
 !    if (conv_vel(i) .gt. 0._rtype) then
 !      tscale(i)=pblh(i)/conv_vel(i)
 !    else
-      tscale(i)=1200._rtype
+      tscale(i)=300._rtype
 !    endif
   enddo
 
@@ -4887,13 +4849,10 @@ subroutine compute_shoc_mix_shoc_length(nlev,shcol,tke,brunt,tscale,zt_grid,l_in
 
       tkes = sqrt(tke(i,k))
 
-!      if(brunt(i,k) .ge. 0) brunt2(i,k) = brunt(i,k)
+      if(brunt(i,k) .ge. 0) brunt2(i,k) = brunt(i,k)
 
       shoc_mix(i,k)=min(maxlen,(2.8284_rtype*sqrt(1._rtype/((1._rtype/(tscale(i)*tkes*vk*zt_grid(i,k)))&
         +(1._rtype/(tscale(i)*tkes*l_inf(i)))+0.01_rtype*(brunt2(i,k)/tke(i,k)))))/length_fac)
-        
-!        shoc_mix(i,k) = l_inf(i)/(1._rtype + l_inf(i)/(vk*zt_grid(i,k)))
-        
     enddo ! end i loop (column loop)
   enddo ! end k loop (vertical loop)
 
@@ -4926,8 +4885,6 @@ subroutine check_length_scale_shoc_length(nlev,shcol,host_dx,host_dy,shoc_mix)
       shoc_mix(i,k)=min(maxlen,shoc_mix(i,k))
       shoc_mix(i,k)=max(minlen,shoc_mix(i,k))
       shoc_mix(i,k)=min(bfb_sqrt(host_dx(i)*host_dy(i)),shoc_mix(i,k))
-      !+DPAB
-!      shoc_mix(i,k)=300._rtype
     enddo
   enddo
 
