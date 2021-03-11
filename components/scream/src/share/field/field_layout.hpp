@@ -38,7 +38,7 @@ public:
   bool has_tag (const FieldTag t) const { return ekat::contains(m_tags,t); }
 
   // The rank is the number of tags associated to this field.
-  int     rank () const  { return m_rank; }
+  int rank () const  { return m_tags.size(); }
 
   int dim (const FieldTag tag) const;
   int dim (const int idim) const;
@@ -57,7 +57,6 @@ public:
 
 protected:
 
-  int                   m_rank;
   std::vector<FieldTag> m_tags;
   std::vector<int>      m_dims;
 };
@@ -81,31 +80,31 @@ inline int FieldLayout::dim (const FieldTag t) const {
 }
 
 inline int FieldLayout::dim (const int idim) const {
-  ekat::error::runtime_check(idim>=0 && idim<m_rank, "Error! Index out of bounds.", -1);
+  ekat::error::runtime_check(idim>=0 && idim<rank(), "Error! Index out of bounds.", -1);
   return m_dims[idim];
 }
 
 inline int FieldLayout::size () const {
   ekat::error::runtime_check(are_dimensions_set(), "Error! Field dimensions not yet set.\n",-1);
-  int prod = m_rank>0 ? 1 : 0;
-  for (int idim=0; idim<m_rank; ++idim) {
+  int prod = rank()>0 ? 1 : 0;
+  for (int idim=0; idim<rank(); ++idim) {
     prod *= m_dims[idim];
   }
   return prod;
 }
 
 inline FieldTag FieldLayout::tag (const int idim) const { 
-  ekat::error::runtime_check(idim>=0 && idim<m_rank, "Error! Index out of bounds.", -1);
+  ekat::error::runtime_check(idim>=0 && idim<rank(), "Error! Index out of bounds.", -1);
   return m_tags[idim];
 } 
 
 inline bool FieldLayout::is_dimension_set (const int idim) const {
-  ekat::error::runtime_check(idim>=0 && idim<m_rank, "Error! Index out of bounds.", -1);
+  ekat::error::runtime_check(idim>=0 && idim<rank(), "Error! Index out of bounds.", -1);
   return m_dims[idim]>=0;
 }
 
 inline bool FieldLayout::are_dimensions_set () const {
-  for (int idim=0; idim<m_rank; ++idim) {
+  for (int idim=0; idim<rank(); ++idim) {
     if (m_dims[idim]<0) {
       return false;
     }
