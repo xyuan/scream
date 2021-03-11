@@ -20,19 +20,19 @@ namespace scream
  *  There is no additional meta data about this field.
  */
 
-class FieldIdentifier : ekat::enable_shared_from_this<FieldIdentifier> {
+class FieldIdentifier {
 public:
   using layout_type     = FieldLayout;
   using layout_ptr_type = std::shared_ptr<const layout_type>;
   using ci_string       = ekat::CaseInsensitiveString;
-  using Units           = ekat::units::Units;
+  using units_type      = ekat::units::Units;
 
   // Constructor(s)
   FieldIdentifier () = delete;
   FieldIdentifier (const FieldIdentifier&) = default;
   FieldIdentifier (const std::string& name,
                    const layout_type& layout,
-                   const Units& units,
+                   const units_type& units,
                    const std::string& grid_name);
 
   // Delete assignment, to prevent overwriting identifiers sneakyly
@@ -41,14 +41,15 @@ public:
   // ----- Getters ----- //
 
   // Name and layout informations
-  const std::string&      name           () const { return m_name;      }
-  const layout_type&      get_layout     () const { return *m_layout;   }
-  const layout_ptr_type&  get_layout_ptr () const { return m_layout;    }
-  const Units&            get_units      () const { return m_units;     }
-  const std::string&      get_grid_name  () const { return m_grid_name; }
+  const std::string&      name           () const { return  m_name;      }
+  const layout_type&      get_layout     () const { return *m_layout;    }
+  const layout_ptr_type&  get_layout_ptr () const { return  m_layout;    }
+  const units_type&       get_units      () const { return  m_units;     }
+  const std::string&      get_grid_name  () const { return  m_grid_name; }
 
-  // The identifier string
-  const std::string& get_id_string () const { return m_identifier; }
+  // The identifier string is a conveniet way to display the information of
+  // the identifier, so that it can be easily read.
+  std::string get_id_string () const;
 
   // ----- Setters ----- //
 
@@ -62,19 +63,17 @@ public:
 
 protected:
 
-  void update_identifier ();
-
+  // The field name
   ci_string       m_name;
 
+  // The layout of the field
   layout_ptr_type m_layout;
 
-  Units           m_units;
+  // The units of this field
+  units_type      m_units;
 
+  // The name of the grid on which the field is defined
   ci_string       m_grid_name;
-
-  // The identifier string is a conveniet way to display the information of
-  // the identifier, so that it can be easily read.
-  ci_string       m_identifier;
 };
 
 bool operator== (const FieldIdentifier& fid1, const FieldIdentifier& fid2);

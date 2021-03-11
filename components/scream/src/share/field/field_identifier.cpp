@@ -6,7 +6,7 @@ namespace scream
 FieldIdentifier::
 FieldIdentifier (const std::string& name,
                  const layout_type& layout,
-                 const Units& units,
+                 const units_type& units,
                  const std::string& grid_name)
  : m_name      (name)
  , m_units     (units)
@@ -28,23 +28,23 @@ void FieldIdentifier::set_layout (const layout_ptr_type& layout) {
       "Error! Input layout must have dimensions set.\n");
 
   m_layout = layout;
-  update_identifier ();
 }
 
-void FieldIdentifier::update_identifier () {
+std::string FieldIdentifier::get_id_string () const {
   // Create a verbose identifier string.
-  m_identifier = m_name + "[" + m_grid_name + "]";
+  std::string id = m_name + "[" + m_grid_name + "]";
   if (m_layout) {
-    m_identifier += "<" + e2str(m_layout->tags()[0]);
+    id += "<" + e2str(m_layout->tags()[0]);
     for (int dim=1; dim<m_layout->rank(); ++dim) {
-      m_identifier += "," + e2str(m_layout->tags()[dim]);
+      id += "," + e2str(m_layout->tags()[dim]);
     }
-    m_identifier += ">(" + std::to_string(m_layout->dims()[0]);
+    id += ">(" + std::to_string(m_layout->dims()[0]);
     for (int dim=1; dim<m_layout->rank(); ++dim) {
-      m_identifier += "," + std::to_string(m_layout->dims()[dim]);
+      id += "," + std::to_string(m_layout->dims()[dim]);
     }
-    m_identifier += ") [" + m_units.get_string() + "]";
+    id += ") [" + m_units.get_string() + "]";
   }
+  return id;
 }
 
 // Free functions for identifiers comparison
