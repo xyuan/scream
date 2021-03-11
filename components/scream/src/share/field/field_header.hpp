@@ -27,10 +27,6 @@ class AtmosphereProcess;
  * (which contains information used to uniquely identify
  * the field) or FieldTracking (which contains info used
  * to track access to the field).
- * There is also 'extra_data', which is a sort of fall-back
- * option, for the meta-data that does not follow under
- * any pre-defined category, and that is not general enough
- * to warrant a new sub-object or a specific named member/method.
  */
 
 class FieldHeader : public ekat::enable_shared_from_this<FieldHeader> {
@@ -38,7 +34,6 @@ public:
 
   using identifier_type = FieldIdentifier;
   using tracking_type   = FieldTracking;
-  using extra_data_type = std::map<std::string,ekat::any>;
 
   // Constructor(s)
   FieldHeader (const FieldHeader&) = default;
@@ -49,20 +44,6 @@ public:
 
   // Assignment deleted, to prevent sneaky overwrites.
   FieldHeader& operator= (const FieldHeader&) = delete;
-
-  // Set extra data
-  void set_extra_data (const std::string& key,
-                       const ekat::any& data,
-                       const bool throw_if_existing = false);
-
-  template<typename T>
-  void set_extra_data (const std::string& key,
-                       const T& data,
-                       const bool throw_if_existing = false) {
-    ekat::any data_any;
-    data_any.reset<T>(data);
-    set_extra_data(key,data_any,throw_if_existing);
-  }
 
   // ----- Getters ----- //
 
@@ -81,9 +62,6 @@ public:
   // Get parent (if any)
   std::weak_ptr<FieldHeader> get_parent () const { return m_parent; }
 
-  // Get the extra data
-  const extra_data_type& get_extra_data () const { return m_extra_data; }
-
 protected:
 
   // Static information about the field: name, rank, tags
@@ -98,8 +76,6 @@ protected:
   // If this field is a sub-view of another field, we keep a pointer to the parent
   std::weak_ptr<FieldHeader>      m_parent;
 
-  // Extra data associated with this field
-  extra_data_type                 m_extra_data;
 };
 
 // Use this free function to exploit features of enable_from_this
