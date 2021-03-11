@@ -53,7 +53,6 @@ public:
   // Get the tracking
   const tracking_type& get_tracking () const { return *m_tracking; }
         tracking_type& get_tracking ()       { return *m_tracking; }
-  const std::shared_ptr<tracking_type>& get_tracking_ptr () const { return m_tracking; }
 
   // Get the allocation properties
   const FieldAllocProp& get_alloc_properties () const { return m_alloc_prop; }

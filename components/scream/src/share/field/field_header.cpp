@@ -23,7 +23,7 @@ FieldHeader::FieldHeader (const identifier_type& id,
 
   m_parent = parent;
 
-  m_tracking = create_tracking(id.name(),parent->get_tracking_ptr());
+  m_tracking = create_tracking(id.name(),parent->m_tracking);
 
   m_alloc_prop = parent->get_alloc_properties().subview(idim,k);
   m_alloc_prop.commit(id.get_layout_ptr());
