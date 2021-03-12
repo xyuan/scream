@@ -48,6 +48,7 @@ public:
 
   // Get the basic information from the identifier
   const identifier_type& get_identifier () const { return m_identifier; }
+        identifier_type& get_identifier ()       { return m_identifier; }
 
   // Get the tracking
   const tracking_type& get_tracking () const { return *m_tracking; }
