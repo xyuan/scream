@@ -284,7 +284,7 @@ Field ()
 template<typename RealType>
 Field<RealType>::
 Field (const identifier_type& id)
- : m_header     (create_header(id))
+ : m_header     (std::make_shared<header_type>(id))
  , m_prop_checks(new property_check_list)
 {
   // At the very least, the allocation properties need to accommodate this field's real type.
@@ -475,7 +475,7 @@ subfield (const std::string& sf_name, const ekat::units::Units& sf_units,
   FieldIdentifier sf_id(sf_name,sf_lt,sf_units,id.get_grid_name());
 
   // Create header
-  auto sv_h = create_header(sf_id,m_header,idim,k);
+  auto sv_h = std::make_shared<header_type>(sf_id,m_header,idim,k);
 
   // Create subfield (set host view too)
   field_type sf(sv_h,m_view_d);

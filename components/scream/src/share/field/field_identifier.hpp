@@ -4,7 +4,6 @@
 #include "share/field/field_layout.hpp"
 #include "ekat/util/ekat_string_utils.hpp"
 #include "ekat/util/ekat_units.hpp"
-#include "ekat/std_meta/ekat_std_enable_shared_from_this.hpp"
 
 #include <vector>
 

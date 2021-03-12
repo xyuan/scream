@@ -8,7 +8,6 @@
 
 #include "share/util/scream_time_stamp.hpp"
 #include "ekat/std_meta/ekat_std_any.hpp"
-#include "ekat/std_meta/ekat_std_enable_shared_from_this.hpp"
 
 #include <vector>
 #include <map>
@@ -29,7 +28,7 @@ class AtmosphereProcess;
  * to track access to the field).
  */
 
-class FieldHeader : public ekat::enable_shared_from_this<FieldHeader> {
+class FieldHeader {
 public:
 
   using identifier_type = FieldIdentifier;
@@ -76,15 +75,6 @@ protected:
   std::weak_ptr<FieldHeader>      m_parent;
 
 };
-
-// Use this free function to exploit features of enable_from_this
-template<typename... Args>
-inline std::shared_ptr<FieldHeader>
-create_header(const Args&... args) {
-  auto ptr = std::make_shared<FieldHeader>(args...);
-  ptr->setSelfPointer(ptr);
-  return ptr;
-}
 
 } // namespace scream
 
