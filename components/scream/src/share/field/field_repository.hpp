@@ -119,6 +119,10 @@ public:
 
 protected:
 
+  void check_valid_long_name   (const identifier_type& id) const;
+  void check_unique_long_name  (const identifier_type& id) const;
+  void check_unique_short_name (const identifier_type& id) const;
+
   std::shared_ptr<field_type> get_field_ptr(const std::string& name,const std::string& grid) const;
   std::shared_ptr<field_type> get_field_ptr(const identifier_type& id) const;
 
@@ -197,6 +201,14 @@ register_field (const identifier_type& id, const std::set<std::string>& groups_n
   // Sanity checks
   EKAT_REQUIRE_MSG(m_repo_state==RepoState::Open,"Error! Registration of new fields not started or no longer allowed.\n");
 
+#ifndef NDEBUG
+  if (id.long_name()!="") {
+    check_valid_long_name(id);
+    check_unique_long_name(id);
+    check_unique_short_name(id);
+  }
+#endif
+
   // Get the map of all fields with this name
   auto& map = m_fields[id.name()];
 
@@ -214,13 +226,24 @@ register_field (const identifier_type& id, const std::set<std::string>& groups_n
                        "       Please, check and make sure all atmosphere processes use the same units.\n");
   }
 
-  if (map.find(id)==map.end()) {
-    map[id] = std::make_shared<field_type>(id);
+  // Emplace will return the existing entry, if one is present for key=id
+  auto it_bool = map.emplace(id,std::make_shared<field_type>(id));
+
+  // it_bool is an (iterator,bool) pair, and the iterator points to map's value_type,
+  // which in turn is a (key_type,mapped_type).
+  auto& f = it_bool.first->second;
+
+  if (f->get_header().get_identifier().long_name()=="" &&
+      id.long_name()!="") {
+    // We must be in the case where the field already existed, but the previous user
+    // registered it without the long name, while the current user provided one.
+    // Note: we cannot modify the field header, cause FieldHeader only offers const
+    //       access.
+    f->get_header().get_identifier().set_long_name(id.long_name());
   }
 
   // Make sure the field can accommodate the requested value type
-  auto& f = *map[id];
-  f.get_header().get_alloc_properties().template request_allocation<RequestedValueType>();
+  f->get_header().get_alloc_properties().template request_allocation<RequestedValueType>();
 
   // Finally, add the field to the given groups
   // Note: we do *not* set the group info struct in the field header yet.
@@ -605,6 +628,61 @@ template<typename RealType>
 void FieldRepository<RealType>::clean_up() {
   m_fields.clear();
   m_repo_state = RepoState::Clean;
+}
+
+template<typename RealType>
+void FieldRepository<RealType>::check_valid_long_name  (const identifier_type& id) const {
+  // For now, do nothing. Later, we could load the cf database (e.g., at construction time),
+  // and use it during registration to check names (and discard it once registration ends).
+  EKAT_REQUIRE_MSG(true,
+      "Error! Field '" + id.name() + "' has long name '" + id.long_name() + "',\n"
+      "       which was not found in the CF standard names table.\n");
+}
+
+template<typename RealType>
+void FieldRepository<RealType>::check_unique_long_name (const identifier_type& id) const {
+  const auto& ln_in = id.long_name();
+
+  // If the input has no long name, or it's the first time we store
+  // a field with this short name, then it's fine.
+  if (ln_in=="" || m_fields.find(id.name())==m_fields.end()) {
+    return;
+  }
+
+  // Loop over all different copies of this field
+  for (const auto& it : m_fields.at(id.name())) {
+    const auto& ln = it.first.long_name();
+    EKAT_REQUIRE_MSG (ln=="" || ln==ln_in,
+        "Error! Field '" + id.name() + "' was already stored with a different long name:\n"
+        "    - stored: " + ln + "\n"
+        "    - input:  " + ln_in + "\n");
+  }
+}
+
+template<typename RealType>
+void FieldRepository<RealType>::check_unique_short_name(const identifier_type& id) const {
+  const auto& ln_in = id.long_name();
+
+  // If the input has no long name, it's fine.
+  if (ln_in=="") {
+    return;
+  }
+
+  // Loop over all stored fields, skipping the ones with the same (short) name
+  for (const auto& it : m_fields) {
+    if (it.first==id.name()) {
+      continue;
+    }
+
+    // Loop over all different copies of this field
+    for (const auto& it2 : it.second) {
+      const auto& ln = it2.first.long_name();
+      EKAT_REQUIRE_MSG (ln!=ln_in,
+          "Error! Long name '" + ln_in + "' was already used for a field with a different short name:\n"
+          "    - stored: " + it2.first.name() + "\n"
+          "    - input:  " + id.name() + "\n");
+    }
+  }
 }
 
 template<typename RealType>

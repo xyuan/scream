@@ -282,6 +282,9 @@ TEST_CASE("field_repo", "") {
   FieldIdentifier fid7("field_5", {tags2, dims3}, km/s, "grid_3");
   FieldIdentifier fid8("field_5", {tags3, dims4}, km/s, "grid_3");
   FieldIdentifier fid9("field_packed", {tags4,dims5}, km/s, "grid_3");
+  FieldIdentifier fid10("f","my_long_name",{tags2,dims3},km/s,"grid_1");
+  FieldIdentifier fid11("f","my_longer_name",{tags2,dims3},km/s,"grid_1");
+  FieldIdentifier fid12("g","my_long_name",{tags2,dims3},km/s,"grid_1");
 
   FieldRepository<Real> repo;
 
@@ -303,6 +306,11 @@ TEST_CASE("field_repo", "") {
   repo.register_field<Pack>(fid9);
   // Should not be able to register the same field name with two different units
   REQUIRE_THROWS(repo.register_field(fid4));
+
+  repo.register_field(fid10);
+  REQUIRE_THROWS(repo.register_field(fid11));
+  REQUIRE_THROWS(repo.register_field(fid12));
+
   repo.registration_ends();
 
   // Should not be able to register fields anymore
@@ -310,8 +318,8 @@ TEST_CASE("field_repo", "") {
 
   // Check registration is indeed closed
   REQUIRE (repo.repository_state()==RepoState::Closed);
-  REQUIRE (repo.size()==6);
-  REQUIRE (repo.internal_size()==8);
+  REQUIRE (repo.size()==7);
+  REQUIRE (repo.internal_size()==9);
 
   auto f1 = repo.get_field(fid1);
   auto f2 = repo.get_field(fid2);
