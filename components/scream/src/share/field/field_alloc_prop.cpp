@@ -36,23 +36,23 @@ subview (const int idim, const int k) const {
       "Error! Subview requires alloc properties to be committed.\n");
   EKAT_REQUIRE_MSG (idim==0 || idim==1,
       "Error! Subviewing is only allowed along first or second dimension.\n");
-  EKAT_REQUIRE_MSG (idim<m_layout->rank(),
+  EKAT_REQUIRE_MSG (idim<m_layout.rank(),
       "Error! Dimension index out of bounds.\n");
-  EKAT_REQUIRE_MSG (k>=0 && k<m_layout->dim(idim),
+  EKAT_REQUIRE_MSG (k>=0 && k<m_layout.dim(idim),
       "Error! Index along the dimension is out of bounds.\n");
 
   // Set new layout basic stuff
   FieldAllocProp props;
   props.m_committed = false;
   props.m_scalar_type_size = m_scalar_type_size;
-  props.m_alloc_size = m_alloc_size / m_layout->dim(idim);
+  props.m_alloc_size = m_alloc_size / m_layout.dim(idim);
   props.m_subview_idx = std::make_pair(idim,k);
 
   // Output is contioguous if a) this->m_contiguous=true,
   // b) idim==0, or if m_layout->dim(i)==1 for i<idim
   props.m_contiguous = m_contiguous;
   for (int i=0; i<idim; ++i) {
-    if (m_layout->dim(i)>0) {
+    if (m_layout.dim(i)>0) {
       props.m_contiguous = false;
       break;
     }
@@ -67,17 +67,17 @@ subview (const int idim, const int k) const {
   // HOWEVER, this may cause bugs, cause the user might make a mistake,
   // and pass the wrong layout. Therefore, we build a "temporary" one,
   // which will be replaced during the call to 'commit'.
-  std::vector<FieldTag> tags = m_layout->tags();
-  std::vector<int> dims = m_layout->dims();
+  std::vector<FieldTag> tags = m_layout.tags();
+  std::vector<int> dims = m_layout.dims();
   tags.erase(tags.begin()+idim);
   dims.erase(dims.begin()+idim);
-  props.m_layout = std::make_shared<layout_type>(tags,dims);
+  props.m_layout = FieldLayout(tags,dims);
 
   // Figure out strides
-  const int rm1 = m_layout->rank()-1;
+  const int rm1 = m_layout.rank()-1;
   if (idim==rm1) {
     // We're slicing the possibly padded dim, so everything else is as in the layout
-    props.m_last_extent = m_layout->dim(idim);
+    props.m_last_extent = m_layout.dim(idim);
   } else {
     // We are keeping the last dim, so same last extent
     props.m_last_extent = m_last_extent;
@@ -119,24 +119,21 @@ void FieldAllocProp::request_allocation (const FieldAllocProp& src)
 int FieldAllocProp::get_padding () const {
   EKAT_REQUIRE_MSG(is_committed(),
       "Error! You cannot query the allocation padding until after calling commit().");
-  int padding = m_last_extent - m_layout->dims().back();
+  int padding = m_last_extent - m_layout.dims().back();
   return padding;
 }
 
-void FieldAllocProp::commit (const layout_ptr_type& layout)
+void FieldAllocProp::commit (const layout_type& layout)
 {
   if (is_committed()) {
     // TODO: should we issue a warning? Error? For now, I simply do nothing
     return;
   }
 
-  EKAT_REQUIRE_MSG (layout,
-      "Error! Invalid input layout pointer.\n");
-
   if (m_alloc_size>0) {
     // This obj was created as a subview of another alloc props obj.
     // Check that input layout matches the stored one, then replace the ptr.
-    EKAT_REQUIRE_MSG (*layout==*m_layout,
+    EKAT_REQUIRE_MSG (layout==m_layout,
         "Error! The input field layout does not match the stored one.\n");
 
     m_layout = layout;
@@ -147,7 +144,7 @@ void FieldAllocProp::commit (const layout_ptr_type& layout)
   // Sanity checks: we must have requested at least one value type, and the identifier needs all dimensions set by now.
   EKAT_REQUIRE_MSG(m_value_type_sizes.size()>0,
       "Error! No value types requested for the allocation.\n");
-  EKAT_REQUIRE_MSG(layout->are_dimensions_set(),
+  EKAT_REQUIRE_MSG(layout.are_dimensions_set(),
       "Error! You need all field dimensions set before committing the allocation properties.\n");
 
   // Store pointer to layout for future use (in case subview is called)
@@ -155,7 +152,7 @@ void FieldAllocProp::commit (const layout_ptr_type& layout)
 
   // Loop on all value type sizes.
   m_last_extent = 0;
-  int last_phys_extent = m_layout->dims().back();
+  int last_phys_extent = m_layout.dims().back();
   for (auto vts : m_value_type_sizes) {
     // The number of scalar_type in a value_type
     const int vt_len = vts / m_scalar_type_size;
@@ -170,7 +167,7 @@ void FieldAllocProp::commit (const layout_ptr_type& layout)
     m_last_extent = std::max(m_last_extent, num_st);
   }
 
-  m_alloc_size = (m_layout->size() / last_phys_extent) // All except the last dimension
+  m_alloc_size = (m_layout.size() / last_phys_extent) // All except the last dimension
                  * m_last_extent * m_scalar_type_size;
 
   m_contiguous = true;

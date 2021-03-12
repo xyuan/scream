@@ -88,7 +88,7 @@ public:
   void request_allocation (const FieldAllocProp& src);
 
   // Locks the allocation properties, preventing furter value types requests
-  void commit (const layout_ptr_type& layout);
+  void commit (const layout_type& layout);
 
   // ---- Getters ---- //
 
@@ -115,7 +115,7 @@ public:
 protected:
 
   // The FieldLayout associated to this allocation
-  layout_ptr_type     m_layout;
+  layout_type         m_layout;
 
   // The list of requested value types for this allocation
   std::vector<int>    m_value_type_sizes;

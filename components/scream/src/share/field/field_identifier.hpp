@@ -32,7 +32,6 @@ namespace scream
 class FieldIdentifier {
 public:
   using layout_type     = FieldLayout;
-  using layout_ptr_type = std::shared_ptr<const layout_type>;
   using ci_string       = ekat::CaseInsensitiveString;
   using units_type      = ekat::units::Units;
 
@@ -56,12 +55,11 @@ public:
   // ----- Getters ----- //
 
   // Name and layout informations
-  const std::string&      name           () const { return  m_data->name;      }
-  const std::string&      long_name      () const { return  m_data->long_name; }
-  const layout_type&      get_layout     () const { return *m_data->layout;    }
-  const layout_ptr_type&  get_layout_ptr () const { return  m_data->layout;    }
-  const units_type&       get_units      () const { return  m_data->units;     }
-  const std::string&      get_grid_name  () const { return  m_data->grid_name; }
+  const std::string&      name           () const { return m_data->name;      }
+  const std::string&      long_name      () const { return m_data->long_name; }
+  const layout_type&      get_layout     () const { return m_data->layout;    }
+  const units_type&       get_units      () const { return m_data->units;     }
+  const std::string&      get_grid_name  () const { return m_data->grid_name; }
 
   // The identifier string is a conveniet way to display the information of
   // the identifier, so that it can be easily read.
@@ -71,7 +69,6 @@ public:
 
   // Note: as soon as the layout is set, it cannot be changed.
   void set_layout (const layout_type& layout);
-  void set_layout (const layout_ptr_type& layout);
 
   // Note: as soon as the long name is set, it cannot be changed
   void set_long_name (const std::string& long_name);
@@ -90,7 +87,7 @@ protected:
           const std::string& _grid_name)
       : name(_name)
       , long_name(_long_name)
-      , layout(std::make_shared<const layout_type>(_layout))
+      , layout(_layout)
       , units(_units)
       , grid_name(_grid_name)
     {
@@ -104,7 +101,7 @@ protected:
     ci_string       long_name;
 
     // The layout of the field
-    layout_ptr_type layout;
+    layout_type     layout;
 
     // The units of this field
     units_type      units;

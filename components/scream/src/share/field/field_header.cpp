@@ -18,15 +18,15 @@ FieldHeader::FieldHeader (const identifier_type& id,
 {
   EKAT_REQUIRE_MSG (parent!=nullptr,
       "Error! Invalid pointer for parent header.\n");
-  EKAT_REQUIRE_MSG (id.get_layout_ptr()!=nullptr,
-      "Error! Input field identifier has an invalid layout pointer.\n");
+  EKAT_REQUIRE_MSG (id.get_layout().are_dimensions_set(),
+      "Error! Input field identifier has an incomplete layout.\n");
 
   m_parent = parent;
 
   m_tracking = create_tracking(id.name(),parent->m_tracking);
 
   m_alloc_prop = parent->get_alloc_properties().subview(idim,k);
-  m_alloc_prop.commit(id.get_layout_ptr());
+  m_alloc_prop.commit(id.get_layout());
 
   m_tracking->register_as_children_in_parent();
 }

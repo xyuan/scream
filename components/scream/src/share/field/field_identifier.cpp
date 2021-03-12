@@ -24,15 +24,9 @@ FieldIdentifier (const std::string& name,
 }
 
 void FieldIdentifier::set_layout (const layout_type& layout) {
-  set_layout(std::make_shared<layout_type>(layout));
-}
-
-void FieldIdentifier::set_layout (const layout_ptr_type& layout) {
-  EKAT_REQUIRE_MSG (!m_data->layout,
+  EKAT_REQUIRE_MSG (!m_data->layout.are_dimensions_set(),
       "Error! You cannot reset the layout once it's set.\n");
-  EKAT_REQUIRE_MSG (layout,
-      "Error! Invalid input layout pointer.\n");
-  EKAT_REQUIRE_MSG (layout->are_dimensions_set(),
+  EKAT_REQUIRE_MSG (layout.are_dimensions_set(),
       "Error! Input layout must have dimensions set.\n");
 
   m_data->layout = layout;
@@ -48,17 +42,15 @@ void FieldIdentifier::set_long_name (const std::string& long_name) {
 std::string FieldIdentifier::get_id_string () const {
   // Create a verbose identifier string.
   std::string id = m_data->name + "[" + m_data->grid_name + "]";
-  if (m_data->layout) {
-    id += "<" + e2str(m_data->layout->tags()[0]);
-    for (int dim=1; dim<m_data->layout->rank(); ++dim) {
-      id += "," + e2str(m_data->layout->tags()[dim]);
-    }
-    id += ">(" + std::to_string(m_data->layout->dims()[0]);
-    for (int dim=1; dim<m_data->layout->rank(); ++dim) {
-      id += "," + std::to_string(m_data->layout->dims()[dim]);
-    }
-    id += ") [" + m_data->units.get_string() + "]";
+  id += "<" + e2str(m_data->layout.tags()[0]);
+  for (int dim=1; dim<m_data->layout.rank(); ++dim) {
+    id += "," + e2str(m_data->layout.tags()[dim]);
   }
+  id += ">(" + std::to_string(m_data->layout.dims()[0]);
+  for (int dim=1; dim<m_data->layout.rank(); ++dim) {
+    id += "," + std::to_string(m_data->layout.dims()[dim]);
+  }
+  id += ") [" + m_data->units.get_string() + "]";
   return id;
 }
 
