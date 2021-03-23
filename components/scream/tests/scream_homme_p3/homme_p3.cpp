@@ -8,7 +8,6 @@
 
 // P3 includes
 #include "physics/p3/atmosphere_microphysics.hpp"
-#include "physics/p3/scream_p3_interface.hpp"
 
 TEST_CASE("scream_homme_p3", "scream_homme_p3") {
   using namespace scream;

@@ -17,6 +17,10 @@ Grids Manager:
   Type: Physics Only
   Reference Grid: Physics
   Physics Only:
-    Number of global columns:  32
+    Number of global columns: 384 
     Number of vertical levels: 72
+
+# The name of the file containing the initial conditions for this test.
+Initial Conditions:
+  Initial Conditions File: shoc_p3_standalone_ne4_pg2.nc
 ...

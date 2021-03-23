@@ -18,6 +18,5 @@ CONFIGURE_FILE(${SCREAM_DATA_DIR}/p3_lookup_table_2.dat-v4
                ${CMAKE_CURRENT_BINARY_DIR}/data COPYONLY)
 CONFIGURE_FILE(${SCREAM_DATA_DIR}/p3_universal_constants.inp
                ${CMAKE_CURRENT_BINARY_DIR}/data COPYONLY)
-CONFIGURE_FILE(p3_init_vals.txt p3_init_vals.txt COPYONLY)
-CONFIGURE_FILE(p3_standalone_ne4_np4.nc p3_standalone_ne4_np4.nc COPYONLY)
+CONFIGURE_FILE(p3_standalone_ne4_pg2.nc p3_standalone_ne4_pg2.nc COPYONLY)
 CONFIGURE_FILE(p3_standalone_output.yaml p3_standalone_output.yaml COPYONLY)
