@@ -1,16 +1,5 @@
-# NOTE: if you have baseline-type tests, add the subdirectory OUTSIDE the following if statement
-if (NOT ${SCREAM_BASELINES_ONLY})
-  if ("${SCREAM_DYNAMICS_DYCORE}" STREQUAL "HOMME")
-    add_subdirectory(scream_homme)
-    # coupling of homme with other procs is not yet ready
-     add_subdirectory(scream_homme_p3)
-  endif()
+# Individual atm procs AD tests
+add_subdirectory (uncoupled)
 
-  add_subdirectory(scream_p3)
-  add_subdirectory(scream_p3_shoc)
-  add_subdirectory(scream_shoc)
-  add_subdirectory(rrtmgp)
-  if (SCREAM_ENABLE_EXPERIMENTAL)
-    add_subdirectory(scream_zm)
-  endif()
-endif()
+# AD tests involving 2+ atm procs
+add_subdirectory (coupled)
