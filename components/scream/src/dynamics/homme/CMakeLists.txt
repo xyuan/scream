@@ -148,7 +148,7 @@ macro (CreateDynamicsLib HOMME_TARGET NP PLEV QSIZE)
     # Create the library
     createExecLib (${hommeLibName} ${HOMME_TARGET} "${THETAL_DEPS}" "${EXEC_LIB_INCLUDE_DIRS}"
                    ${PREQX_NP} ${PREQX_PLEV} ${PREQX_USE_ENERGY} ${QSIZE_D})
-    target_compile_definitions(${hommeLibName} PUBLIC HOMMEXX_CONFIG_IS_CMAKE SCREAM)
+    target_compile_definitions(${hommeLibName} PUBLIC HOMMEXX_CONFIG_IS_CMAKE SCREAM HAVE_CONFIG_H)
     if (SCREAM_CIME_BUILD)
       # Link to cime's csm_share lib
       target_link_libraries (${hommeLibName} csm_share)
