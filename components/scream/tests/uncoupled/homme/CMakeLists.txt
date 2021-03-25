@@ -2,7 +2,7 @@ include (ScreamUtils)
 
 # Get or create the dynamics lib
 #                 HOMME_TARGET   NP PLEV QSIZE_D
-CreateDynamicsLib("theta-l_kokkos"  4   72   35)
+CreateDynamicsLib("theta-l_kokkos"  4   72   10)
 
 set (NEED_LIBS ${dynLibName} scream_control scream_share)
 

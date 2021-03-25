@@ -22,6 +22,7 @@ set(BUILD_HOMME_PESE         OFF CACHE BOOL "")
 set(BUILD_HOMME_SWIM         OFF CACHE BOOL "")
 set(BUILD_HOMME_PRIM         OFF CACHE BOOL "")
 set(HOMME_ENABLE_COMPOSE     OFF CACHE BOOL "")
+set(HOMME_BUILD_LIBS         OFF CACHE BOOL "")
 set(BUILD_HOMME_TOOL         OFF CACHE BOOL "")
 
 # We DON'T want homme's pio support, so force this option
