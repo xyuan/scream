@@ -12,6 +12,8 @@ CreateUnitTest(homme_p3 "homme_p3.cpp" "${NEED_LIBS}" EXE_ARGS "< namelist.nl" L
 # Copy yaml input file to run directory
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/input.yaml
                ${CMAKE_CURRENT_BINARY_DIR}/input.yaml COPYONLY)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/homme_p3_standalone_ne4_ne4.nc
+               ${CMAKE_CURRENT_BINARY_DIR}/homme_p3_standalone_ne4_ne4.nc COPYONLY)
 
 # Set homme's test options, so that we can configure the namelist correctly
 
