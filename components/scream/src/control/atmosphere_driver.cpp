@@ -1,5 +1,6 @@
 #include "control/atmosphere_driver.hpp"
 
+#include "ekat/std_meta/ekat_std_utils.hpp"
 #include "share/atm_process/atmosphere_process_group.hpp"
 #include "share/atm_process/atmosphere_process_dag.hpp"
 #include "share/field/field_utils.hpp"
@@ -388,69 +389,121 @@ void AtmosphereDriver::register_groups () {
 
   // Given a list of group-grid pairs (A,B), make sure there is a copy
   // of each field in group A on grid B registered in the repo.
-  auto has_group_fields_on_grid = [&](const std::set<GroupRequest>& groups_grids) {
+
+  // Lambda helper fcn, that register field $name with group $group on grid $grid
+  // and with pack size $pack_size, if not yet already registered
+  auto register_if_not_there = [&](const std::string& name,
+                                   const std::string* group,
+                                   const std::string& grid,
+                                   const int pack_size) {
+    EKAT_REQUIRE_MSG(m_field_repo->has_field(name),
+      "Error! Something went wrong while looking for field '" << name << "' in the repo.\n");
+    auto aliases_begin = m_field_repo->cbegin(name);
+    auto aliases_end = m_field_repo->cend(name);
+
+    // Check if a copy of this field on the right grid is already registered.
+    bool found = false;
+    for (auto it = aliases_begin; it!=aliases_end; ++it) {
+      if (it->get_grid_name()==grid) {
+        found = true;
+
+        // Ensure the field is available with the desired pack size
+        if (group!=nullptr) {
+          m_field_repo->register_field(*it,pack_size,*group);
+        } else {
+          m_field_repo->register_field(*it,pack_size);
+        }
+        break;
+      }
+    }
+
+    if (!found) {
+      // Field $name in group $group has no copy on grid $grid.
+      // Lets take any fid in the repo for this field, and register
+      // a copy of it on grid $grid. We can do this by creating
+      // a remapper and using its capabilities.
+      const auto& fid = *aliases_begin;
+      auto r = m_grids_manager->create_remapper(fid.get_grid_name(),grid);
+      auto f_units = fid.get_units();
+      auto src_layout = fid.get_layout();
+      auto tgt_layout = r->create_tgt_layout(src_layout);
+      FieldIdentifier new_fid(name,tgt_layout,f_units,grid);
+      if (group!=nullptr) {
+        m_field_repo->register_field(new_fid,pack_size,*group);
+      } else {
+        m_field_repo->register_field(new_fid,pack_size);
+      }
+    }
+  };
+
+  auto ensure_group_fields_on_grid_are_present = [&](const GroupRequest& req) {
     const auto& groups_info = m_field_repo->get_groups_info();
 
-    for (const auto& gg : groups_grids) {
-      const auto& group = gg.name;
-      const auto& grid = gg.grid;
+    const auto& group = req.name;
+    const auto& grid = req.grid;
 
-      // Lambda helper fcn, that register field $name with group $group on grid $grid
-      // if not yet already registered
-      auto register_if_not_there = [&](const std::string& name) {
-        EKAT_REQUIRE_MSG(m_field_repo->has_field(name),
-          "Error! Something went wrong while looking for field '" << name << "' in the repo.\n");
-        auto aliases_begin = m_field_repo->cbegin(name);
-        auto aliases_end = m_field_repo->cend(name);
+    auto group_it = groups_info.find(group);
+    EKAT_REQUIRE_MSG(group_it!=groups_info.end(),
+      "Error! Group '" << group << "' not found in the repo.\n");
 
-        // Check if a copy of this field on the right grid is already registered.
-        bool found = false;
-        for (auto it = aliases_begin; it!=aliases_end; ++it) {
-          if (it->get_grid_name()==grid) {
-            found = true;
-            break;
-          }
-        }
+    const auto& fnames = group_it->second->m_fields_names;
+    for (const auto& name : fnames) {
+      register_if_not_there(name,&group,grid,req.pack_size);
+    }
 
-        if (!found) {
-          // Field $name in group $group has no copy on grid $grid.
-          // Lets take any fid in the repo for this field, and register
-          // a copy of it on grid $grid. We can do this by creating
-          // a remapper and using its capabilities.
-          const auto& fid = *aliases_begin;
-          auto r = m_grids_manager->create_remapper(fid.get_grid_name(),grid);
-          auto f_units = fid.get_units();
-          auto src_layout = fid.get_layout();
-          auto tgt_layout = r->create_tgt_layout(src_layout);
-          FieldIdentifier new_fid(name,tgt_layout,f_units,grid);
-          m_field_repo->register_field(new_fid,gg.pack_size,group);
-        }
-      };
+    if (group_it->second->m_bundled) {
+      // The group was allocated as a single bundled field, with each
+      // field in the group later subviewing the bundle.
+      // We need to ensure the bundle also exists on $grid, and has the correct pack size
+      // NOTE: do not put the bundled field in its group, to avoid counting it in the group
+      const auto& name = *fnames.begin();
+      const auto  f = m_field_repo->get_field(name,grid);
+      const auto& bundle_name = f.get_header().get_parent().lock()->get_identifier().name();
+      register_if_not_there(bundle_name,nullptr,grid,req.pack_size);
+    }
+  };
 
-      auto group_it = groups_info.find(group);
-      EKAT_REQUIRE_MSG(group_it!=groups_info.end(),
-        "Error! Group '" << group << "' not found in the repo.\n");
-
-      const auto& fnames = group_it->second->m_fields_names;
-      for (const auto& name : fnames) {
-        register_if_not_there(name);
+  auto process_groups_requests = [&](const std::set<GroupRequest>& groups_requests) {
+    auto& groups_info = m_field_repo->get_groups_info();
+    std::set<GroupRequest> subgroups;
+    for (const auto& req : groups_requests) {
+      // If a group is a subset of another group, process it *after*
+      if (req.exclude_superset_fields.size()>0) {
+        subgroups.insert(req);
+        continue;
       }
 
-      if (group_it->second->m_bundled) {
-        // The group was allocated as a single bundled field, with each
-        // field in the group later subviewing the bundle.
-        // We need to ensure the bundle also exists on $grid
-        const auto& name = *fnames.begin();
-        const auto  f = m_field_repo->get_field(name,grid);
-        const auto& bundle_name = f.get_header().get_parent().lock()->get_identifier().name();
-        register_if_not_there(bundle_name);
+      ensure_group_fields_on_grid_are_present(req);
+    }
+
+    // If there are groups that have superset, process them now
+    for (const auto& req : subgroups) {
+      GroupRequest super(req.superset_group,req.grid,req.pack_size);
+
+      // The superset group should already be registered by now.
+      EKAT_REQUIRE_MSG(groups_info.find(req.superset_group)!=groups_info.end(),
+          "Error! Request for group '" + req.name + "' to be a subgroup of '" + req.superset_group + "',\n"
+          "       but the latter does not exist in the field repo.\n"
+          "NOTE: if you are trying to create a subgroup of another subgroup, well, such feature is not supported.\n");
+
+      // Ensure the superset is registered with the pack size required by this subgroup
+      ensure_group_fields_on_grid_are_present(super);
+
+      // Get all fields in the superset group, and register them as part of this group too,
+      // provided that they are not in the list req.exclude_superset_fields
+      auto group_it = groups_info.find(req.superset_group);
+      const auto& fnames = group_it->second->m_fields_names;
+      for (const auto& name : fnames) {
+        if (not ekat::contains(req.exclude_superset_fields,name)) {
+          register_if_not_there(name,&req.name,req.grid,req.pack_size);
+        }
       }
     }
   };
 
   // Call the above lambda on both required and updated groups.
-  has_group_fields_on_grid( m_atm_process_group->get_required_groups() );
-  has_group_fields_on_grid( m_atm_process_group->get_updated_groups() );
+  process_groups_requests( m_atm_process_group->get_required_groups() );
+  process_groups_requests( m_atm_process_group->get_updated_groups() );
 }
 
 #ifdef SCREAM_DEBUG

@@ -18,6 +18,7 @@
 
 #include <string>
 #include <set>
+#include <list>
 
 namespace scream
 {
@@ -86,12 +87,29 @@ public:
       EKAT_REQUIRE_MSG(pack_size>=1, "Error! Invalid pack size request.\n");
     }
 
+    GroupRequest (const std::string& name_, const std::string& grid_,
+                  const std::string& superset_group_,
+                  const std::list<std::string>& exclude_superset_fields_,
+                  const int ps = 1)
+     : name(name_), grid(grid_), pack_size(ps)
+     , superset_group(superset_group_)
+    {
+      EKAT_REQUIRE_MSG(pack_size>=1, "Error! Invalid pack size request.\n");
+      for (const auto& n : exclude_superset_fields_) {
+        exclude_superset_fields.push_back(n);
+      }
+    }
+
     // Group name
     ci_string name;
     // Grid name
     ci_string grid;
     // Request an allocation that can accomodate a value type like Pack<Real,pack_size>
     int       pack_size;
+
+    // Allow to specify a group as a subset of another, excluding a given list of fields
+    ci_string superset_group;
+    std::list<ci_string> exclude_superset_fields;
   };
 
   virtual ~AtmosphereProcess () = default;
