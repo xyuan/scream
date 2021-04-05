@@ -7,7 +7,7 @@ namespace scream {
  * A dummy point grid remapper for testing
  * 
  * The dummy remapper has limited abilities. It can only handle
- * rank 1 and rank 2 fields, from 'Point Grid A' and 'Point Grid B'.
+ * rank 1 and rank 2 fields, from 'Col Lev' grid to 'Lev Col' grid.
  * Rank 1 fields are simply deep-copied, while rank 2 fields get
  * their layout swapped during remap (meaning a (COL,LEV) field
  * is remapped into a (LEV,COL) field).
@@ -24,8 +24,8 @@ public:
   using layout_type     = typename base_type::layout_type;
 
 
-  DummyPointGridRemapper(const std::shared_ptr<const grid_type>& grid1,
-                         const std::shared_ptr<const grid_type>& grid2)
+  DummyPointGridRemapper(const std::shared_ptr<const grid_type> grid1,
+                         const std::shared_ptr<const grid_type> grid2)
    : base_type(grid1,grid2)
   {
     const auto& g1n = grid1->name();
@@ -36,8 +36,8 @@ public:
     EKAT_REQUIRE_MSG (static_cast<bool>(g1) && static_cast<bool>(g2),
                       "Error! This dummy remapper only works with PointGrid.\n");
 
-    EKAT_REQUIRE_MSG(g1n=="Point Grid A" && g2n=="Point Grid B",
-      "Error! This dummy remapper only works if the two grids are called 'Point Grid A' and 'Point Grid B'.\n");
+    EKAT_REQUIRE_MSG(g1n=="Col Lev" && g2n=="Lev Col",
+      "Error! This dummy remapper only works if the two grids are called 'Col Lev' and 'Lev Col'.\n");
   }
 
   FieldLayout create_src_layout (const FieldLayout& tgt_layout) const override {
@@ -64,7 +64,7 @@ public:
   }
 
   bool compatible_layouts (const layout_type& src,
-                           const layout_type& tgt) const {
+                           const layout_type& tgt) const override{
     const auto rank = src.rank();
     return rank==tgt.rank() &&
           (rank==1 ? src==tgt :
@@ -88,8 +88,8 @@ protected:
     return m_fields[ifield].second;
   }
 
-  void do_registration_begins () {}
-  void do_registration_ends () {}
+  void do_registration_begins () override {}
+  void do_registration_ends () override {}
 
   void do_register_field (const identifier_type& src, const identifier_type& tgt) override {
     field_type f1(src);
