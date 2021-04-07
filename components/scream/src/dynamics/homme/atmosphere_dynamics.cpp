@@ -111,7 +111,9 @@ void HommeDynamics::set_grids (const std::shared_ptr<const GridsManager> grids_m
                      "       Found " + std::to_string(ftype) + " instead.\n");
 
   // Input-output groups
-  m_inout_groups_req.emplace("tracers",grids_manager->get_reference_grid()->name());
+  constexpr int homme_ps = sizeof(Homme::Scalar) / sizeof(Real);
+  GroupRequest tracers_req("tracers",grids_manager->get_reference_grid()->name(),homme_ps,true);
+  m_inout_groups_req.push_back(tracers_req);
 }
 
 void HommeDynamics::

@@ -93,7 +93,7 @@ void SHOCMacrophysics::set_grids(const std::shared_ptr<const GridsManager> grids
   m_computed_fields.emplace("pbl_height", scalar2d_layout_col, m, grid_name);
 
   // Tracer group
-  m_inout_groups_req.emplace("tracers",grid->name());
+  m_inout_groups_req.push_back( GroupRequest("tracers",grid->name()) );
 }
 // =========================================================================================
 void SHOCMacrophysics::

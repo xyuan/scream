@@ -58,7 +58,7 @@ public:
     for (const auto& name : groups) {
       const auto& pl = m_params.sublist(name);
 
-      GroupRequest req(name,ref_grid->name(),SCREAM_PACK_SIZE);
+      GroupRequest req(name,ref_grid->name(),SCREAM_PACK_SIZE,false);
       if (pl.isParameter("Super Group")) {
         req.superset_group = pl.get<std::string>("Super Group");
         for (const auto& n : pl.get<std::vector<std::string>>("Exclude")) {
@@ -70,7 +70,7 @@ public:
           m_f2g[n].insert(name);
         }
       }
-      m_groups_req.insert(req);
+      m_groups_req.push_back(req);
     }
 
     for (const auto& name : fields) {
@@ -102,7 +102,7 @@ public:
   const std::set<FieldIdentifier>&  get_required_fields () const { return m_fids; }
   const std::set<FieldIdentifier>&  get_computed_fields () const { return m_fids; }
 
-  std::set<GroupRequest> get_updated_groups () const {
+  std::list<GroupRequest> get_updated_groups () const {
     return m_groups_req;
   }
 
@@ -163,7 +163,7 @@ protected:
   }
 
   std::set<FieldIdentifier> m_fids;
-  std::set<GroupRequest>    m_groups_req;
+  std::list<GroupRequest>   m_groups_req;
 
   std::map<std::string,Field<Real>>       m_ref_fields;
   std::map<std::string,Field<Real>>       m_fields;

@@ -199,10 +199,19 @@ set_required_group (const FieldGroup<const Real>& group)
   const auto& name = group.m_info->m_group_name;
   const auto& grid = group.m_grid_name;
 
+  auto requires_group = [] (const AtmosphereProcess& ap, const std::string& name, const std::string& grid) -> bool {
+    for (const auto& it : ap.get_required_groups()) {
+      if (it.name==name && it.grid==grid) {
+        return true;
+      }
+    }
+    return false;
+  };
+
   for (int iproc=0; iproc<m_group_size; ++iproc) {
     auto atm_proc = m_atm_processes[iproc];
 
-    if (atm_proc->requires_group(name,grid)) {
+    if (requires_group(*atm_proc,name,grid)) {
       atm_proc->set_required_group(group);
       // Some groups might be optional, so don't error out if they're empty
       if (not group.m_info->empty()) {
@@ -231,10 +240,19 @@ set_updated_group (const FieldGroup<Real>& group)
   const auto& name = group.m_info->m_group_name;
   const auto& grid = group.m_grid_name;
 
+  auto updates_group = [] (const AtmosphereProcess& ap, const std::string& name, const std::string& grid) -> bool {
+    for (const auto& it : ap.get_updated_groups()) {
+      if (it.name==name && it.grid==grid) {
+        return true;
+      }
+    }
+    return false;
+  };
+
   for (int iproc=0; iproc<m_group_size; ++iproc) {
     auto atm_proc = m_atm_processes[iproc];
 
-    if (atm_proc->updates_group(name,grid)) {
+    if (updates_group(*atm_proc,name,grid)) {
       atm_proc->set_updated_group(group);
       // Some groups might be optional, so don't error out if they're empty
       if (not group.m_info->empty()) {
@@ -278,30 +296,34 @@ void AtmosphereProcessGroup::register_fields (FieldRepository<Real>& field_repo)
   }
 }
 
-std::set<AtmosphereProcessGroup::GroupRequest>
+std::list<GroupRequest>
 AtmosphereProcessGroup::get_required_groups () const {
-  std::set<AtmosphereProcessGroup::GroupRequest> groups;
+  std::list<GroupRequest> requests;
   for (auto atm_proc : m_atm_processes) {
-    const auto& groups_i = atm_proc->get_required_groups();
-    groups.insert(groups_i.begin(),groups_i.end());
+    requests.splice(requests.end(),atm_proc->get_required_groups());
   }
-  return groups;
+  return requests;
 }
 
-std::set<AtmosphereProcessGroup::GroupRequest>
+std::list<GroupRequest>
 AtmosphereProcessGroup::get_updated_groups () const {
-  std::set<AtmosphereProcessGroup::GroupRequest> groups;
+  std::list<GroupRequest> requests;
   for (auto atm_proc : m_atm_processes) {
-    const auto& groups_i = atm_proc->get_updated_groups();
-    groups.insert(groups_i.begin(),groups_i.end());
+    requests.splice(requests.end(),atm_proc->get_updated_groups());
   }
-  return groups;
+  return requests;
 }
 
 void AtmosphereProcessGroup::set_required_field_impl (const Field<const Real>& f) {
   const auto& fid = f.get_header().get_identifier();
+  auto is_required = [&](const AtmosphereProcess& ap, const FieldIdentifier& fid) -> bool {
+    for (const auto& r : ap.get_required_fields()) {
+      if (r.fid==fid) return true;
+    }
+    return false;
+  };
   for (auto atm_proc : m_atm_processes) {
-    if (atm_proc->requires(fid)) {
+    if (is_required(*atm_proc,fid)) {
       atm_proc->set_required_field(f);
     }
   }
@@ -309,15 +331,28 @@ void AtmosphereProcessGroup::set_required_field_impl (const Field<const Real>& f
 
 void AtmosphereProcessGroup::set_computed_field_impl (const Field<Real>& f) {
   const auto& fid = f.get_header().get_identifier();
+  auto is_required = [&](const AtmosphereProcess& ap, const FieldIdentifier& fid) -> bool {
+    for (const auto& r : ap.get_required_fields()) {
+      if (r.fid==fid) return true;
+    }
+    return false;
+  };
+  auto is_computed = [&](const AtmosphereProcess& ap, const FieldIdentifier& fid) -> bool {
+    for (const auto& r : ap.get_computed_fields()) {
+      if (r.fid==fid) return true;
+    }
+    return false;
+  };
+
   for (auto atm_proc : m_atm_processes) {
-    if (atm_proc->computes(fid)) {
+    if (is_computed(*atm_proc,fid)) {
       atm_proc->set_computed_field(f);
     }
     // In sequential scheduling, some fields may be computed by
     // a process and used by the next one. In this case, the field
     // does not figure as 'input' for the group, but we still
     // need to set it in the processes that need it.
-    if (atm_proc->requires(fid)) {
+    if (is_required(*atm_proc,fid)) {
       atm_proc->set_required_field(f);
     }
   }

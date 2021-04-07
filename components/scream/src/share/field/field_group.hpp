@@ -2,7 +2,9 @@
 #define SCREAM_FIELD_GROUP_HPP
 
 #include <ekat/util/ekat_string_utils.hpp>
+#include <ekat/util//ekat_string_utils.hpp>
 #include <ekat/std_meta/ekat_std_utils.hpp>
+#include <ekat/ekat_assert.hpp>
 
 #include <list>
 #include <map>
@@ -83,6 +85,9 @@ struct FieldGroupInfo
   // If bundled, for each field name, store the idx used
   // to subview each field from the bundle.
   std::map<ci_string,int>  m_subview_idx;
+
+  // If this group is a subset of another group, store its superset group here
+  std::weak_ptr<FieldGroupInfo>   m_superset_group;
 };
 
 template<typename RealType>

@@ -6,6 +6,7 @@
 #include "share/field/field_repository.hpp"
 #include "share/field/field.hpp"
 #include "share/field/field_group.hpp"
+#include "share/field/field_request.hpp"
 #include "share/grid/grids_manager.hpp"
 
 #include "ekat/ekat_assert.hpp"
@@ -64,53 +65,6 @@ class AtmosphereProcess : public ekat::enable_shared_from_this<AtmosphereProcess
 public:
   using TimeStamp      = util::TimeStamp;
   using ci_string      = ekat::CaseInsensitiveString;
-
-  /*
-   * A struct used to request a group of fields.
-   *
-   * Groups are simply a labels attached to a Field object (see field_tracking.hpp).
-   * They can be useful when a class need to access a certain group of fields,
-   * in a way that is agnostic to how many fields are in said group.
-   * A GroupRequest is a lightweight struct that an AP can expose if it needs a group
-   * of fields, without caring how many there are, or how they are called.
-   * A typical example is an AP that needs to advect tracers (like Dynamics does):
-   * it treats tracers agnostically, and does not really care how many there are.
-   * So the AP exposes this need as a GroupRequest. Later, it will be provided
-   * with a FieldGroup, which allows to access all the fields in the group
-   * individually, and, if the allocation permits it, as a single N+1 dimensional
-   * field. For more details about the FieldGroup struct, see field_group.hpp.
-   */
-  struct GroupRequest {
-    GroupRequest (const std::string& name_, const std::string& grid_, const int ps = 1)
-     : name(name_), grid(grid_), pack_size(ps)
-    {
-      EKAT_REQUIRE_MSG(pack_size>=1, "Error! Invalid pack size request.\n");
-    }
-
-    GroupRequest (const std::string& name_, const std::string& grid_,
-                  const std::string& superset_group_,
-                  const std::list<std::string>& exclude_superset_fields_,
-                  const int ps = 1)
-     : name(name_), grid(grid_), pack_size(ps)
-     , superset_group(superset_group_)
-    {
-      EKAT_REQUIRE_MSG(pack_size>=1, "Error! Invalid pack size request.\n");
-      for (const auto& n : exclude_superset_fields_) {
-        exclude_superset_fields.push_back(n);
-      }
-    }
-
-    // Group name
-    ci_string name;
-    // Grid name
-    ci_string grid;
-    // Request an allocation that can accomodate a value type like Pack<Real,pack_size>
-    int       pack_size;
-
-    // Allow to specify a group as a subset of another, excluding a given list of fields
-    ci_string superset_group;
-    std::list<ci_string> exclude_superset_fields;
-  };
 
   virtual ~AtmosphereProcess () = default;
 
@@ -171,16 +125,28 @@ public:
   //       as provider/customer. The group is just a 'design layer', and the stored
   //       processes are the actuall providers/customers.
   void set_required_field (const Field<const Real>& f) {
-    ekat::error::runtime_check(
-        requires(f.get_header().get_identifier()),
+    auto is_required = [&](const FieldIdentifier& fid) -> bool {
+      for (const auto& r : get_required_fields()) {
+        if (r.fid==fid) return true;
+      }
+      return false;
+    };
+
+    EKAT_REQUIRE_MSG (is_required(f.get_header().get_identifier()),
         "Error! This atmosphere process does not require\n  " +
         f.get_header().get_identifier().get_id_string() +
         "\nSomething is wrong up the call stack. Please, contact developers.\n");
     set_required_field_impl (f);
   }
   void set_computed_field (const Field<Real>& f) {
-    ekat::error::runtime_check(
-        computes(f.get_header().get_identifier()),
+    auto is_computed = [&](const FieldIdentifier& fid) -> bool {
+      for (const auto& r : get_computed_fields()) {
+        if (r.fid==fid) return true;
+      }
+      return false;
+    };
+    EKAT_REQUIRE_MSG(
+        is_computed(f.get_header().get_identifier()),
         "Error! This atmosphere process does not compute\n  " +
         f.get_header().get_identifier().get_id_string() +
         "\nSomething is wrong up the call stack. Please, contact developers.\n");
@@ -217,40 +183,19 @@ public:
 
   // These two methods allow the driver to figure out what process need
   // a given field and what process updates a given field.
-  virtual const std::set<FieldIdentifier>& get_required_fields () const = 0;
-  virtual const std::set<FieldIdentifier>& get_computed_fields () const = 0;
+  virtual const std::list<FieldRequest>& get_required_fields () const = 0;
+  virtual const std::list<FieldRequest>& get_computed_fields () const = 0;
 
   // If needed, an Atm Proc can claim to need/update a whole group of fields, without really knowing
   // a priori how many they are, or even what they are. Each entry of the returned set is a pair
   // of strings, where the 1st is the group name, and the 2nd the grid name. If the same group is
   // needed on multiple grids, two separate entries are needed.
   // Note: we provide a default empty version since most Atm Proc classes will likely not need this feature.
-  virtual std::set<GroupRequest> get_required_groups () const {
-    return std::set<GroupRequest>();
+  virtual std::list<GroupRequest> get_required_groups () const {
+    return std::list<GroupRequest>();
   }
-  virtual std::set<GroupRequest> get_updated_groups () const {
-    return std::set<GroupRequest>();
-  }
-
-  // NOTE: C++20 will introduce the method 'contains' for std::set. Till then, use our util free function
-  bool requires (const FieldIdentifier& id) const { return ekat::contains(get_required_fields(),id); }
-  bool computes (const FieldIdentifier& id) const { return ekat::contains(get_computed_fields(),id); }
-
-  bool requires_group (const std::string& name, const std::string& grid) const {
-    for (const auto& it : get_required_groups()) {
-      if (it.name==name && it.grid==grid) {
-        return true;
-      }
-    }
-    return false;
-  }
-  bool updates_group (const std::string& name, const std::string& grid) const {
-    for (const auto& it : get_updated_groups()) {
-      if (it.name==name && it.grid==grid) {
-        return true;
-      }
-    }
-    return false;
+  virtual std::list<GroupRequest> get_updated_groups () const {
+    return std::list<GroupRequest>();
   }
 
 protected:
@@ -287,23 +232,6 @@ private:
   // updated during stepping.
   TimeStamp t_;
 };
-
-// In order to use GroupRequest in std sorted containers (like std::set),
-// we need to provide an overload of op< or std::less.
-inline bool operator< (const AtmosphereProcess::GroupRequest& lhs,
-                       const AtmosphereProcess::GroupRequest& rhs)
-{
-  if (lhs.name<rhs.name) {
-    return true;
-  } else if (lhs.name==rhs.name) {
-    if (lhs.grid<rhs.grid) {
-      return true;
-    } else if (lhs.grid==rhs.grid) {
-      return lhs.pack_size < rhs.pack_size;
-    }
-  }
-  return false;
-}
 
 // A short name for the factory for atmosphere processes
 // WARNING: you do not need to write your own creator function to register your atmosphere process in the factory.

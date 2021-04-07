@@ -1,8 +1,10 @@
 #ifndef SCREAM_FIELD_REPOSITORY_HPP
 #define SCREAM_FIELD_REPOSITORY_HPP
 
+#include "ekat/std_meta/ekat_std_utils.hpp"
 #include "share/grid/grids_manager.hpp"
 #include "share/field/field.hpp"
+#include "share/field/field_request.hpp"
 #include "share/util/map_key_iterator.hpp"
 #include "share/scream_types.hpp"
 
@@ -10,6 +12,7 @@
 #include "ekat/util/ekat_string_utils.hpp"
 
 #include <map>
+#include <memory>
 #include <set>
 
 namespace scream
@@ -61,38 +64,20 @@ public:
   FieldRepository& operator= (const FieldRepository&) = delete;
 
   // Change the state of the database
-  // Note: the GridsManager is needed *if and only if* the field group TRACERS
-  //       is non-empty. If so, the GM is used to retrieve a FieldLayout of
-  //       a vector field on every grid on which tracers are declared.
-  //       If you are writing a unit test with no use of 'TRACERS' group,
-  //       then you do *not* need to pass a GM pointer.
-  // Note: there is also the 'TRACERS TENDENCY' group, with some requirements
-  //       on his specs. In particular, for every 'blah_tendency' field in the
-  //       group 'TRACERS TENDENCY' there must be a 'blah' field in 'TRACERS'.
-  void registration_begins ();
-  void registration_ends (const std::shared_ptr<const GridsManager>& gm = nullptr);
+  void begin_registration ();
+  void end_registration (const std::shared_ptr<const GridsManager>& gm = nullptr);
   void clean_up ();
 
-  // Deduce the pack size from the scalar type (which must be of type Pack<RealType,N>, for some int N>0, or RealType)
-  template<typename RequestedValueType = RT>
-  void register_field (const identifier_type& identifier, const std::initializer_list<std::string>& groups_names);
+  // Register a field in the repo.
+  void register_field (const FieldRequest& req);
 
-  template<typename RequestedValueType = RT>
-  void register_field (const identifier_type& identifier, const std::set<std::string>& groups_names);
-
-  template<typename RequestedValueType = RT>
-  void register_field (const identifier_type& identifier, const std::string& field_group);
-
-  template<typename RequestedValueType = RT>
-  void register_field (const identifier_type& identifier);
-
-  void register_field (const identifier_type& identifier, const int pack_size);
-  void register_field (const identifier_type& identifier, const int pack_size, const std::string& field_group);
+  // Set a GroupRequest in the repo. At registration_ends time, all requests will be
+  // processed to try to meet demands. Notice that it might not be possible. E.g.,
+  // the groups (A,B), (A,C), and (B,C) cannot be all available as a bundled field 
+  void add_group_request (const GroupRequest& req);
 
   // Get information about the state of the repo
   int size () const { return m_fields.size(); }
-  int internal_size () const;
-  RepoState repository_state () const { return m_repo_state; }
 
   // Query for a particular field or group of fields
   bool has_field (const std::string& name) const;
@@ -123,14 +108,15 @@ protected:
   std::shared_ptr<field_type> get_field_ptr(const std::string& name,const std::string& grid) const;
   std::shared_ptr<field_type> get_field_ptr(const identifier_type& id) const;
 
-  // The state of the repository
-  RepoState           m_repo_state;
+  // The state of the repository.
+  RepoState   m_repo_state;
 
   // The actual repo.
   repo_type           m_fields;
 
   // The map group_name -> FieldGroupInfo
-  group_info_map      m_field_groups;
+  group_info_map            m_field_groups;
+  std::list<GroupRequest>   m_group_requests;
 
   // For each field, store the names of the groups it belongs to
   std::map<ci_string,std::set<ci_string>> m_field_to_groups;
@@ -155,50 +141,15 @@ FieldRepository ()
 }
 
 template<typename RealType>
-template<typename RequestedValueType>
-void FieldRepository<RealType>::register_field (const identifier_type& id) {
-  std::set<std::string> empty_set;
-  register_field<RequestedValueType>(id,empty_set);
-}
-
-template<typename RealType>
-template<typename RequestedValueType>
 void FieldRepository<RealType>::
-register_field (const identifier_type& id, const std::string& group_name) {
-  std::set<std::string> group_name_set;
-  group_name_set.insert(group_name);
-  register_field<RequestedValueType>(id,group_name_set);
-}
-
-template<typename RealType>
-template<typename RequestedValueType>
-void FieldRepository<RealType>::
-register_field (const identifier_type& id, const std::initializer_list<std::string>& groups_names) {
-  register_field<RequestedValueType>(id,std::set<std::string>(groups_names));
-}
-
-template<typename RealType>
-template<typename RequestedValueType>
-void FieldRepository<RealType>::
-register_field (const identifier_type& id, const std::set<std::string>& groups_names) {
-
-  EKAT_REQUIRE_MSG (m_repo_state!=RepoState::Clean,
-      "Error! Repo state is not 'Open' yet. You must call registration_begins() first.\n");
-  EKAT_REQUIRE_MSG (m_repo_state!=RepoState::Closed,
-      "Error! Repo state is not 'Open' anymore. You must register field before calling registration_ends().\n");
-
-  using ekat::ScalarTraits;
-
-  // Check that the requested value type is either RealType or Pack<RealType,N>, for some N>0.
-  static_assert(std::is_same<RealType,RequestedValueType>::value ||
-                std::is_same<RealType,typename ScalarTraits<RequestedValueType>::scalar_type>::value,
-                "Error! The template argument 'RequestedValueType' of this function must either match "
-                "the template argument 'RealType' of this class or be a Pack type based on RealType.\n");
-
-  // Sanity checks
-  EKAT_REQUIRE_MSG(m_repo_state==RepoState::Open,"Error! Registration of new fields not started or no longer allowed.\n");
+register_field (const FieldRequest& req) {
+  // Sanity check
+  EKAT_REQUIRE_MSG (m_repo_state==RepoState::Open,
+      "Error! Repo state is not 'Open'. You should register fields between calls\n"
+      "       to 'begin_registration()' and 'end_registration()'.\n");
 
   // Get the map of all fields with this name
+  const auto& id = req.fid;
   auto& map = m_fields[id.name()];
 
   if (map.size()>0) {
@@ -207,28 +158,39 @@ register_field (const identifier_type& id, const std::set<std::string>& groups_n
     // TODO: this is the easiest way to ensure everyone uses the same units.
     //       However, in the future, we *may* allow different units, providing
     //       the users with conversion routines perhaps.
-    EKAT_REQUIRE_MSG(id.get_units()==map.begin()->first.get_units(),
-                       "Error! Request to register field '" + id.name() + "' with units '" +
-                       to_string(id.get_units()) + "',\n"
-                       "       but there is already a request for the same field with units '" +
-                       to_string(map.begin()->first.get_units()) + "'\n"
-                       "       Please, check and make sure all atmosphere processes use the same units.\n");
+    const auto& id0 = map.begin()->first;
+    EKAT_REQUIRE_MSG(id.get_units()==id0.get_units(),
+        "Error! Request for field '" + id.name() + "' incompatible with already stored fields:\n"
+        "        - input f units: " + to_string(id.get_units()) + "'\n"
+        "        - stored f units: " + to_string(id0.get_units()) + "'\n"
+        "      Please, check and make sure all atmosphere processes use the same units.\n");
+
+    EKAT_REQUIRE_MSG (get_layout_type(id.get_layout().tags())==get_layout_type(id0.get_layout().tags()),
+        "Error! Request for field '" + id.name() + "' incompatible with already stored fields:\n"
+        "        - input f layout type:  " + to_string(get_layout_type(id.get_layout().tags())) + "\n"
+        "        - stored f layout type: " + to_string(get_layout_type(id0.get_layout().tags())) + "\n"
+        "      Please, check and make sure all atmosphere processes use compatible layouts.\n");
+
+    // Silence compiler warnings in RELEASE mode
+    (void) id0;
   }
 
+  // Create (if needed), and get the field
   if (map.find(id)==map.end()) {
     map[id] = std::make_shared<field_type>(id);
   }
+  auto& f = *map[id];
 
   // Make sure the field can accommodate the requested value type
-  auto& f = *map[id];
-  f.get_header().get_alloc_properties().template request_allocation<RequestedValueType>();
+  constexpr int real_size = sizeof(RealType);
+  f.get_header().get_alloc_properties().request_allocation(real_size,req.pack_size);
 
   // Finally, add the field to the given groups
   // Note: we do *not* set the group info struct in the field header yet.
   //       we will do that when we end the registration phase.
-  //       The reason is that at registration_ends we will know *all* the groups
+  //       The reason is that when registration ends we will know *all* the groups
   //       that each field belongs to.
-  for (const auto& group_name : groups_names) {
+  for (const auto& group_name : req.groups) {
     // Get group (and init ptr, if necessary)
     auto& group = m_field_groups[group_name];
     if (group==nullptr) {
@@ -236,7 +198,7 @@ register_field (const identifier_type& id, const std::set<std::string>& groups_n
     }
     
     // Add the field name to the list of fields belonging to this group
-    if (ekat::find(group->m_fields_names,id.name())==group->m_fields_names.end()) {
+    if (not ekat::contains(group->m_fields_names,id.name())) {
       group->m_fields_names.push_back(id.name());
     }
   }
@@ -244,30 +206,13 @@ register_field (const identifier_type& id, const std::set<std::string>& groups_n
 
 template<typename RealType>
 void FieldRepository<RealType>::
-register_field (const identifier_type& identifier, const int pack_size)
-{
-  register_field(identifier);
-  auto f = get_field_ptr(identifier);
-  f->get_header().get_alloc_properties().template request_allocation<RealType>(pack_size);
-}
+add_group_request (const GroupRequest& req) {
+  EKAT_REQUIRE_MSG (m_repo_state==RepoState::Open,
+      "Error! Repo state is not 'Open'. You should add group requests between calls\n"
+      "       to 'begin_registration()' and 'end_registration()'.\n");
 
-template<typename RealType>
-void FieldRepository<RealType>::
-register_field (const identifier_type& identifier, const int pack_size, const std::string& field_group)
-{
-  register_field(identifier,field_group);
-  auto f = get_field_ptr(identifier);
-  f->get_header().get_alloc_properties().template request_allocation<RealType>(pack_size);
-}
-
-template<typename RealType>
-int FieldRepository<RealType>::
-internal_size () const {
-  int s = 0;
-  for (auto x : m_fields) {
-    s+= x.second.size();
-  }
-  return s;
+  // Add this req to the list of request.
+  m_group_requests.push_back(req);
 }
 
 template<typename RealType>
@@ -403,68 +348,353 @@ FieldRepository<RealType>::cend (const std::string& name) const
 }
 
 template<typename RealType>
-void FieldRepository<RealType>::registration_begins () {
+void FieldRepository<RealType>::begin_registration ()
+{
   // Update the state of the repo
   m_repo_state = RepoState::Open;
 }
 
 template<typename RealType>
 void FieldRepository<RealType>::
-registration_ends (const std::shared_ptr<const GridsManager>& gm) {
-
-  // Count fields in the 'TRACERS' group
-  FieldGroupInfo& tr_gr = *m_field_groups["TRACERS"];
-  const int nt = tr_gr.m_fields_names.size();
-  std::set<std::string> tr_grids;
-  for (auto& fn : tr_gr.m_fields_names) {
-    // Scan all the fields with this name, and get all grids
-    const auto& map = m_fields.at(fn);
-    for (const auto& it_f : map) {
-      tr_grids.insert(it_f.second->get_header().get_identifier().get_grid_name());
-    }
-  }
-
-  // Homme (and possibly other places in EAM) hard-codes water vapor as the 1st
-  // tracer in Q. Therfore, find qv in the TRACERS group, and make sure it's the 1st
-  auto qv_pos = ekat::find(tr_gr.m_fields_names,"qv");
-  if (qv_pos!=tr_gr.m_fields_names.end()) {
-    std::iter_swap(tr_gr.m_fields_names.begin(),qv_pos);
-  }
-
-  // Inspect the TRACERS TENDENCY group, and make sure that:
-  //  - has the same size as the TRACERS group
-  //  - its fields are called "blah_tendency", and "blah" is a name
-  //    that appears in the TRACERS group
-  //  - "blah" and "blah_tendency" have the same index in the two groups.
-  // At this moment, it is possible the tendency group is smaller than the
-  // tracers group (if there's a tracer that no atm proc is interested in
-  // its specific tendency). But it *can't* happen that the tendency group
-  // is larger than the tracers group.
-
-  auto& tr_tend_gr = *m_field_groups["TRACERS TENDENCY"];
-  EKAT_REQUIRE_MSG (tr_tend_gr.size()<=tr_gr.size(),
-      "Error! Tracers tendency group is larger than the tracers group.\n"
-      "       We don't think this makes sense, so we are erroring out.\n"
-      "       If you think this CAN happen, remove this check (and add others).\n");
-
-  // Make sure tend is of the form "blah_tendency", and that "blah"
-  // is in the tracers group
-  for (const auto& tend : tr_tend_gr.m_fields_names) {
-    bool ok = false;
-    for (const auto& tr : tr_gr.m_fields_names) {
-      if (tend==(tr+"_tendency")) {
-        ok = true;
-        break;
+end_registration (const std::shared_ptr<const GridsManager>& gm)
+{
+  // Ugly complexity, but we won't have that many fields, and this is all setup costs.
+  auto contains = [] (const std::list<ci_string>& super,
+                      const std::list<ci_string>& sub) -> bool {
+    for (const auto& s : sub) {
+      if (not ekat::contains(super,s)) {
+        return false;
       }
     }
-    EKAT_REQUIRE_MSG (ok,
-        "Error! Tracer tendency '" << tend << "' has an invalid name.\n"
-        "       Tendency names must be 'blah_tendency', with 'blah' being a valid tracer name.\n");
+    // All items in sub are also in super.
+    return true;
+  };
+  auto intersects = [] (const std::list<ci_string>& l1,
+                        const std::list<ci_string>& l2) -> bool {
+    for (const auto& s : l1) {
+      if (ekat::contains(l2,s)) {
+        return true;
+      }
+    }
+    // All items in l1 are not in l2.
+    return false;
+  };
+
+  // Before allocating fields, take a moment to gather groups information.
+  // In particular, if a group is requested bundled, then we need to fist
+  // allocate the group, and then subview the individual fields.
+  // Things get complicated if there are two groups that overlap. In particular,
+  // the hard case is if group G1 and G2 share some fields, but not all.
+  // In this case, we need to check if it's possible to bundle both groups or not.
+  // If not possible, and both were required 'bundled', we crap out.
+  // With 2 groups, it should always be possible, but with 3, it might not be.
+  // E.g., G1=(A,B), G2=(B,C), G3=(A,C) cannot all be bundled at the same time,
+  // but any two of them can.
+
+  // Checks on group requests
+  for (const auto& req : m_group_requests) {
+    // Check this group exists
+    EKAT_REQUIRE_MSG (m_field_groups.find(req.name)!=m_field_groups.end(),
+        "Error! Request for non-existent group '" + req.name + "'.\n");
+
+    if (req.superset_group!="") {
+      // Check the superset group exists
+      auto super = m_field_groups.find(req.superset_group);
+      EKAT_REQUIRE_MSG (not super==m_field_groups.end(),
+          "Error! Request for group '" + req.name + "' is invalid.\n"
+          "       Non-existing superset group '" + req.superset_group + "'.\n");
+
+      // Check the fields to exclude from superset are indeed in the superset
+      for (const auto& ex : req.exclude_superset_fields) {
+        EKAT_REQUIRE_MSG (ekat::contains(super->second.m_fields_names,ex),
+            "Error! Request for group '" + req.name + "' is invalid.\n"
+            "       Field '" + ex + "' not found in superset group '" + req.superset_group + "'.\n");
+      }
+    }
   }
 
-  // Empty the tracers tendencies group. When we create tracers, we will re-fill it,
-  // making sure the tracer tendencies are in the same order as the tracers
-  tr_tend_gr = FieldGroupInfo(tr_tend_gr.m_group_name);
+  // For each group, pick the strongest request in terms of bundling.
+  std::map<ci_string,GroupBundling> bundling;
+  std::map<ci_string,std::set<ci_string>> grids;
+  for (const auto& req : m_group_requests) {
+    bundling[req.name] = std::max(bundling[req.name],req.bundling);
+    grids[req.name].insert(req.grid);
+  }
+
+  // If a group is to be bundled, all fields must be "compatible".
+  // E.g., we can't bundle a 2d field and a 3d one.
+  auto get_field_dim = [] (const FieldLayout& layout) -> int {
+    auto type = get_layout_type(layout.tags());
+    if (type==LayoutType::Scalar2D || type==LayoutType::Vector2D) {
+      return 2;
+    } else if (type==LayoutType::Scalar3D || type==LayoutType::Vector3D) {
+      return 3;
+    } else {
+      // Only support 2d and 3d, scalar or vector
+      EKAT_ERROR_MSG ("Error! Unsupported layout '" + e2str(type) +"'.\n");
+    }
+  };
+  for (auto it : bundling) {
+    if (it.second!=NotNeeded) {
+      int dim = -1;
+      const auto& names = m_field_groups.at(it.first);
+      for (const auto& n : names) {
+        // Pick any field with this name (doesn't matter the grid);
+        const auto& f = *m_fields.at(n).begin();
+        const auto fdim = get_field_dim(f.get_header().get_identifier().get_layout());
+        if (dim==-1) {
+          dim = fdim;
+        } else {
+          EKAT_REQUIRE_MSG (fdim==dim,
+              "Error! Request for group '" + it.first + "' to be bundled cannot be fulfilled.\n"
+              "       Group contains both 3d and 2d fields.\n");
+        }
+      }
+    }
+  }
+
+  // This is the *hard* part. We need to figure out if 2+ groups overlap.
+  // If they do *and* they all need to be bundled, then we need to check
+  // if we can rearrange the field_names in all the groups, in a way that
+  // accommodates all the groups.
+  // We support only three cases:
+  //  - G1 subset of G2. Easy: put all G1 first (or last) in G2
+  //  - G1 intersect G2, but no subset relationship. Here, we create
+  //    a "support" group G3=G1+G2. Then, in G3 we put G1-G2 first,
+  //    then the intersection, and finally G2-G1.
+  //  - G1 contains G2...Gn, but the Gi's intersect only pairwise,
+  //    that is, G1 intersects G2, G3 intersects G4,...
+  //    Here, do the step above processing the groups 2 at a time.
+  // There are other scenarios that can be accommodate, but we defer their
+  // implementation to when it is actually needed.
+  // CAVEAT: the 'tracers' group adds a bit of complexity, since Homme
+  // (and potentially other parts of EAM) assume that water-vapor is
+  // the 1st tracer in the bundled array Q. So we need to hard-code
+  // Q=(qv,...).
+
+  // Establish parent/sibling relationships. G1 is a parent of G2 if it
+  // contains *at least* all fields in G2. G1 is a sibling of G2 if they
+  // have common fields, but none is parent of the other.
+  // TODO: there might be legit cases where G1==G2 (they are aliases), but
+  //       for now we just don't allow it.
+  // Note: if a group has bundling=NotNeeded, we don't bother finding its
+  //       parent(s), nor its siblings. And we don't count it as a sibling
+  //       for other groups.
+  std::map<ci_string,std::list<ci_string>> parents, siblings;
+  for (const auto& it1 : m_field_groups) {
+    for (const auto& it2 : m_field_groups) {
+      if (it1.first==it2.first) {
+        // skip self-comparison
+        continue;
+      }
+      if (bundling[it1.first]==NotNeeded) {
+        // This group is fine with whatever order the fields are
+      }
+
+      const auto& g1 = it1.second->m_fields_names;
+      const auto& g2 = it2.second->m_fields_names;
+      if (contains(g2,g1)) {
+        EKAT_REQUIRE_MSG(not contains(g2,g1),
+            "Error! We do not allow a group to alias another group.\n");
+        parents[it1.first].push_back(it2.first);
+      } else if (bundling[it2.first]!=NotNeeded and
+                 intersects(g1,g2) and not contains(g2,g1)) {
+        // Store sibling only if both might need bundling
+        siblings[it1.first].push_back(it2.first);
+      }
+    }
+  }
+
+  // For ease of implementation, we require at most one parent and one
+  // sibling per group. That means that for each G1 there's at most
+  // one G2 that contains G1, and at most one G3 that intersects G1.
+  for (const auto& it : parents) {
+    if (it.second.size()>=0) {
+      EKAT_REQUIRE_MSG (it.second.size()<=1,
+          "Error! We do not yet support nested field groups.\n");
+
+      // If this group needs bundling, its parent better be bundled too
+      bundling[it.second.front()] = std::max(bundling[it.second.front()],
+                                             bundling[it.first]);
+    }
+
+    // Make sure we intersect with at most one other group
+    // If there are N>1 siblings, discard N-1 siblings for which
+    // bundling is optional, if possible. If we still end up with
+    // 2+ siblings, crap out.
+    auto& sib = siblings[it.first];
+    if (sib.size()>1) {
+      auto bundling_optional = [&](const ci_string& name) {
+        return bundling[name]!=Needed;
+      };
+      auto pos = std::find(sib.begin(),sib.end(),bundling_optional);
+      while (pos!=sib.end() && sib.size()>1) {
+        sib.erase(pos);
+        pos = std::find(sib.begin(),sib.end(),bundling_optional);
+      }
+      EKAT_REQUIRE_MSG (it.second.size()<=1,
+          "Error! We do not yet support intersection of 3+ bundled groups of fields.\n");
+    }
+  }
+
+  // If two groups intersect, and do not have a parent, we create
+  // a new "support" group, G1+G2. Notice that, since we only allow *one*
+  // intersection, G1+G2 cannot intersect any other group. Also, since
+  // we only allow one parent and one sibling, either G1 and G2 have the same parent,
+  // or neither of them has a parent.
+  for (const auto& it : siblings) {
+    const auto& g1_name = it.first;
+
+    if (it.second.size()>0) {
+      const auto& g2_name = it.second.front();
+      auto& p1 = parents[g1_name];
+      auto& p2 = parents[g2_name];
+
+      // This check should be implied by the previous ones, but better be safe
+      EKAT_REQUIRE_MSG (p1.size()==p2.size(),
+          "Error! I found two groups that intersect, but one has a parent, and the other doesn't.\n");
+
+      if (p1.size()==0) {
+        // Create the FieldGroupInfo
+        ci_string g1_g2_name = "union_" + g1_name + "_" + g2_name;
+        auto& g1_g2 = m_field_groups[g1_g2_name] = std::make_shared<FieldGroupInfo>(g1_g2_name);
+        const auto& g1 = m_field_groups[g1_name];
+        const auto& g2 = m_field_groups[g2_name];
+        g1_g2->m_fields_names = g1->m_fields_names;
+        g1_g2->m_fields_names.insert(g1_g2->m_fields_names.end(),g2->m_fields_names.begin(),g2->m_fields_names.end());
+        g1_g2->m_fields_names.sort();
+        g1_g2->m_fields_names.unique();
+
+        // Add g1_g2 as parent of g1 and g2
+        p1.push_back(g1_g2_name);
+        p2.push_back(g1_g2_name);
+
+        // Set specs for g1_g2
+        bundling[g1_g2_name] = std::max(bundling[g1_name],bundling[g2_name]);
+        grids[g1_g2_name] = grids[g1_name];
+        grids[g1_g2_name].insert(grids[g2_name].begin(),grids[g2_name].end());
+      }
+    }
+  }
+
+  // Go over the groups, and reorder fields
+  std::map<ci_string,std::list<ci_string>> sorted_names;
+  std::map<ci_string,bool> done;
+  for (auto& it : m_field_groups) {
+    const auto& name = it.first;
+
+    // If no bundling needed, we don't care how fields are ordered
+    if (bundling[name]==NotNeeded) {
+      continue;
+    }
+
+    // We do not intersect with another group, so we don't care how fields are ordered
+    // Also, skip this field if we already processed it when we processed its sibling
+    if (siblings[name].size()==0 || done[name]) {
+      continue;
+    }
+
+    // This group (G1) is overlapping with G2. Reorder our fields
+    // to get G1=(f1,f12), G2=(f12,f2), and add (f1,f12,f2) to
+    // our parent list of fields.
+    auto& s = m_field_groups[siblings[name]];
+    std::list<ci_string>& g1 = it.second->m_fields_names;
+    std::list<ci_string>& g2 = s->m_fields_names;
+
+    auto in_g1 = [&](const ci_string& s) {
+      return ekat::contains(g1,s);
+    };
+    auto not_in_g2 = [&](const ci_string& s) {
+      return ekat::contains(g2,s);
+    };
+    std::partition(g1.begin(),g1.end(),not_in_g2);
+    std::partition(g2.begin(),g2.end(),in_g1);
+    sorted_names[name] = g1;
+    sorted_names[siblings[name]] = g2;
+
+    // Now, add g1+g2 (removing duplicates) in the list of fields of our parent
+    const auto& p = parents[name].front();
+    sorted_names[p] = g1;
+    for (const auto& n : g2) {
+      if (not ekat::contains(sorted_names[p],n)) {
+        sorted_names[p].push_back(n);
+      }
+    }
+
+    done[it.first] = true;
+    done[siblings[name]] = true;
+  }
+
+  // Parent groups might still have some fields not inserted in the fields_names lists.
+  // That is the case if, say, G1=(C,B), G2=(A,D,C), G3=(A,B,C,D,E). After the above
+  // loop, sorted_names[G3]=(C,B,A,D), so we need to add all remaining fields at the end.
+  for (auto& it : m_field_groups) {
+    auto& fnames = it.second->m_fields_names;
+    auto& sorted = sorted_names[it.first];
+    if (!done[it.first]) {
+      for (const auto& n : fnames) {
+        if (!ekat::contains(sorted,n)) {
+          sorted.push_back(n);
+        }
+      }
+    }
+
+    // Reset the m_fields_names to store the sorted names
+    fnames = sorted;
+  }
+
+  // Count fields in each group, and list the grids they are needed on
+  std::map<ci_string,int> sizes;
+  for (const auto& it : m_field_groups) {
+    const auto& names = it.second->m_fields_names;
+    int& s = sizes[it.first];
+    s = 0;
+    for (const auto& n : names) {
+      const auto& f = *m_fields.at(n).begin();
+
+      const auto& layout = f.get_header().get_identifier().get_layout();
+      const auto lt = get_layout_type(layout.tags());
+      if (lt==LayoutType::Vector2D || lt==LayoutType::Vector3D) {
+        s += layout.dim(FieldTag::Component);
+      } else {
+        s += 1;
+      }
+    }
+  }
+
+  // FINALLY we have all the names for all the groups, in an order that satisfy bundle requests.
+  // First, allocate groups that have no parent
+  for (const auto& it : m_field_groups) {
+    const auto& name = it.first;
+    if (parents[it.first].size()>0) {
+      continue;
+    }
+    ///////////////////////////
+    for (const auto& grid : grids[name]) {
+      if (bundling[name]) {
+        // Create field id for Q
+        auto layout = gm->get_grid(gn)->get_3d_vector_layout(true,VAR,nt);
+        FieldIdentifier fid_Q (Q_name,layout,q_units,gn);
+
+        // Create Q field
+        register_field(fid_Q);
+        auto Q = get_field_ptr(fid_Q);
+
+        // Scan all tracers on this grid, get their alloc prop,
+        // and make sure Q can accommodate all of them
+        auto& Q_ap = Q->get_header().get_alloc_properties();
+        for (const auto& fn : tr_gr.m_fields_names) {
+          auto q = get_field_ptr (fn, gn);
+          if (q!=nullptr) {
+            Q_ap.request_allocation(q->get_header().get_alloc_properties());
+          }
+        }
+
+        // Allocate
+      } else {
+      }
+    }
+  }
 
   // If there are tracers, we need gm to be valid
   EKAT_REQUIRE_MSG (nt==0 || gm!=nullptr,
@@ -497,30 +727,12 @@ registration_ends (const std::shared_ptr<const GridsManager>& gm) {
 
     // Allocate
     Q->allocate_view();
-
-    // Register tracers forcing. Alloc props must at least accommodate Q's ones.
-    FieldIdentifier fid_FQ (FQ_name,layout, q_units/ekat::units::s, gn);
-    register_field(fid_FQ);
-    auto FQ = get_field_ptr(fid_FQ);
-    FQ->get_header().get_alloc_properties().request_allocation(Q_ap);
-    FQ->allocate_view();
   }
 
   // Helper lambdas to detect if a field name corresponds to a tracer or
   // tracer tendency.
-  const ci_string tend_tail = "_tendency";
   auto is_tracer = [&](const std::string& name) -> bool {
     return ekat::contains(tr_gr.m_fields_names,name);
-  };
-  auto is_tendency = [&](const std::string& name) -> bool {
-    return name.size()>tend_tail.size() &&
-           (name.substr(name.size()-tend_tail.size()) == tend_tail);
-  };
-  auto get_tr_name_from_tend_name = [&](const std::string& name) -> std::string {
-    return name.substr(0,name.size()-tend_tail.size());
-  };
-  auto is_tr_tendency = [&](const std::string& name) -> bool {
-    return is_tendency(name) && is_tracer(name.substr(0,name.size()-tend_tail.size()));
   };
 
   // Proceed to allocate other fields, and subview tracers
@@ -558,32 +770,6 @@ registration_ends (const std::shared_ptr<const GridsManager>& gm) {
 
         // Overwrite f with q.
         *f = q;
-      } else if (is_tr_tendency(fname)) {
-        const auto tr_name = get_tr_name_from_tend_name(fname);
-        auto pos = ekat::find(tr_gr.m_fields_names,tr_name);
-        const int iq = std::distance(tr_gr.m_fields_names.begin(),pos);
-        EKAT_REQUIRE_MSG (iq>=0 && iq<tr_gr.size(),
-            "Error! Field '" << fname << "' is a tracer-tendency, but could not locate\n"
-            "       the corresponding tracer name '" << tr_name << "' in the tracer group.\n");
-
-        const auto& fh = f->get_header();
-        const auto  FQ = get_field_ptr(FQ_name,fh.get_identifier().get_grid_name());
-        const auto& FQ_tags = FQ->get_header().get_identifier().get_layout().tags();
-        // Note: as of 02/2021, idim should *always* be 1, but we store it just in case,
-        //       to avoid bugs in the future.
-        const int idim = std::distance(FQ_tags.begin(),ekat::find(FQ_tags,VAR));
-        auto fq = FQ->subfield(fname,fh.get_identifier().get_units(),idim,iq);
-
-        // Either this is the first tracer we set in the group (m_subview_dim still -1),
-        // or idim should match what was already in the group info.
-        EKAT_REQUIRE_MSG (tr_tend_gr.m_subview_dim==-1 || tr_tend_gr.m_subview_dim==idim,
-            "Error! Something is amiss with the creation of tracers subviews.\n");
-        tr_tend_gr.m_subview_idx[fname] = iq;
-        tr_tend_gr.m_subview_dim = idim;
-        tr_tend_gr.m_bundled = true;
-
-        // Overwrite f with fq.
-        *f = fq;
       } else {
         // A completely independent field. Allocate it.
         f->allocate_view();

@@ -58,8 +58,8 @@ public:
   const std::set<FieldIdentifier>&  get_required_fields () const { return m_required_fields; }
   const std::set<FieldIdentifier>&  get_computed_fields () const { return m_computed_fields; }
 
-  std::set<GroupRequest> get_required_groups () const;
-  std::set<GroupRequest> get_updated_groups () const;
+  std::list<GroupRequest> get_required_groups () const;
+  std::list<GroupRequest> get_updated_groups () const;
 
   // --- Methods specific to AtmosphereProcessGroup --- //
 

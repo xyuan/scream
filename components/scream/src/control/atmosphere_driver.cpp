@@ -385,7 +385,6 @@ void AtmosphereDriver::finalize ( /* inputs? */ ) {
 }
 
 void AtmosphereDriver::register_groups () {
-  using GroupRequest = AtmosphereProcess::GroupRequest;
 
   // Given a list of group-grid pairs (A,B), make sure there is a copy
   // of each field in group A on grid B registered in the repo.
@@ -436,7 +435,9 @@ void AtmosphereDriver::register_groups () {
     }
   };
 
-  auto ensure_group_fields_on_grid_are_present = [&](const GroupRequest& req) {
+  // This lambda ensures that the field of a group are all present
+  // on the requested grid, with the requested pack size.
+  auto ensure_group_is_present_on_grid = [&](const GroupRequest& req) {
     const auto& groups_info = m_field_repo->get_groups_info();
 
     const auto& group = req.name;
@@ -463,22 +464,22 @@ void AtmosphereDriver::register_groups () {
     }
   };
 
-  auto process_groups_requests = [&](const std::set<GroupRequest>& groups_requests) {
+  auto process_groups_requests = [&](const std::list<GroupRequest>& groups_requests) {
     auto& groups_info = m_field_repo->get_groups_info();
-    std::set<GroupRequest> subgroups;
+    std::list<GroupRequest> subgroups;
     for (const auto& req : groups_requests) {
       // If a group is a subset of another group, process it *after*
       if (req.exclude_superset_fields.size()>0) {
-        subgroups.insert(req);
+        subgroups.push_back(req);
         continue;
       }
 
-      ensure_group_fields_on_grid_are_present(req);
+      ensure_group_is_present_on_grid(req);
     }
 
     // If there are groups that have superset, process them now
     for (const auto& req : subgroups) {
-      GroupRequest super(req.superset_group,req.grid,req.pack_size);
+      GroupRequest super(req.superset_group,req.grid,req.pack_size,req.bundle_needed);
 
       // The superset group should already be registered by now.
       EKAT_REQUIRE_MSG(groups_info.find(req.superset_group)!=groups_info.end(),
@@ -487,7 +488,7 @@ void AtmosphereDriver::register_groups () {
           "NOTE: if you are trying to create a subgroup of another subgroup, well, such feature is not supported.\n");
 
       // Ensure the superset is registered with the pack size required by this subgroup
-      ensure_group_fields_on_grid_are_present(super);
+      ensure_group_is_present_on_grid(super);
 
       // Get all fields in the superset group, and register them as part of this group too,
       // provided that they are not in the list req.exclude_superset_fields
