@@ -837,7 +837,7 @@ end subroutine micro_p3_readnl
 
       call pbuf_get_field(pbuf,mon_ccn_2_idx, mon_ccn_2)
 
-      if (current_month .ne. month) then
+!ASD      if (current_month .ne. month) then
 
          mon_ccn_1 = mon_ccn_2
 
@@ -857,7 +857,7 @@ end subroutine micro_p3_readnl
          
          current_month = month
 
-      end if
+!ASD      end if
                                     
       !interpolate between mon_ccn_1 and mon_ccn_2 to calculate nccn_prescribed
       !based on current date
