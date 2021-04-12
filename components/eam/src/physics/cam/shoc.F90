@@ -3065,7 +3065,7 @@ subroutine compute_shr_prod(nlevi, nlev, shcol, dz_zi, u_wind, v_wind, sterm)
         ! calculate vertical gradient of u&v wind
         u_grad = grid_dz*(u_wind(i,km1)-u_wind(i,k))
         v_grad = grid_dz*(v_wind(i,km1)-v_wind(i,k))
-        sterm(i,k) = bfb_square(u_grad)+bfb_square(v_grad)
+        sterm(i,k) = 0.1_rtype*(bfb_square(u_grad)+bfb_square(v_grad))
      enddo
   enddo
 
@@ -4795,13 +4795,7 @@ subroutine compute_conv_time_shoc_length(shcol,pblh,conv_vel,tscale)
 #endif
 
   do i=1,shcol
-    conv_vel(i) = bfb_pow(max(0._rtype,conv_vel(i)), (1._rtype/3._rtype))
-
-    if (conv_vel(i) .gt. 0._rtype) then
-      tscale(i)=pblh(i)/conv_vel(i)
-    else
-      tscale(i)=100._rtype
-    endif
+    tscale(i)=300._rtype
   enddo
 
 end subroutine compute_conv_time_shoc_length
