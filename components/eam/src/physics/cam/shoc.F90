@@ -388,78 +388,78 @@ subroutine shoc_main ( &
   ! for the computation of total energy before SHOC is called.  This is for an
   ! effort to conserve energy since liquid water potential temperature (which SHOC
   ! conserves) and static energy (which E3SM conserves) are not exactly equal.
-  call cpu_time(c1)
+!  call cpu_time(c1)
   call shoc_energy_integrals(&
      shcol,nlev,host_dse,pdel,&             ! Input
      qw,shoc_ql,u_wind,v_wind,&             ! Input
      se_b,ke_b,wv_b,wl_b)                   ! Input/Output
-  call cpu_time(c2)
-  write(*,*) "shoc_energy_integrals:",c2-c1
+!  call cpu_time(c2)
+!  write(*,*) "shoc_energy_integrals:",c2-c1
 
   do t=1,nadv
 
     ! Check TKE to make sure values lie within acceptable
     !  bounds after host model performs horizontal advection
-    call cpu_time(c1)
+!    call cpu_time(c1)
     call check_tke(shcol,nlev,&                 ! Input
            tke)                                 ! Input/Output
-    call cpu_time(c2)
-    write(*,*) "check_tke:",c2-c1
+!    call cpu_time(c2)
+!    write(*,*) "check_tke:",c2-c1
 
     ! Define vertical grid arrays needed for
     !   vertical derivatives in SHOC, also
     !   define air density
-    call cpu_time(c1)
+!    call cpu_time(c1)
     call shoc_grid( &
        shcol,nlev,nlevi,&                   ! Input
        zt_grid,zi_grid,pdel,&               ! Input
        dz_zt,dz_zi,rho_zt)                  ! Output
-    call cpu_time(c2)
-    write(*,*) "shoc_grid:",c2-c1
+!    call cpu_time(c2)
+!    write(*,*) "shoc_grid:",c2-c1
 
     ! Compute the planetary boundary layer height, which is an
     !   input needed for the length scale calculation.
 
     ! Update SHOC water vapor, to be used by the next two routines
-    call cpu_time(c1)
+!    call cpu_time(c1)
     call compute_shoc_vapor(&
        shcol,nlev,qw,shoc_ql,&              ! Input
        shoc_qv)                             ! Output
-     call cpu_time(c2)
-     write(*,*) "compute_shoc_vapor:",c2-c1
+!     call cpu_time(c2)
+!     write(*,*) "compute_shoc_vapor:",c2-c1
 
-    call cpu_time(c1)
+!    call cpu_time(c1)
     call shoc_diag_obklen(&
        shcol,uw_sfc,vw_sfc,&                          ! Input
        wthl_sfc,wqw_sfc,thetal(:shcol,nlev),&         ! Input
        shoc_ql(:shcol,nlev),shoc_qv(:shcol,nlev),&    ! Input
        ustar,kbfs,obklen)                             ! Output
-    call cpu_time(c2)
-    write(*,*) "shoc_diag_obklen:",c2-c1
+!    call cpu_time(c2)
+!    write(*,*) "shoc_diag_obklen:",c2-c1
 
-    call cpu_time(c1)
+!    call cpu_time(c1)
     call pblintd(&
        shcol,nlev,nlevi,&                   ! Input
        zt_grid,zi_grid,thetal,shoc_ql,&     ! Input
        shoc_qv,u_wind,v_wind,&              ! Input
        ustar,obklen,kbfs,shoc_cldfrac,&     ! Input
        pblh)                                ! Output
-       call cpu_time(c2)
-       write(*,*) "pblintd:",c2-c1
+!    call cpu_time(c2)
+!    write(*,*) "pblintd:",c2-c1
 
     ! Update the turbulent length scale
-    call cpu_time(c1)
+!    call cpu_time(c1)
     call shoc_length(&
        shcol,nlev,nlevi,&                ! Input
        host_dx,host_dy,pblh,&            ! Input
        tke,zt_grid,zi_grid,dz_zt,dz_zi,& ! Input
        thetal,wthv_sec,thv,&             ! Input
        brunt,shoc_mix)                   ! Output
-       call cpu_time(c2)
-       write(*,*) "shoc_length:",c2-c1
+!    call cpu_time(c2)
+!    write(*,*) "shoc_length:",c2-c1
 
     ! Advance the SGS TKE equation
-    call cpu_time(c1)
+!    call cpu_time(c1)
     call shoc_tke(&
        shcol,nlev,nlevi,dtime,&             ! Input
        wthv_sec,shoc_mix,&                  ! Input
@@ -468,12 +468,12 @@ subroutine shoc_main ( &
        zt_grid,zi_grid,pblh,&               ! Input
        tke,tk,tkh,&                         ! Input/Output
        isotropy)                            ! Output
-       call cpu_time(c2)
-       write(*,*) "shoc_tke:",c2-c1
+!    call cpu_time(c2)
+!    write(*,*) "shoc_tke:",c2-c1
 
     ! Update SHOC prognostic variables here
     !   via implicit diffusion solver
-    call cpu_time(c1)
+!    call cpu_time(c1)
     call update_prognostics_implicit(&      ! Input
        shcol,nlev,nlevi,num_qtracers,&      ! Input
        dtime,dz_zt,dz_zi,rho_zt,&           ! Input
@@ -482,11 +482,11 @@ subroutine shoc_main ( &
        wtracer_sfc,&                        ! Input
        thetal,qw,qtracers,tke,&             ! Input/Output
        u_wind,v_wind)                       ! Input/Output
-       call cpu_time(c2)
-       write(*,*) "update_prognostics_implicit:",c2-c1
+!    call cpu_time(c2)
+!    write(*,*) "update_prognostics_implicit:",c2-c1
 
     ! Diagnose the second order moments
-    call cpu_time(c1)
+!    call cpu_time(c1)
     call diag_second_shoc_moments(&
        shcol,nlev,nlevi, &                    ! Input
        thetal,qw,u_wind,v_wind,tke, &         ! Input
@@ -496,12 +496,12 @@ subroutine shoc_main ( &
        thl_sec, qw_sec,wthl_sec,wqw_sec,&     ! Output
        qwthl_sec, uw_sec, vw_sec, wtke_sec, & ! Output
        w_sec)                                 ! Output
-       call cpu_time(c2)
-       write(*,*) "diag_second_shoc_moments:",c2-c1
+!    call cpu_time(c2)
+!    write(*,*) "diag_second_shoc_moments:",c2-c1
 
     ! Diagnose the third moment of vertical velocity,
     !  needed for the PDF closure
-    call cpu_time(c1)
+!    call cpu_time(c1)
     call diag_third_shoc_moments(&
        shcol,nlev,nlevi,&                   ! Input
        w_sec,thl_sec,&                      ! Input
@@ -509,11 +509,11 @@ subroutine shoc_main ( &
        thetal,tke,&                         ! Input
        dz_zt,dz_zi,zt_grid,zi_grid,&        ! Input
        w3)                                  ! Output
-       call cpu_time(c2)
-       write(*,*) "diag_third_shoc_moments:",c2-c1
+!    call cpu_time(c2)
+!    write(*,*) "diag_third_shoc_moments:",c2-c1
 
     ! Call the PDF to close on SGS cloud and turbulence
-    call cpu_time(c1)
+!    call cpu_time(c1)
     call shoc_assumed_pdf(&
        shcol,nlev,nlevi,&                   ! Input
        thetal,qw,w_field,thl_sec,qw_sec,&   ! Input
@@ -522,15 +522,15 @@ subroutine shoc_main ( &
        zt_grid,zi_grid,&                    ! Input
        shoc_cldfrac,shoc_ql,&               ! Output
        wqls_sec,wthv_sec,shoc_ql2)          ! Output
-       call cpu_time(c2)
-       write(*,*) "shoc_assumed_pdf:",c2-c1
+!    call cpu_time(c2)
+!    write(*,*) "shoc_assumed_pdf:",c2-c1
 
     ! Check TKE to make sure values lie within acceptable
     !  bounds after vertical advection, etc.
-    call cpu_time(c1)
+!    call cpu_time(c1)
     call check_tke(shcol,nlev,tke)
-    call cpu_time(c2)
-    write(*,*) "check_tke:",c2-c1
+!    call cpu_time(c2)
+!    write(*,*) "check_tke:",c2-c1
 
   enddo ! end time loop
 
@@ -538,23 +538,23 @@ subroutine shoc_main ( &
 
   ! Use SHOC outputs to update the host model
   !  temperature
-  call cpu_time(c1)
+!  call cpu_time(c1)
   call update_host_dse(&
      shcol,nlev,thetal,&                   ! Input
      shoc_ql,exner,zt_grid,phis,&          ! Input
      host_dse)                             ! Output
-     call cpu_time(c2)
-     write(*,*) "update_host_dse:",c2-c1
+!  call cpu_time(c2)
+!  write(*,*) "update_host_dse:",c2-c1
 
-  call cpu_time(c1)
+!  call cpu_time(c1)
   call shoc_energy_integrals(&             ! Input
      shcol,nlev,host_dse,pdel,&            ! Input
      qw,shoc_ql,u_wind,v_wind,&            ! Input
      se_a,ke_a,wv_a,wl_a)                  ! Output
-     call cpu_time(c2)
-     write(*,*) "shoc_energy_integrals:",c2-c1
+!  call cpu_time(c2)
+!  write(*,*) "shoc_energy_integrals:",c2-c1
 
-  call cpu_time(c1)
+!  call cpu_time(c1)
   call shoc_energy_fixer(&
      shcol,nlev,nlevi,dtime,nadv,&         ! Input
      zt_grid,zi_grid,&                     ! Input
@@ -563,8 +563,8 @@ subroutine shoc_main ( &
      wthl_sfc,wqw_sfc,&                    ! Input
      rho_zt,tke,presi,&                    ! Input
      host_dse)                             ! Input/Output
-     call cpu_time(c2)
-     write(*,*) "shoc_energy_fixer:",c2-c1
+!  call cpu_time(c2)
+!  write(*,*) "shoc_energy_fixer:",c2-c1
 
   ! Remaining code is to diagnose certain quantities
   !  related to PBL.  No answer changing subroutines
@@ -574,31 +574,31 @@ subroutine shoc_main ( &
   !  may require this variable.
 
   ! Update SHOC water vapor, to be used by the next two routines
-  call cpu_time(c1)
+!  call cpu_time(c1)
   call compute_shoc_vapor(&
      shcol,nlev,qw,shoc_ql,&              ! Input
      shoc_qv)                             ! Output
-     call cpu_time(c2)
-     write(*,*) "compute_shoc_vapor:",c2-c1
+!  call cpu_time(c2)
+!  write(*,*) "compute_shoc_vapor:",c2-c1
 
-  call cpu_time(c1)
+!  call cpu_time(c1)
   call shoc_diag_obklen(&
      shcol,uw_sfc,vw_sfc,&                          ! Input
      wthl_sfc,wqw_sfc,thetal(:shcol,nlev),&         ! Input
      shoc_ql(:shcol,nlev),shoc_qv(:shcol,nlev),&    ! Input
      ustar,kbfs,obklen)                             ! Output
-     call cpu_time(c2)
-     write(*,*) "shoc_diag_obklen:",c2-c1
+!  call cpu_time(c2)
+!  write(*,*) "shoc_diag_obklen:",c2-c1
 
-  call cpu_time(c1)
+!  call cpu_time(c1)
   call pblintd(&
      shcol,nlev,nlevi,&                   ! Input
      zt_grid,zi_grid,thetal,shoc_ql,&     ! Input
      shoc_qv,u_wind,v_wind,&              ! Input
      ustar,obklen,kbfs,shoc_cldfrac,&     ! Input
      pblh)                                ! Output
-     call cpu_time(c2)
-     write(*,*) "pblintd:",c2-c1
+!  call cpu_time(c2)
+!  write(*,*) "pblintd:",c2-c1
 
 #ifdef SCREAM_CONFIG_IS_CMAKE
   call system_clock(clock_count2, clock_count_rate, clock_count_max)
@@ -608,7 +608,7 @@ subroutine shoc_main ( &
   endif
 #endif
 
-write(*,*) "shoc_main:",elapsed_s
+write(*,*) "    shoc_main:",elapsed_s
 
   return
 

@@ -318,7 +318,7 @@ struct UnitWrap::UnitTest<D>::TestShocMain {
   {
     ShocMainData f90_data[] = {
       // shcol, nlev, nlevi, num_qtracers, dtime, nadv, nbot_shoc, ntop_shoc(C++ indexing)
-      ShocMainData(1, 288, 289,  5, 5, 1, 288, 0),
+      ShocMainData(256, 72, 73,  5, 5, 15, 72, 0),
 //      ShocMainData(12, 72, 73,  5, 5, 15, 72, 0),
 //      ShocMainData(8,  12, 13,  3, 6, 10, 8, 3),
 //      ShocMainData(7,  16, 17,  3, 1,  1, 12, 0),

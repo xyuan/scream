@@ -120,9 +120,9 @@ void Functions<S,D>::shoc_main_internal(
   const uview_1d<Spack>&       isotropy)
 {
   // Start timer
-  auto start = std::chrono::steady_clock::now();
-  auto finish = std::chrono::steady_clock::now();
-  auto duration = std::chrono::duration_cast<std::chrono::microseconds>(finish - start);
+//  auto start = std::chrono::steady_clock::now();
+//  auto finish = std::chrono::steady_clock::now();
+//  auto duration = std::chrono::duration_cast<std::chrono::microseconds>(finish - start);
 
   // Define temporary variables
   uview_1d<Spack> rho_zt, shoc_qv, dz_zt, dz_zi, tkh;
@@ -143,59 +143,59 @@ void Functions<S,D>::shoc_main_internal(
   // for the computation of total energy before SHOC is called.  This is for an
   // effort to conserve energy since liquid water potential temperature (which SHOC
   // conserves) and static energy (which E3SM conserves) are not exactly equal.
-  start = std::chrono::steady_clock::now();
+  //start = std::chrono::steady_clock::now();
   shoc_energy_integrals(team,nlev,host_dse,pdel,qw,shoc_ql,u_wind,v_wind, // Input
                         se_b,ke_b,wv_b,wl_b);                             // Output
-  finish = std::chrono::steady_clock::now();
-  duration = std::chrono::duration_cast<std::chrono::microseconds>(finish - start);
-  std::cout << "shoc_energy_integrals: " << duration.count()*1e-6 << std::endl;
+  //finish = std::chrono::steady_clock::now();
+  //duration = std::chrono::duration_cast<std::chrono::microseconds>(finish - start);
+  //std::cout << "shoc_energy_integrals: " << duration.count()*1e-6 << std::endl;
 
   for (Int t=0; t<nadv; ++t) {
     // Check TKE to make sure values lie within acceptable
     // bounds after host model performs horizontal advection
-    start = std::chrono::steady_clock::now();
+    //start = std::chrono::steady_clock::now();
     check_tke(team,nlev, // Input
               tke);      // Input/Output
-    finish = std::chrono::steady_clock::now();
-    duration = std::chrono::duration_cast<std::chrono::microseconds>(finish - start);
-    std::cout << "check_tke: " << duration.count()*1e-6 << std::endl;
+//    finish = std::chrono::steady_clock::now();
+//    duration = std::chrono::duration_cast<std::chrono::microseconds>(finish - start);
+//    std::cout << "check_tke: " << duration.count()*1e-6 << std::endl;
 
     // Define vertical grid arrays needed for
     // vertical derivatives in SHOC, also
     // define air density (rho_zt)
-    start = std::chrono::steady_clock::now();
+   // start = std::chrono::steady_clock::now();
     shoc_grid(team,nlev,nlevi,      // Input
               zt_grid,zi_grid,pdel, // Input
               dz_zt,dz_zi,rho_zt);  // Output
-    finish = std::chrono::steady_clock::now();
-    duration = std::chrono::duration_cast<std::chrono::microseconds>(finish - start);
-    std::cout << "shoc_grid: " << duration.count()*1e-6 << std::endl;
+//    finish = std::chrono::steady_clock::now();
+//    duration = std::chrono::duration_cast<std::chrono::microseconds>(finish - start);
+//    std::cout << "shoc_grid: " << duration.count()*1e-6 << std::endl;
 
     // Compute the planetary boundary layer height, which is an
     // input needed for the length scale calculation.
 
     // Update SHOC water vapor,
     // to be used by the next two routines
-    start = std::chrono::steady_clock::now();
+//    start = std::chrono::steady_clock::now();
     compute_shoc_vapor(team,nlev,qw,shoc_ql, // Input
                        shoc_qv);             // Output
-    finish = std::chrono::steady_clock::now();
-    duration = std::chrono::duration_cast<std::chrono::microseconds>(finish - start);
-    std::cout << "compute_shoc_vapor: " << duration.count()*1e-6 << std::endl;
+//    finish = std::chrono::steady_clock::now();
+//    duration = std::chrono::duration_cast<std::chrono::microseconds>(finish - start);
+//    std::cout << "compute_shoc_vapor: " << duration.count()*1e-6 << std::endl;
 
     team.team_barrier();
-    start = std::chrono::steady_clock::now();
+//    start = std::chrono::steady_clock::now();
     shoc_diag_obklen(uw_sfc,vw_sfc,          // Input
                      wthl_sfc, wqw_sfc,      // Input
                     thetal(nlev_v)[nlev_p],  // Input
                     shoc_ql(nlev_v)[nlev_p], // Input
                     shoc_qv(nlev_v)[nlev_p], // Input
                     ustar,kbfs,obklen);      // Output
-    finish = std::chrono::steady_clock::now();
-    duration = std::chrono::duration_cast<std::chrono::microseconds>(finish - start);
-    std::cout << "shoc_diag_obklen: " << duration.count()*1e-6 << std::endl;
+//    finish = std::chrono::steady_clock::now();
+//    duration = std::chrono::duration_cast<std::chrono::microseconds>(finish - start);
+//    std::cout << "shoc_diag_obklen: " << duration.count()*1e-6 << std::endl;
 
-    start = std::chrono::steady_clock::now();
+//    start = std::chrono::steady_clock::now();
     pblintd(team,nlev,nlevi,npbl,     // Input
             zt_grid,zi_grid,thetal,   // Input
             shoc_ql,shoc_qv,u_wind,   // Input
@@ -203,23 +203,23 @@ void Functions<S,D>::shoc_main_internal(
             shoc_cldfrac,             // Input
             workspace,                // Workspace
             pblh);                    // Output
-    finish = std::chrono::steady_clock::now();
-    duration = std::chrono::duration_cast<std::chrono::microseconds>(finish - start);
-    std::cout << "pblintd: " << duration.count()*1e-6 << std::endl;
+//    finish = std::chrono::steady_clock::now();
+//    duration = std::chrono::duration_cast<std::chrono::microseconds>(finish - start);
+//    std::cout << "pblintd: " << duration.count()*1e-6 << std::endl;
 
     // Update the turbulent length scale
-    start = std::chrono::steady_clock::now();
+//    start = std::chrono::steady_clock::now();
     shoc_length(team,nlev,nlevi,host_dx,host_dy, // Input
                 pblh,tke,zt_grid,zi_grid,dz_zt,  // Input
                 wthv_sec,thv,                    // Input
                 workspace,                       // Workspace
                 brunt,shoc_mix);                 // Output
-    finish = std::chrono::steady_clock::now();
-    duration = std::chrono::duration_cast<std::chrono::microseconds>(finish - start);
-    std::cout << "shoc_length: " << duration.count()*1e-6 << std::endl;
+//    finish = std::chrono::steady_clock::now();
+//    duration = std::chrono::duration_cast<std::chrono::microseconds>(finish - start);
+//    std::cout << "shoc_length: " << duration.count()*1e-6 << std::endl;
 
     // Advance the SGS TKE equation
-    start = std::chrono::steady_clock::now();
+//    start = std::chrono::steady_clock::now();
     shoc_tke(team,nlev,nlevi,dtime,wthv_sec,    // Input
              shoc_mix,dz_zi,dz_zt,pres,u_wind,  // Input
              v_wind,brunt,obklen,zt_grid,       // Input
@@ -227,25 +227,25 @@ void Functions<S,D>::shoc_main_internal(
              workspace,                         // Workspace
              tke,tk,tkh,                        // Input/Output
              isotropy);                         // Output
-    finish = std::chrono::steady_clock::now();
-    duration = std::chrono::duration_cast<std::chrono::microseconds>(finish - start);
-    std::cout << "shoc_tke: " << duration.count()*1e-6 << std::endl;
+//    finish = std::chrono::steady_clock::now();
+//    duration = std::chrono::duration_cast<std::chrono::microseconds>(finish - start);
+//    std::cout << "shoc_tke: " << duration.count()*1e-6 << std::endl;
 
     // Update SHOC prognostic variables here
     // via implicit diffusion solver
     team.team_barrier();
-    start = std::chrono::steady_clock::now();
+//    start = std::chrono::steady_clock::now();
     update_prognostics_implicit(team,nlev,nlevi,num_qtracers,dtime,dz_zt,   // Input
                                 dz_zi,rho_zt,zt_grid,zi_grid,tk,tkh,uw_sfc, // Input
                                 vw_sfc,wthl_sfc,wqw_sfc,wtracer_sfc,        // Input
                                 workspace,                                  // Workspace
                                 X1,thetal,qw,qtracers,tke,u_wind,v_wind);   // Input/Output
-    finish = std::chrono::steady_clock::now();
-    duration = std::chrono::duration_cast<std::chrono::microseconds>(finish - start);
-    std::cout << "update_prognostics_implicit: " << duration.count()*1e-6 << std::endl;
+//    finish = std::chrono::steady_clock::now();
+//    duration = std::chrono::duration_cast<std::chrono::microseconds>(finish - start);
+//    std::cout << "update_prognostics_implicit: " << duration.count()*1e-6 << std::endl;
 
     // Diagnose the second order moments
-    start = std::chrono::steady_clock::now();
+//    start = std::chrono::steady_clock::now();
     diag_second_shoc_moments(team,nlev,nlevi,thetal,qw,u_wind,v_wind,   // Input
                              tke,isotropy,tkh,tk,dz_zi,zt_grid,zi_grid, // Input
                              shoc_mix,wthl_sfc,wqw_sfc,uw_sfc,vw_sfc,   // Input
@@ -253,73 +253,73 @@ void Functions<S,D>::shoc_main_internal(
                              workspace,                                 // Workspace
                              thl_sec,qw_sec,wthl_sec,wqw_sec,qwthl_sec, // Output
                              uw_sec,vw_sec,wtke_sec,w_sec);             // Output
-    finish = std::chrono::steady_clock::now();
-    duration = std::chrono::duration_cast<std::chrono::microseconds>(finish - start);
-    std::cout << "diag_second_shoc_moments: " << duration.count()*1e-6 << std::endl;
+//    finish = std::chrono::steady_clock::now();
+//    duration = std::chrono::duration_cast<std::chrono::microseconds>(finish - start);
+//    std::cout << "diag_second_shoc_moments: " << duration.count()*1e-6 << std::endl;
 
     // Diagnose the third moment of vertical velocity,
     //  needed for the PDF closure
-    start = std::chrono::steady_clock::now();
+//    start = std::chrono::steady_clock::now();
     diag_third_shoc_moments(team,nlev,nlevi,w_sec,thl_sec,wthl_sec, // Input
                             isotropy,brunt,thetal,tke,dz_zt,dz_zi,  // Input
                             zt_grid,zi_grid,                        // Input
                             workspace,                              // Workspace
                             w3);                                    // Output
-    finish = std::chrono::steady_clock::now();
-    duration = std::chrono::duration_cast<std::chrono::microseconds>(finish - start);
-    std::cout << "diag_third_shoc_moments: " << duration.count()*1e-6 << std::endl;
+//    finish = std::chrono::steady_clock::now();
+//    duration = std::chrono::duration_cast<std::chrono::microseconds>(finish - start);
+//    std::cout << "diag_third_shoc_moments: " << duration.count()*1e-6 << std::endl;
 
     // Call the PDF to close on SGS cloud and turbulence
     team.team_barrier();
-    start = std::chrono::steady_clock::now();
+//    start = std::chrono::steady_clock::now();
     shoc_assumed_pdf(team,nlev,nlevi,thetal,qw,w_field,thl_sec,qw_sec, // Input
                      wthl_sec,w_sec,wqw_sec,qwthl_sec,w3,pres,         // Input
                      zt_grid, zi_grid,                                 // Input
                      workspace,                                        // Workspace
                      shoc_cldfrac,shoc_ql,wqls_sec,wthv_sec,shoc_ql2); // Ouptut
-    finish = std::chrono::steady_clock::now();
-    duration = std::chrono::duration_cast<std::chrono::microseconds>(finish - start);
-    std::cout << "shoc_assumed_pdf: " << duration.count()*1e-6 << std::endl;
+//    finish = std::chrono::steady_clock::now();
+//    duration = std::chrono::duration_cast<std::chrono::microseconds>(finish - start);
+//    std::cout << "shoc_assumed_pdf: " << duration.count()*1e-6 << std::endl;
 
     // Check TKE to make sure values lie within acceptable
     // bounds after vertical advection, etc.
-    start = std::chrono::steady_clock::now();
+//    start = std::chrono::steady_clock::now();
     check_tke(team,nlev,tke);
-    finish = std::chrono::steady_clock::now();
-    duration = std::chrono::duration_cast<std::chrono::microseconds>(finish - start);
-    std::cout << "check_tke: " << duration.count()*1e-6 << std::endl;
+//    finish = std::chrono::steady_clock::now();
+//    duration = std::chrono::duration_cast<std::chrono::microseconds>(finish - start);
+//    std::cout << "check_tke: " << duration.count()*1e-6 << std::endl;
   }
 
   // End SHOC parameterization
 
   // Use SHOC outputs to update the host model
   // temperature
-  start = std::chrono::steady_clock::now();
+//  start = std::chrono::steady_clock::now();
   update_host_dse(team,nlev,thetal,shoc_ql, // Input
                   exner,zt_grid,phis,       // Input
                   host_dse);                // Output
-  finish = std::chrono::steady_clock::now();
-  duration = std::chrono::duration_cast<std::chrono::microseconds>(finish - start);
-  std::cout << "update_host_dse: " << duration.count()*1e-6 << std::endl;
+//  finish = std::chrono::steady_clock::now();
+//  duration = std::chrono::duration_cast<std::chrono::microseconds>(finish - start);
+//  std::cout << "update_host_dse: " << duration.count()*1e-6 << std::endl;
 
   team.team_barrier();
-  start = std::chrono::steady_clock::now();
+//  start = std::chrono::steady_clock::now();
   shoc_energy_integrals(team,nlev,host_dse,pdel,  // Input
                         qw,shoc_ql,u_wind,v_wind, // Input
                         se_a,ke_a,wv_a,wl_a);     // Output
-  finish = std::chrono::steady_clock::now();
-  duration = std::chrono::duration_cast<std::chrono::microseconds>(finish - start);
-  std::cout << "shoc_energy_integrals: " << duration.count()*1e-6 << std::endl;
+//  finish = std::chrono::steady_clock::now();
+//  duration = std::chrono::duration_cast<std::chrono::microseconds>(finish - start);
+//  std::cout << "shoc_energy_integrals: " << duration.count()*1e-6 << std::endl;
 
-  start = std::chrono::steady_clock::now();
+//  start = std::chrono::steady_clock::now();
   shoc_energy_fixer(team,nlev,nlevi,dtime,nadv,zt_grid,zi_grid, // Input
                     se_b,ke_b,wv_b,wl_b,se_a,ke_a,wv_a,wl_a,    // Input
                     wthl_sfc,wqw_sfc,rho_zt,tke,presi,          // Input
                     workspace,                                  // Workspace
                     host_dse);                                  // Output
-  finish = std::chrono::steady_clock::now();
-  duration = std::chrono::duration_cast<std::chrono::microseconds>(finish - start);
-  std::cout << "shoc_energy_fixer: " << duration.count()*1e-6 << std::endl;
+//  finish = std::chrono::steady_clock::now();
+//  duration = std::chrono::duration_cast<std::chrono::microseconds>(finish - start);
+//  std::cout << "shoc_energy_fixer: " << duration.count()*1e-6 << std::endl;
 
   // Remaining code is to diagnose certain quantities
   // related to PBL.  No answer changing subroutines
@@ -329,35 +329,35 @@ void Functions<S,D>::shoc_main_internal(
   // may require this variable.
 
   // Update SHOC water vapor, to be used by the next two routines
-  start = std::chrono::steady_clock::now();
+//  start = std::chrono::steady_clock::now();
   compute_shoc_vapor(team,nlev,qw,shoc_ql, // Input
                      shoc_qv);             // Output
-  finish = std::chrono::steady_clock::now();
-  duration = std::chrono::duration_cast<std::chrono::microseconds>(finish - start);
-  std::cout << "compute_shoc_vapor: " << duration.count()*1e-6 << std::endl;
+//  finish = std::chrono::steady_clock::now();
+//  duration = std::chrono::duration_cast<std::chrono::microseconds>(finish - start);
+//  std::cout << "compute_shoc_vapor: " << duration.count()*1e-6 << std::endl;
 
   team.team_barrier();
-  start = std::chrono::steady_clock::now();
+//  start = std::chrono::steady_clock::now();
   shoc_diag_obklen(uw_sfc,vw_sfc,           // Input
                    wthl_sfc,wqw_sfc,        // Input
                    thetal(nlev_v)[nlev_p],  // Input
                    shoc_ql(nlev_v)[nlev_p], // Input
                    shoc_qv(nlev_v)[nlev_p], // Input
                    ustar,kbfs,obklen);      // Output
-  finish = std::chrono::steady_clock::now();
-  duration = std::chrono::duration_cast<std::chrono::microseconds>(finish - start);
-  std::cout << "shoc_diag_obklen: " << duration.count()*1e-6 << std::endl;
+//  finish = std::chrono::steady_clock::now();
+//  duration = std::chrono::duration_cast<std::chrono::microseconds>(finish - start);
+//  std::cout << "shoc_diag_obklen: " << duration.count()*1e-6 << std::endl;
 
-  start = std::chrono::steady_clock::now();
+//  start = std::chrono::steady_clock::now();
   pblintd(team,nlev,nlevi,npbl,zt_grid,   // Input
           zi_grid,thetal,shoc_ql,shoc_qv, // Input
           u_wind,v_wind,ustar,obklen,     // Input
           kbfs,shoc_cldfrac,              // Input
           workspace,                      // Workspace
           pblh);                          // Output
-  finish = std::chrono::steady_clock::now();
-  duration = std::chrono::duration_cast<std::chrono::microseconds>(finish - start);
-  std::cout << "pblintd: " << duration.count()*1e-6 << std::endl;
+//  finish = std::chrono::steady_clock::now();
+//  duration = std::chrono::duration_cast<std::chrono::microseconds>(finish - start);
+//  std::cout << "pblintd: " << duration.count()*1e-6 << std::endl;
 
   // Release temporary variables from the workspace
   workspace.template release_many_contiguous<5>(
@@ -402,11 +402,11 @@ Int Functions<S,D>::shoc_main(
     auto workspace = workspace_mgr.get_workspace(team);
 
    // Start timer
-   auto start1 = std::chrono::steady_clock::now();
-   auto finish1 = std::chrono::steady_clock::now();
-   auto duration1 = std::chrono::duration_cast<std::chrono::microseconds>(finish1 - start1);
+//   auto start1 = std::chrono::steady_clock::now();
+//   auto finish1 = std::chrono::steady_clock::now();
+//   auto duration1 = std::chrono::duration_cast<std::chrono::microseconds>(finish1 - start1);
 
-    start1 = std::chrono::steady_clock::now();
+//    start1 = std::chrono::steady_clock::now();
     const Scalar host_dx_s{shoc_input.host_dx(i)[0]};
     const Scalar host_dy_s{shoc_input.host_dy(i)[0]};
     const Scalar wthl_sfc_s{shoc_input.wthl_sfc(i)[0]};
@@ -454,9 +454,9 @@ Int Functions<S,D>::shoc_main(
     const auto X1_s       = Kokkos::subview(X1_d, i, Kokkos::ALL(), Kokkos::ALL());
     const auto qtracers_s = Kokkos::subview(shoc_input_output.qtracers, i, Kokkos::ALL(), Kokkos::ALL());
 
-     finish1 = std::chrono::steady_clock::now();
-     duration1 = std::chrono::duration_cast<std::chrono::microseconds>(finish1 - start1);
-     std::cout << "initialize: " << duration1.count()*1e-6 << std::endl;
+//     finish1 = std::chrono::steady_clock::now();
+//     duration1 = std::chrono::duration_cast<std::chrono::microseconds>(finish1 - start1);
+//     std::cout << "initialize: " << duration1.count()*1e-6 << std::endl;
 
     shoc_main_internal(team, nlev, nlevi, npbl, nadv, num_qtracers, dtime,
                        host_dx_s, host_dy_s, zt_grid_s, zi_grid_s,            // Input
