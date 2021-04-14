@@ -318,10 +318,11 @@ struct UnitWrap::UnitTest<D>::TestShocMain {
   {
     ShocMainData f90_data[] = {
       // shcol, nlev, nlevi, num_qtracers, dtime, nadv, nbot_shoc, ntop_shoc(C++ indexing)
-      ShocMainData(12, 72, 73,  5, 5, 15, 72, 0),
-      ShocMainData(8,  12, 13,  3, 6, 10, 8, 3),
-      ShocMainData(7,  16, 17,  3, 1,  1, 12, 0),
-      ShocMainData(2,   7,  8,  2, 1,  5, 7, 4)
+      ShocMainData(1, 288, 289,  5, 5, 1, 288, 0),
+//      ShocMainData(12, 72, 73,  5, 5, 15, 72, 0),
+//      ShocMainData(8,  12, 13,  3, 6, 10, 8, 3),
+//      ShocMainData(7,  16, 17,  3, 1,  1, 12, 0),
+//      ShocMainData(2,   7,  8,  2, 1,  5, 7, 4)
     };
 
     // Generate random input data
@@ -381,9 +382,9 @@ struct UnitWrap::UnitTest<D>::TestShocMain {
     // inout data is in original state
     ShocMainData cxx_data[] = {
       ShocMainData(f90_data[0]),
-      ShocMainData(f90_data[1]),
-      ShocMainData(f90_data[2]),
-      ShocMainData(f90_data[3])
+//      ShocMainData(f90_data[1]),
+//      ShocMainData(f90_data[2]),
+//      ShocMainData(f90_data[3])
     };
 
     // Assume all data is in C layout
@@ -399,7 +400,7 @@ struct UnitWrap::UnitTest<D>::TestShocMain {
       d.transpose<ekat::TransposeDirection::c2f>(); // _f expects data in fortran layout
       const int npbl = shoc_init_f(d.nlev, d.pref_mid, d.nbot_shoc, d.ntop_shoc);
 
-      shoc_main_f(d.shcol, d.nlev, d.nlevi, d.dtime, d.nadv, npbl, d.host_dx, d.host_dy,
+      Int elapsed_microsec = shoc_main_f(d.shcol, d.nlev, d.nlevi, d.dtime, d.nadv, npbl, d.host_dx, d.host_dy,
                   d.thv, d.zt_grid, d.zi_grid, d.pres, d.presi, d.pdel, d.wthl_sfc,
                   d.wqw_sfc, d.uw_sfc, d.vw_sfc, d.wtracer_sfc, d.num_qtracers,
                   d.w_field, d.exner, d.phis, d.host_dse, d.tke, d.thetal, d.qw,
@@ -407,6 +408,7 @@ struct UnitWrap::UnitTest<D>::TestShocMain {
                   d.shoc_cldfrac, d.pblh, d.shoc_mix, d.isotropy, d.w_sec, d.thl_sec,
                   d.qw_sec, d.qwthl_sec, d.wthl_sec, d.wqw_sec, d.wtke_sec, d.uw_sec,
                   d.vw_sec, d.w3, d.wqls_sec, d.brunt, d.shoc_ql2);
+      std::cout << "shoc_main: " << elapsed_microsec*1e-6 << std::endl;
       d.transpose<ekat::TransposeDirection::f2c>(); // go back to C layout
     }
 
