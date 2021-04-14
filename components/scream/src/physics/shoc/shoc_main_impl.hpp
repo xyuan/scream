@@ -401,6 +401,12 @@ Int Functions<S,D>::shoc_main(
 
     auto workspace = workspace_mgr.get_workspace(team);
 
+   // Start timer
+   auto start1 = std::chrono::steady_clock::now();
+   auto finish1 = std::chrono::steady_clock::now();
+   auto duration1 = std::chrono::duration_cast<std::chrono::microseconds>(finish1 - start1);
+
+    start1 = std::chrono::steady_clock::now();
     const Scalar host_dx_s{shoc_input.host_dx(i)[0]};
     const Scalar host_dy_s{shoc_input.host_dy(i)[0]};
     const Scalar wthl_sfc_s{shoc_input.wthl_sfc(i)[0]};
@@ -447,6 +453,10 @@ Int Functions<S,D>::shoc_main(
     const auto v_wind_s   = Kokkos::subview(shoc_input_output.horiz_wind, i, 1, Kokkos::ALL());
     const auto X1_s       = Kokkos::subview(X1_d, i, Kokkos::ALL(), Kokkos::ALL());
     const auto qtracers_s = Kokkos::subview(shoc_input_output.qtracers, i, Kokkos::ALL(), Kokkos::ALL());
+
+     finish1 = std::chrono::steady_clock::now();
+     duration1 = std::chrono::duration_cast<std::chrono::microseconds>(finish1 - start1);
+     std::cout << "initialize: " << duration1.count()*1e-6 << std::endl;
 
     shoc_main_internal(team, nlev, nlevi, npbl, nadv, num_qtracers, dtime,
                        host_dx_s, host_dy_s, zt_grid_s, zi_grid_s,            // Input
