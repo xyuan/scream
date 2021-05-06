@@ -7,7 +7,8 @@ use element_mod, only: element_t
 use scamMod
 use constituents, only: cnst_get_ind
 use dimensions_mod, only: nelemd, np
-use time_manager, only: get_nstep, dtime, is_first_step
+use time_manager, only: get_nstep, dtime, is_first_step, &
+  is_first_restart_step, is_last_step
 use ppgrid, only: begchunk
 use pmgrid, only: plev, plon
 use parallel_mod,            only: par
@@ -16,6 +17,7 @@ use element_ops, only: get_R_star
 use eos, only: pnh_and_exner_from_eos
 #endif
 use element_ops, only: get_temperature
+use spmd_utils, only: masterproc
 
 implicit none
 
@@ -89,9 +91,9 @@ subroutine scm_setinitial(elem)
             enddo
 
             do k=1,PLEV
-              if (have_ps) elem(ie)%state%ps_v(i,j,1) = psobs
-              if (have_u) elem(ie)%state%v(i,j,1,k,1) = uobs(k)
-              if (have_v) elem(ie)%state%v(i,j,2,k,1) = vobs(k)
+              if (have_ps) elem(ie)%state%ps_v(i,j,:) = psobs
+              if (have_u) elem(ie)%state%v(i,j,1,k,:) = uobs(k)
+              if (have_v) elem(ie)%state%v(i,j,2,k,:) = vobs(k)
               if (have_numliq) elem(ie)%state%Q(i,j,k,inumliq) = numliqobs(k)
               if (have_cldliq) elem(ie)%state%Q(i,j,k,icldliq) = cldliqobs(k)
               if (have_numice) elem(ie)%state%Q(i,j,k,inumice) = numiceobs(k)
@@ -188,7 +190,7 @@ subroutine apply_SC_forcing(elem,hvcoord,hybrid,tl,n,t_before_advance,nets,nete)
     use scamMod
     use kinds, only : real_kind
     use dimensions_mod, only : np, np, nlev, npsq, nelem
-    use control_mod, only : use_cpstar, qsplit
+    use control_mod, only : use_cpstar, qsplit, qsplit
     use hybvcoord_mod, only : hvcoord_t
     use element_mod, only : element_t
     use physical_constants, only : Cp, Rgas, cpwater_vapor
@@ -207,13 +209,14 @@ subroutine apply_SC_forcing(elem,hvcoord,hybrid,tl,n,t_before_advance,nets,nete)
     logical :: t_before_advance, do_column_scm
     real(kind=real_kind), parameter :: rad2deg = 180.0_real_kind / SHR_CONST_PI
 
-    integer :: ie,k,i,j,t,nm_f
+    integer :: ie,k,i,j,t,m,nm_f,tlQdp
     integer :: nelemd_todo, np_todo
     real (kind=real_kind), dimension(np,np,nlev)  :: dpt1,dpt2   ! delta pressure
     real (kind=real_kind), dimension(np,np)  :: E
     real (kind=real_kind), dimension(np,np)  :: suml,suml2,v1,v2
     real (kind=real_kind), dimension(np,np,nlev)  :: sumlk, suml2k
     real (kind=real_kind), dimension(np,np,nlev)  :: p,T_v,phi, pnh
+    real (kind=real_kind), dimension(np,np,nlev)  :: dp3d
     real (kind=real_kind), dimension(np,np,nlev+1) :: dpnh_dp_i
     real (kind=real_kind), dimension(np,np,nlev)  :: dp, exner, vtheta_dp, Rstar
     real (kind=real_kind), dimension(np,np,nlev) :: dpscm
@@ -239,6 +242,8 @@ subroutine apply_SC_forcing(elem,hvcoord,hybrid,tl,n,t_before_advance,nets,nete)
        t2=tl%np1
     endif
     
+    call TimeLevel_Qdp(tl,qsplit,tlQdp)
+
     ! Settings for traditional SCM run
     nelemd_todo = 1
     np_todo = 1
@@ -256,6 +261,7 @@ subroutine apply_SC_forcing(elem,hvcoord,hybrid,tl,n,t_before_advance,nets,nete)
 
       do k=1,nlev
         p(:,:,k) = hvcoord%hyam(k)*hvcoord%ps0 + hvcoord%hybm(k)*elem(ie)%state%ps_v(:,:,t1)
+        dpscm(:,:,k) = elem(ie)%state%dp3d(:,:,k,t1)
       end do
 
       dt=dtime
@@ -275,9 +281,10 @@ subroutine apply_SC_forcing(elem,hvcoord,hybrid,tl,n,t_before_advance,nets,nete)
       do j=1,np_todo
         do i=1,np_todo
 
-          stateQin_qfcst(:,:) = elem(ie)%state%Q(i,j,:,:)
-          stateQin1(:,:) = stateQin_qfcst(:,:)
-          stateQin2(:,:) = stateQin_qfcst(:,:)        
+          stateQin_qfcst(:nlev,:pcnst) = elem(ie)%state%Q(i,j,:nlev,:pcnst)
+          stateQin1(:nlev,:pcnst) = stateQin_qfcst(:nlev,:pcnst)
+          stateQin2(:nlev,:pcnst) = stateQin_qfcst(:nlev,:pcnst)
+          forecast_q(:nlev,:pcnst) = stateQin_qfcst(:nlev,:pcnst)
 
           if (.not. use_3dfrc .or. dp_crm) then
             temp_tend(:) = 0.0_real_kind
@@ -292,7 +299,7 @@ subroutine apply_SC_forcing(elem,hvcoord,hybrid,tl,n,t_before_advance,nets,nete)
           !  initial condition temperature profile.  Do NOT use
           !  as it will cause temperature profile to blow up.
           if ( is_first_step() ) then
-            temp_tend(:) = 0.0
+            temp_tend(:) = 0.0_real_kind
           endif
 #endif          
 
@@ -306,7 +313,16 @@ subroutine apply_SC_forcing(elem,hvcoord,hybrid,tl,n,t_before_advance,nets,nete)
             stateQin_qfcst,p(i,j,:),stateQin1,1,&
             tdiff_dyn,qdiff_dyn)         
 
-          elem(ie)%state%Q(i,j,:,:) = forecast_q(:,:)
+            ! Update the q related arrays.  NOTE that Qdp array must
+            !  be updated first to ensure exact restarts
+            do m=1,pcnst
+              ! Update the Qdp array
+              elem(ie)%state%Qdp(i,j,:nlev,m,tlQdp) = &
+                forecast_q(:nlev,m) * dpscm(i,j,:nlev)
+              ! Update the Q array
+              elem(ie)%state%Q(i,j,:nlev,m) = &
+                elem(ie)%state%Qdp(i,j,:nlev,m,tlQdp)/dpscm(i,j,:nlev)
+            enddo
 
 #ifdef MODEL_THETA_L
           ! If running theta-l model then the forecast temperature needs
@@ -320,7 +336,7 @@ subroutine apply_SC_forcing(elem,hvcoord,hybrid,tl,n,t_before_advance,nets,nete)
 #endif
           elem(ie)%state%v(i,j,1,:,t1) = forecast_u(:)
           elem(ie)%state%v(i,j,2,:,t1) = forecast_v(:)
-  
+
           tdiff_out(i+(j-1)*np,:)=tdiff_dyn(:)
           qdiff_out(i+(j-1)*np,:)=qdiff_dyn(:)
   
@@ -336,7 +352,7 @@ subroutine apply_SC_forcing(elem,hvcoord,hybrid,tl,n,t_before_advance,nets,nete)
       endif
     
     enddo
-    
+
     if ((iop_nudge_tq .or. iop_nudge_uv) .and. dp_crm) then
       ! If running in a doubly periodic CRM mode, then nudge the domain
       !   based on the domain mean and observed quantities of T, Q, u, and v

@@ -18,7 +18,7 @@ module stepon
    use physics_types,  only: physics_state, physics_tend
    use dyn_comp,       only: dyn_import_t, dyn_export_t
    use perf_mod,       only: t_startf, t_stopf, t_barrierf
-   use time_manager,   only: get_step_size
+   use time_manager,   only: get_step_size, is_first_restart_step
 ! from SE
    use derivative_mod, only: derivinit, derivative_t
    use viscosity_mod, only : compute_zeta_C0, compute_div_C0
@@ -209,11 +209,19 @@ subroutine stepon_run1( dtime_out, phys_state, phys_tend,               &
   
   if (use_iop .and. .not. is_last_step()) then
     if (masterproc) call setiopupdate
-  end if
+  end if 
   
   if (single_column) then
+    if (is_first_restart_step()) then
+      iop_update_phase1 = .false.
+      call scm_setinitial(elem)
+      if (masterproc) call readiopdata( iop_update_phase1,hyam,hybm )
+      call scm_broadcast()
+    endif
     iop_update_phase1 = .true. 
-    if (doiopupdate .and. masterproc) call readiopdata( iop_update_phase1,hyam,hybm )
+    if ((is_first_restart_step() .or. doiopupdate) .and. masterproc) then
+      call readiopdata( iop_update_phase1,hyam,hybm )
+    endif
     call scm_broadcast()
     if (.not. dp_crm) call scm_setfield(elem,iop_update_phase1)
   endif
