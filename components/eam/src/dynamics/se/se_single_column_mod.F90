@@ -105,20 +105,22 @@ subroutine scm_setinitial(elem)
               if (dp_crm) elem(ie)%derived%omega_p(i,j,k) = 0.0_real_kind
             enddo
 
-            ! If DP-CRM mode then SHOC/CLUBB needs to know about grid
-            !   length size.  The calculations of this based on a sphere in the
-            !   SHOC and CLUBB interefaces are not valid for a planar grid, thus
-            !   save the grid length from the dycore. Note that planar dycore
-            !   only supports uniform grids, thus we only save one value.
-            if (dp_crm) then
-              ! convert from km to m
-              dyn_dx_size = elem(ie)%dx_short * 1000.0_real_kind
-            endif
-
           endif
 
         enddo
       enddo
+    enddo
+  endif
+
+  ! If DP-CRM mode then SHOC/CLUBB needs to know about grid
+  !   length size.  The calculations of this based on a sphere in the
+  !   SHOC and CLUBB interefaces are not valid for a planar grid, thus
+  !   save the grid length from the dycore. Note that planar dycore
+  !   only supports uniform grids, thus we only save one value.
+  ! Set this if it is the first time step or the first restart step
+  if ((get_nstep() .eq. 0 .or. is_first_restart_step()) .and. dp_crm .and. par%dynproc) then
+    do ie=1,nelemd
+        dyn_dx_size = elem(ie)%dx_short * 1000.0_real_kind
     enddo
   endif
 

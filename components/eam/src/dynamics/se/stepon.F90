@@ -206,9 +206,10 @@ subroutine stepon_run1( dtime_out, phys_state, phys_tend,               &
    
   ! Determine whether it is time for an IOP update;
   ! doiopupdate set to true if model time step > next available IOP 
-  
-  if (use_iop .and. .not. is_last_step()) then
+
+  if (use_iop) then
     if (masterproc) call setiopupdate
+    if (masterproc .and. is_first_restart_step() ) call setiopupdate(override_init=.true.)
   end if 
   
   if (single_column) then
