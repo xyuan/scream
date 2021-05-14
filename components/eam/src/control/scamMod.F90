@@ -539,6 +539,12 @@ subroutine setiopupdate(override_init)
    save last_date, last_sec
 !------------------------------------------------------------------------------
 
+   ! If this is a restart then the initialization and main section of this
+   !   subroutine both need to be called, thus develop a flag to instruct
+   !   to skip the initialization part when this subroutine is called for
+   !   a second.
+   ! NOTE: this subroutine will be refactored into two separate subroutines
+   !   ahead of the DP-SCREAM cpp conversion to avoid this goofy behavior.
    override = .false.
    if (present(override_init)) then
      override = override_init
