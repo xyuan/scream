@@ -388,6 +388,7 @@ _TESTS = {
             "PEM.ne4pg2_ne4pg2.F2010-SCREAM-HR",
             "PEM.ne4pg2_ne4pg2.F2010-SCREAM-LR",
             "SMS_R_Ln10.ne4_ne4.FDPSCREAMA97.dp-scream",
+            "ERS_R_Ln10.ne4_ne4.FDPSCREAMA97.dp-scream",
             )
     },
 

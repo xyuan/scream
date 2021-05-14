@@ -24,7 +24,6 @@ module ncdio_pio
   use decompMod      , only : get_elmlevel_gsize,get_elmlevel_gsmap
   use perf_mod       , only : t_startf, t_stopf
   use fileutils      , only : getavu, relavu
-  use clm_time_manager, only : is_first_restart_step
   use mct_mod        , only : mct_gsMap, mct_gsMap_lsize, mct_gsMap_gsize, mct_gsMap_orderedPoints
   use pio            , only : file_desc_t, io_desc_t, iosystem_desc_t, pio_64bit_offset
   use pio            , only : pio_bcast_error, pio_char, pio_clobber, pio_closefile, pio_createfile, pio_def_dim
@@ -1288,7 +1287,7 @@ contains
     integer           :: status             ! error code
     logical           :: varpresent         ! if true, variable is on tape
     logical           :: found              ! if true, found lat/lon dims on file
-    logical           :: restart_file       !
+    logical           :: scm_restart_file   ! is this a restart file in SCM mode?
     character(len=32) :: vname              ! variable error checking
     type(var_desc_t)  :: vardesc            ! local vardesc pointer
     {VTYPE} :: temp(1)
@@ -1302,7 +1301,15 @@ contains
 
     if (flag == 'read') then
 
-       call is_restart_file(ncid, restart_file)
+       ! If running SCM mode then check to see if this is a restart file
+       !   or not.  If it is a restart file then the standard PIO routines
+       !   will be activated, if not then the specialized routines specific
+       !   for SCM and SCM mult cols will be used.
+       if (scm_multcols .or. single_column) then
+         call is_restart_file_scmmode(ncid, scm_restart_file)
+       else
+         scm_restart_file = .false.
+       endif
 
        call ncd_inqvid(ncid, varname, varid, vardesc, readvar=varpresent)
 
@@ -1318,7 +1325,7 @@ contains
        end if
 #else
        if (varpresent) then
-          if ((scm_multcols .or. single_column) .and. .not. restart_file) then
+          if ((scm_multcols .or. single_column) .and. .not. scm_restart_file) then
              call scam_field_offsets(ncid,'undefined', vardesc,&
                   start, count, found=found, posNOTonfile=posNOTonfile)
              if ( found )then
@@ -1498,7 +1505,7 @@ end subroutine ncd_io_{DIMS}d_{TYPE}_glob
     integer                          :: count_iop1d(1)   ! netcdf count index
     integer                          :: status     ! error code  
     logical                          :: varpresent ! if true, variable is on tape
-    logical                          :: restart_file
+    logical                          :: scm_restart_file ! restart file in SCM mode?
     integer                , pointer :: idata(:)   ! Temporary integer data to send to file
     integer                , pointer :: compDOF(:)
     type(iodesc_plus_type) , pointer :: iodesc_plus
@@ -1511,7 +1518,11 @@ end subroutine ncd_io_{DIMS}d_{TYPE}_glob
 
     elmlevel = dim1name
 
-    call is_restart_file(ncid, restart_file)
+    if (scm_multcols .or. single_column) then
+      call is_restart_file_scmmode(ncid, scm_restart_file)
+    else
+      scm_restart_file = .false.
+    endif
 
     if (masterproc .and. debug > 1) then
        write(iulog,*) subname//' ',trim(flag),' ',trim(varname),' ',trim(elmlevel)
@@ -1530,7 +1541,7 @@ end subroutine ncd_io_{DIMS}d_{TYPE}_glob
 
        call ncd_inqvid(ncid, varname, varid, vardesc, readvar=varpresent)
        if (varpresent) then
-          if ((scm_multcols .or. single_column) .and. .not. restart_file) then
+          if ((scm_multcols .or. single_column) .and. .not. scm_restart_file) then
              start(:) = 1 ; count(:) = 1
              call scam_field_offsets(ncid,elmlevel,vardesc,start,count)
              if (present(nt)) then
@@ -1714,7 +1725,7 @@ end subroutine ncd_io_{DIMS}d_{TYPE}_glob
     integer           :: start_iop3d(3)   ! netcdf start index
     integer           :: count_iop3d(3)   ! netcdf count index
     logical           :: varpresent ! if true, variable is on tape
-    logical           :: restart_file
+    logical           :: scm_restart_file ! restart file in SCM mode?
     integer           :: lb1,lb2
     integer           :: ub1,ub2
     integer           :: offset, ii, jj
@@ -1728,7 +1739,11 @@ end subroutine ncd_io_{DIMS}d_{TYPE}_glob
 
     elmlevel = dim1name
 
-    call is_restart_file(ncid, restart_file)
+    if (scm_multcols .or. single_column) then
+      call is_restart_file_scmmode(ncid, scm_restart_file)
+    else
+      scm_restart_file = .false.
+    endif
 
     if (masterproc .and. debug > 1) then
        write(iulog,*) trim(subname),' ',trim(flag),' ',trim(varname),' ',trim(elmlevel)
@@ -1758,7 +1773,7 @@ end subroutine ncd_io_{DIMS}d_{TYPE}_glob
 
        call ncd_inqvid(ncid, varname, varid, vardesc, readvar=varpresent)
        if (varpresent) then
-          if ((scm_multcols .or. single_column) .and. .not. restart_file) then
+          if ((scm_multcols .or. single_column) .and. .not. scm_restart_file) then
              start(:) = 1 ; count(:) = 1
              call scam_field_offsets(ncid, elmlevel, vardesc, start, count)
                 if (present(nt)) then
@@ -1995,7 +2010,7 @@ end subroutine ncd_io_{DIMS}d_{TYPE}_glob
     integer                          :: start_iop4d(4)   ! netcdf start index
     integer                          :: count_iop4d(4)   ! netcdf count index
     logical                          :: varpresent ! if true, variable is on tape
-    logical                          :: restart_file
+    logical                          :: scm_restart_file ! restart file in SCM mode
     type(iodesc_plus_type) , pointer :: iodesc_plus
     type(var_desc_t)                 :: vardesc
     character(len=*),parameter :: subname='ncd_io_3d_{TYPE}' ! subroutine name
@@ -2003,7 +2018,11 @@ end subroutine ncd_io_{DIMS}d_{TYPE}_glob
 
     elmlevel = dim1name
 
-    call is_restart_file(ncid, restart_file)
+    if (scm_multcols .or. single_column) then
+      call is_restart_file_scmmode(ncid, scm_restart_file)
+    else
+      scm_restart_file = .false.
+    endif
 
     if (masterproc .and. debug > 1) then
        write(iulog,*) trim(subname),' ',trim(flag),' ',trim(varname),' ',trim(elmlevel)
@@ -2013,7 +2032,7 @@ end subroutine ncd_io_{DIMS}d_{TYPE}_glob
 
        call ncd_inqvid(ncid, varname, varid, vardesc, readvar=varpresent)
        if (varpresent) then
-          if ((scm_multcols .or. single_column) .and. .not. restart_file) then
+          if ((scm_multcols .or. single_column) .and. .not. scm_restart_file) then
              start(:) = 1 
              count(:) = 1
              call scam_field_offsets(ncid, elmlevel, vardesc, start, count)
@@ -2330,45 +2349,53 @@ end subroutine ncd_io_{DIMS}d_{TYPE}_glob
 
   !------------------------------------------------------------------------
 
-  subroutine is_restart_file(ncid, restart_file)
-
-  ! USES:
-  use clm_time_manager, only : is_first_restart_step
+  subroutine is_restart_file_scmmode(ncid, restart_file)
 
   implicit none
 
   ! DESCRIPTION:
   ! determines if the input file is a restart file.  This is important to determine
-  !  for doubly-periodic CRM mode because we need to know if we are calling the
-  !  standard PIO routines (for a restart file) or the specialized ones that are
-  !  used for SCM mode.
+  !  for doubly-periodic CRM mode (SCM mult columns) because we need to know if we are
+  !  calling the standard PIO routines (for a restart file) or the specialized ones
+  !  that are used for SCM mode.  Note that this routine is specific for determining
+  !  restarts ONLY for DP CRM mode.
 
   ! ARGUMENTS:
   class(file_desc_t), intent(inout) :: ncid         ! netcdf file id
   logical, intent(out) :: restart_file
 
   ! LOCAL VARIABLES:
-  integer :: ni, ier, dimid
+  integer :: ni, ier1, ier2, dimid
   character (len = 80) :: title
   !------------------------------------------------------------------------
 
-  ! initialize value to default
+  ! Initialize value to default
   restart_file = .false.
-  ier = pio_inq_dimid(ncid, 'gridcell', dimid)
-  if (ier == PIO_NOERR) then
-    ier = pio_inq_dimlen(ncid, dimid, ni)
-    if (ni == scm_nx .and. is_first_restart_step() ) then
-      ier = pio_get_att(ncid, pio_global, 'title', title)
-      if (ier == PIO_NOERR) then
-        if (title == "ELM Restart information" .or. title == &
-            "ELM Restart History information, required to continue a simulation") then
-          restart_file = .true.
-        endif
-      endif
+
+  ! Check to see if one of the dimensions is "gridcell"
+  ier1 = pio_inq_dimid(ncid, 'gridcell', dimid)
+  ! Check to see if the attribute "title" exists
+  ier2 = pio_get_att(ncid, pio_global, 'title', title)
+
+  ! A restart file needs to pass the above to requirements
+  if (ier1 == PIO_NOERR .and. ier2 == PIO_NOERR) then
+    ! Determine the number of columns in the restart file
+    ier1 = pio_inq_dimlen(ncid, dimid, ni)
+    ! Get the title from the attribute
+    ier2 = pio_get_att(ncid, pio_global, 'title', title)
+
+    ! Final check, for DP-CRM restart file then the number of columns should be
+    !  identical to the number of SCM columns.  If not, this file is not a restart
+    !  file.  For protection against happenstance, also make sure the attribute
+    !  title is that which is typically wrote out for restarts.
+    if (ni == scm_nx .and. (title == "ELM Restart information" .or. title == &
+      "ELM Restart History information, required to continue a simulation")) then
+
+      restart_file = .true.
     endif
   endif
 
-  end subroutine is_restart_file
+  end subroutine is_restart_file_scmmode
 
   !------------------------------------------------------------------------
 
