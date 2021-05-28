@@ -11,6 +11,9 @@
 #include "ekat/ekat_pack.hpp"
 #include "ekat/ekat_parse_yaml_file.hpp"
 
+#include "physics/p3/p3_ic_cases.hpp"
+#include "physics/p3/p3_f90.hpp"
+#include "physics/p3/p3_functions_f90.hpp"
 namespace scream {
 
 // === A dummy physics grids for this test === //
@@ -18,8 +21,10 @@ namespace scream {
 TEST_CASE("p3-stand-alone", "") {
   using namespace scream;
   using namespace scream::control;
+  using namespace scream::p3;
 
-  constexpr int num_iters = 10;
+  constexpr int num_iters = 1;
+  constexpr Real dt=300.0;
 
   // Load ad parameter list
   std::string fname = "input.yaml";
@@ -46,8 +51,33 @@ TEST_CASE("p3-stand-alone", "") {
   // Init and run (do not finalize, or you'll clear the field repo!)
   util::TimeStamp time (0,0,0,0);
   ad.initialize(atm_comm,ad_params,time);
+
+  /* ---------------------------------------------------------------
+   * setup for stand-alone test against p3_run_and_cmp baseline.
+   * Check for BFB
+   * --------------------------------------------------------------
+   */
+  // Get dimension sizes from the field manager
+  const auto& grid = ad.get_grids_manager()->get_grid("Physics");
+  const auto& field_mgr = *ad.get_field_mgr(grid->name());
+  int ncol = grid->get_num_local_dofs();
+  int nlev = grid->get_num_vertical_levels();
+
+  // Setup test case following p3_run_and_cmp
+  const auto F90_data = ic::Factory::create(ic::Factory::mixed, ncol);
+  F90_data->dt = dt;
+  F90_data->it = num_iters;
+  F90_data->do_predict_nc = false;
+  F90_data->do_prescribed_CCN = false;
+
+  p3_init();
   for (int i=0; i<num_iters; ++i) {
-    ad.run(300.0);
+     p3_main(*F90_data, false);
+  }
+
+  // Resume running AD
+  for (int i=0; i<num_iters; ++i) {
+    ad.run(dt);
   }
 
   // TODO: get the field repo from the driver, and go get (one of)
