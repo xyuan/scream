@@ -20,6 +20,12 @@ Grids Manager:
 # The name of the file containing the initial conditions for this test.
 Initial Conditions:
   Initial Conditions File: p3_standalone_ne4np4.nc
+  inv_exner: 0.0
+  th_atm: 0.0
+  cld_frac_l: 0.0
+  cld_frac_i: 0.0
+  cld_frac_r: 0.0
+  dz: 0.0
 
 # The name of the output control file for this test.
 Output Manager:

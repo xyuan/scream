@@ -63,6 +63,14 @@ void P3Microphysics::set_grids(const std::shared_ptr<const GridsManager> grids_m
   add_field<Required>("z_int",       scalar3d_layout_int, m,      grid_name, ps);
   add_field<Updated> ("T_mid",       scalar3d_layout_mid, K,      grid_name, ps);  // T_mid is the only one of these variables that is also updated.
 
+  // extra fields for testing right now
+  add_field<Required>( "inv_exner",  scalar3d_layout_mid, nondim, grid_name, ps);
+  add_field<Updated>(  "th_atm",     scalar3d_layout_mid, K,      grid_name, ps);
+  add_field<Required>( "cld_frac_l", scalar3d_layout_mid, nondim, grid_name, ps);
+  add_field<Required>( "cld_frac_i", scalar3d_layout_mid, nondim, grid_name, ps);
+  add_field<Required>( "cld_frac_r", scalar3d_layout_mid, nondim, grid_name, ps);
+  add_field<Required>( "dz",         scalar3d_layout_mid, m,      grid_name, ps);
+  //
   // Prognostic State:  (all fields are both input and output)
   add_field<Updated>("qv",     scalar3d_layout_mid, Q,    grid_name, "tracers", ps);
   add_field<Updated>("qc",     scalar3d_layout_mid, Q,    grid_name, "tracers", ps);
@@ -112,6 +120,14 @@ void P3Microphysics::initialize_impl (const util::TimeStamp& t0)
   const  auto& cld_frac_t     = m_p3_fields_in["cldfrac_tot"].get_reshaped_view<const Pack**>();
   const  auto& zi             = m_p3_fields_in["z_int"].get_reshaped_view<const Pack**>();
   const  auto& qv             = m_p3_fields_out["qv"].get_reshaped_view<Pack**>();
+  // extra fields for testing right now
+  const auto& inv_exner_4test  = m_p3_fields_in["inv_exner"].get_reshaped_view<const Pack**>(); 
+  const auto& th_atm_4test     = m_p3_fields_out["th_atm"].get_reshaped_view<Pack**>();
+  const auto& cld_frac_l_4test = m_p3_fields_in["cld_frac_l"].get_reshaped_view<const Pack**>();
+  const auto& cld_frac_i_4test = m_p3_fields_in["cld_frac_i"].get_reshaped_view<const Pack**>();
+  const auto& cld_frac_r_4test = m_p3_fields_in["cld_frac_r"].get_reshaped_view<const Pack**>();
+  const auto& dz_4test         = m_p3_fields_in["dz"].get_reshaped_view<const Pack**>(); 
+  //
   view_2d inv_exner("inv_exner",m_num_cols,nk_pack);
   view_2d th_atm("th_atm",m_num_cols,nk_pack);
   view_2d cld_frac_l("cld_frac_l",m_num_cols,nk_pack);
@@ -130,24 +146,24 @@ void P3Microphysics::initialize_impl (const util::TimeStamp& t0)
   prog_state.qm     = m_p3_fields_out["qm"].get_reshaped_view<Pack**>();
   prog_state.ni     = m_p3_fields_out["ni"].get_reshaped_view<Pack**>();
   prog_state.bm     = m_p3_fields_out["bm"].get_reshaped_view<Pack**>();
-  prog_state.th     = p3_preproc.th_atm;
-  prog_state.qv     = p3_preproc.qv;
+  prog_state.th     = th_atm_4test; //m_p3_fields_out["th_atm"].get_reshaped_view<Pack**>(); //p3_preproc.th_atm;
+  prog_state.qv     = qv; //m_p3_fields_out["qv"].get_reshaped_view<Pack**>(); //p3_preproc.qv;
   // --Diagnostic Input Variables:
   diag_inputs.nc_nuceat_tend  = m_p3_fields_in["nc_nuceat_tend"].get_reshaped_view<const Pack**>();
   diag_inputs.nccn            = m_p3_fields_in["nc_activated"].get_reshaped_view<const Pack**>();
   diag_inputs.ni_activated    = m_p3_fields_in["ni_activated"].get_reshaped_view<const Pack**>();
   diag_inputs.inv_qc_relvar   = m_p3_fields_in["inv_qc_relvar"].get_reshaped_view<const Pack**>();
   diag_inputs.pres            = m_p3_fields_in["p_mid"].get_reshaped_view<const Pack**>();
-  diag_inputs.dpres           = p3_preproc.pseudo_density;
+  diag_inputs.dpres           = m_p3_fields_in["pseudo_density"].get_reshaped_view<const Pack**>(); //p3_preproc.pseudo_density;
   auto qv_prev                = m_p3_fields_out["qv_prev_micro_step"].get_reshaped_view<Pack**>();
   diag_inputs.qv_prev         = qv_prev;
   auto t_prev                 = m_p3_fields_out["T_prev_micro_step"].get_reshaped_view<Pack**>();
   diag_inputs.t_prev          = t_prev;
-  diag_inputs.cld_frac_l      = p3_preproc.cld_frac_l;
-  diag_inputs.cld_frac_i      = p3_preproc.cld_frac_i;
-  diag_inputs.cld_frac_r      = p3_preproc.cld_frac_r;
-  diag_inputs.dz              = p3_preproc.dz;
-  diag_inputs.inv_exner       = p3_preproc.inv_exner;
+  diag_inputs.cld_frac_l      = m_p3_fields_in["cld_frac_l"].get_reshaped_view<const Pack**>(); //p3_preproc.cld_frac_l;
+  diag_inputs.cld_frac_i      = m_p3_fields_in["cld_frac_i"].get_reshaped_view<const Pack**>(); //p3_preproc.cld_frac_i;
+  diag_inputs.cld_frac_r      = m_p3_fields_in["cld_frac_r"].get_reshaped_view<const Pack**>(); //p3_preproc.cld_frac_r;
+  diag_inputs.dz              = m_p3_fields_in["dz"].get_reshaped_view<const Pack**>(); //p3_preproc.dz;
+  diag_inputs.inv_exner       = m_p3_fields_in["inv_exner"].get_reshaped_view<const Pack**>(); //p3_preproc.inv_exner;
   // --Diagnostic Outputs
   view_1d precip_liq_surf("precip_liq_surf",m_num_cols);
   view_1d precip_ice_surf("precip_ice_surf",m_num_cols);
@@ -203,13 +219,13 @@ void P3Microphysics::run_impl (const Real dt)
     it.second.sync_to_dev();
   }
 
-  // Assign values to local arrays used by P3, these are now stored in p3_loc.
-  Kokkos::parallel_for(
-    "p3_main_local_vals",
-    Kokkos::RangePolicy<>(0,m_num_cols),
-    p3_preproc
-  ); // Kokkos::parallel_for(p3_main_local_vals)
-  Kokkos::fence();
+//  // Assign values to local arrays used by P3, these are now stored in p3_loc.
+//  Kokkos::parallel_for(
+//    "p3_main_local_vals",
+//    Kokkos::RangePolicy<>(0,m_num_cols),
+//    p3_preproc
+//  ); // Kokkos::parallel_for(p3_main_local_vals)
+//  Kokkos::fence();
 
   // Update the variables in the p3 input structures with local values.
 
