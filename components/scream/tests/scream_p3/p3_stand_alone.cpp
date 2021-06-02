@@ -25,6 +25,7 @@ using MemberType = KT::MemberType;
 using real_view_2d = typename KT::template view_2d<Real>;
 
 void print_sum(const int ncol, const int nlev, const std::string name, const Real* x);
+void calculate_diff(const int ncol, const int nlev, const std::string name, const Real* x0, const Real* x1);
 
 TEST_CASE("p3-stand-alone", "") {
   using namespace scream;
@@ -75,8 +76,8 @@ TEST_CASE("p3-stand-alone", "") {
   const auto F90_data = ic::Factory::create(ic::Factory::mixed, ncol);
   F90_data->dt = dt;
   F90_data->it = num_iters;
-  F90_data->do_predict_nc = false;
-  F90_data->do_prescribed_CCN = false;
+  F90_data->do_predict_nc = true;
+  F90_data->do_prescribed_CCN = true;
 
   // Set the FM variables passed to P3 through the AD to the values set by the
   // Fortran Data Iterator
@@ -108,9 +109,11 @@ TEST_CASE("p3-stand-alone", "") {
   auto dz                 = field_mgr.get_field("dz").get_reshaped_view<Real**>(); 
   {
   const auto policy = ekat::ExeSpaceUtils<ExeSpace>::get_default_team_policy(ncol, nlev);
-  Kokkos::parallel_for(policy, KOKKOS_LAMBDA(const MemberType& team) {
-    const int i = team.league_rank();
-    Kokkos::parallel_for(Kokkos::TeamThreadRange(team, nlev), [&] (const int& k) {
+//ASD  Kokkos::parallel_for(policy, KOKKOS_LAMBDA(const MemberType& team) {
+//ASD    const int i = team.league_rank();
+  Kokkos::parallel_for( ncol, [&] (const int& i) {
+    Kokkos::parallel_for(nlev, [&] (const int& k) {
+//ASD    Kokkos::parallel_for(Kokkos::TeamThreadRange(team, nlev), [&] (const int& k) {
       pmid              (i,k)  = F90_data->pres(i,k) ;
       pseudo_density    (i,k)  = F90_data->dpres(i,k) ;
       cld_frac_t        (i,k)  = F90_data->cld_frac_l(i,k) ;
@@ -137,25 +140,72 @@ TEST_CASE("p3-stand-alone", "") {
       dz                (i,k)  = F90_data->dz(i,k) ;
       // Missing: z_int, T_mid
     });
+    Kokkos::fence();
   });
-
-  }
   Kokkos::fence();
-  print_sum(ncol,nlev,"f90 qv",F90_data->qv.data());
-  print_sum(ncol,nlev,"scream qv",qv.data());
+  }
   
-
+  std::vector<Real*> scream_check;
+  std::vector<Real*> F90_check;
+  std::vector<std::string> name_check;
+  name_check.push_back("qv");
+  name_check.push_back("qc");
+  name_check.push_back("nc");
+  name_check.push_back("qr");
+  name_check.push_back("nr");
+  name_check.push_back("qi");
+  name_check.push_back("qm");
+  name_check.push_back("ni");
+  name_check.push_back("bm");
+  name_check.push_back("th_atm");
+  name_check.push_back("qv_prev");
+  name_check.push_back("t_prev");
+  scream_check.push_back(qv.data());
+  scream_check.push_back(qc.data());
+  scream_check.push_back(nc.data());
+  scream_check.push_back(qr.data());
+  scream_check.push_back(nr.data());
+  scream_check.push_back(qi.data());
+  scream_check.push_back(qm.data());
+  scream_check.push_back(ni.data());
+  scream_check.push_back(bm.data());
+  scream_check.push_back(th_atm.data());
+  scream_check.push_back(qv_prev.data());
+  scream_check.push_back(t_prev.data());
+  F90_check.push_back(F90_data->qv.data());
+  F90_check.push_back(F90_data->qc.data());
+  F90_check.push_back(F90_data->nc.data());
+  F90_check.push_back(F90_data->qr.data());
+  F90_check.push_back(F90_data->nr.data());
+  F90_check.push_back(F90_data->qi.data());
+  F90_check.push_back(F90_data->qm.data());
+  F90_check.push_back(F90_data->ni.data());
+  F90_check.push_back(F90_data->bm.data());
+  F90_check.push_back(F90_data->th_atm.data());
+  F90_check.push_back(F90_data->qv_prev.data());
+  F90_check.push_back(F90_data->t_prev.data());
   // Run p3_run_and_cmp type simulation
   p3_init();
-  for (int i=0; i<num_iters; ++i) {
-     p3_main(*F90_data, true);
-     print_sum(ncol,nlev,"f90 ",F90_data->th_atm.data());
+  printf("-----------------\n");
+  printf("INIT: ...\n");
+  for (int fi=0;fi<name_check.size();fi++) {
+    printf("---- %s:\n",name_check[fi].c_str());
+    calculate_diff(ncol,nlev,name_check[fi],scream_check[fi],F90_check[fi]);
+    print_sum(ncol,nlev,"scream ",scream_check[fi]);
+    print_sum(ncol,nlev,"f90 ",F90_check[fi]);
   }
-
   // Resume running AD
   for (int i=0; i<num_iters; ++i) {
     ad.run(dt);
-    print_sum(ncol,nlev,"scream ",th_atm.data());
+    p3_main(*F90_data, true);
+    printf("-----------------\n");
+    printf("Iteration: %2d...\n",i);
+    for (int fi=0;fi<name_check.size();fi++) {
+      printf("---- %s:\n",name_check[fi].c_str());
+      calculate_diff(ncol,nlev,name_check[fi],scream_check[fi],F90_check[fi]);
+      print_sum(ncol,nlev,"scream ",scream_check[fi]);
+      print_sum(ncol,nlev,"f90 ",F90_check[fi]);
+    }
   }
 
   // TODO: get the field repo from the driver, and go get (one of)
@@ -177,6 +227,22 @@ void print_sum(const int ncol, const int nlev, const std::string name, const Rea
   Kokkos::fence();
 
   printf("Total sum for %s: %e\n",name.c_str(),result);
+}
+
+void calculate_diff(const int ncol, const int nlev, const std::string name, const Real* x0, const Real* x1)
+{
+  Real result;
+  Kokkos::parallel_reduce(ncol*nlev, [&] (const int& i, Real& m_sum) {
+    m_sum += std::abs(x0[i]-x1[i]);
+  },result);
+  Kokkos::fence();
+  int numfail;
+  Kokkos::parallel_reduce(ncol*nlev, [&] (const int& i, int& m_sum) {
+    if (std::abs(x0[i]-x1[i])>0) { m_sum += 1; }
+  },numfail);
+  Kokkos::fence();
+
+  printf("Total diff for %s: %e, from %d/%d diffs\n",name.c_str(),result,numfail,ncol*nlev);
 }
 
 } // empty namespace
