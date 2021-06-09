@@ -136,7 +136,7 @@ void P3Microphysics::initialize_impl (const util::TimeStamp& t0)
   view_2d dz("dz",m_num_cols,nk_pack);
   // -- Set values for the post-amble structure
   p3_preproc.set_variables(m_num_cols,nk_pack,pmid,pseudo_density,T_atm,cld_frac_t,qv,
-                        inv_exner, th_atm, cld_frac_l, cld_frac_i, cld_frac_r, dz);
+                        inv_exner, th_atm_4test, cld_frac_l, cld_frac_i, cld_frac_r, dz);
   // --Prognostic State Variables:
   prog_state.qc     = m_p3_fields_out["qc"].get_reshaped_view<Pack**>();
   prog_state.nc     = m_p3_fields_out["nc"].get_reshaped_view<Pack**>();
@@ -146,7 +146,8 @@ void P3Microphysics::initialize_impl (const util::TimeStamp& t0)
   prog_state.qm     = m_p3_fields_out["qm"].get_reshaped_view<Pack**>();
   prog_state.ni     = m_p3_fields_out["ni"].get_reshaped_view<Pack**>();
   prog_state.bm     = m_p3_fields_out["bm"].get_reshaped_view<Pack**>();
-  prog_state.th     = th_atm_4test; //m_p3_fields_out["th_atm"].get_reshaped_view<Pack**>(); //p3_preproc.th_atm;
+//ASD  prog_state.th     = th_atm_4test; //m_p3_fields_out["th_atm"].get_reshaped_view<Pack**>(); //p3_preproc.th_atm;
+  prog_state.th     = p3_preproc.th_atm;
   prog_state.qv     = qv; //m_p3_fields_out["qv"].get_reshaped_view<Pack**>(); //p3_preproc.qv;
   // --Diagnostic Input Variables:
   diag_inputs.nc_nuceat_tend  = m_p3_fields_in["nc_nuceat_tend"].get_reshaped_view<const Pack**>();
@@ -162,8 +163,10 @@ void P3Microphysics::initialize_impl (const util::TimeStamp& t0)
   diag_inputs.cld_frac_l      = m_p3_fields_in["cld_frac_l"].get_reshaped_view<const Pack**>(); //p3_preproc.cld_frac_l;
   diag_inputs.cld_frac_i      = m_p3_fields_in["cld_frac_i"].get_reshaped_view<const Pack**>(); //p3_preproc.cld_frac_i;
   diag_inputs.cld_frac_r      = m_p3_fields_in["cld_frac_r"].get_reshaped_view<const Pack**>(); //p3_preproc.cld_frac_r;
-  diag_inputs.dz              = m_p3_fields_in["dz"].get_reshaped_view<const Pack**>(); //p3_preproc.dz;
-  diag_inputs.inv_exner       = m_p3_fields_in["inv_exner"].get_reshaped_view<const Pack**>(); //p3_preproc.inv_exner;
+//ASD  diag_inputs.dz              = m_p3_fields_in["dz"].get_reshaped_view<const Pack**>(); //p3_preproc.dz;
+  diag_inputs.dz              = p3_preproc.dz;
+//ASD  diag_inputs.inv_exner       = m_p3_fields_in["inv_exner"].get_reshaped_view<const Pack**>(); //p3_preproc.inv_exner;
+  diag_inputs.inv_exner       = p3_preproc.inv_exner;
   // --Diagnostic Outputs
   view_1d precip_liq_surf("precip_liq_surf",m_num_cols);
   view_1d precip_ice_surf("precip_ice_surf",m_num_cols);
@@ -219,13 +222,13 @@ void P3Microphysics::run_impl (const Real dt)
     it.second.sync_to_dev();
   }
 
-//  // Assign values to local arrays used by P3, these are now stored in p3_loc.
-//  Kokkos::parallel_for(
-//    "p3_main_local_vals",
-//    Kokkos::RangePolicy<>(0,m_num_cols),
-//    p3_preproc
-//  ); // Kokkos::parallel_for(p3_main_local_vals)
-//  Kokkos::fence();
+  // Assign values to local arrays used by P3, these are now stored in p3_loc.
+  Kokkos::parallel_for(
+    "p3_main_local_vals",
+    Kokkos::RangePolicy<>(0,m_num_cols),
+    p3_preproc
+  ); // Kokkos::parallel_for(p3_main_local_vals)
+  Kokkos::fence();
 
   // Update the variables in the p3 input structures with local values.
 

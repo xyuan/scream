@@ -1,5 +1,6 @@
 #include "p3_ic_cases.hpp"
 #include "physics_constants.hpp"
+#include "share/util/scream_common_physics_functions.hpp"
 
 #include "ekat/ekat_assert.hpp"
 
@@ -7,6 +8,7 @@ namespace scream {
 namespace p3 {
 namespace ic {
 
+  using PF           = scream::PhysicsFunctions<DefaultDevice>;
 // From mixed_case_data.py in scream-docs at commit 4bbea4.
 FortranData::Ptr make_mixed (const Int ncol) {
   using consts = scream::physics::Constants<Real>;
@@ -50,7 +52,8 @@ FortranData::Ptr make_mixed (const Int ncol) {
     // dpres is actually an input variable, but needed here to compute theta.
     for (k = 0; k < nk; ++k) d.dpres(i,k) = 1e5/double(nk);
     // inv_exner is actually an input variable, but needed here to compute theta.
-    for (k = 0; k < nk; ++k) d.inv_exner(i,k) = std::pow((1e5/d.pres(i,k)), (287.15/1005.0));
+//    for (k = 0; k < nk; ++k) d.inv_exner(i,k) = std::pow((1e5/d.pres(i,k)), (287.15/1005.0));
+    for (k = 0; k < nk; ++k) d.inv_exner(i,k) = 1.0/PF::exner_function(d.pres(i,k));
     // cloud fraction is an input variable, just set to 1 everywhere
     for (k = 0; k < nk; ++k) d.cld_frac_i(i,k) = 1.0;
     for (k = 0; k < nk; ++k) d.cld_frac_l(i,k) = 1.0;
@@ -67,7 +70,8 @@ FortranData::Ptr make_mixed (const Int ncol) {
     for (k = 0; k < nk; ++k) {
       T_atm(k) = 150 + 150/double(nk)*k;
       if (i > 0) T_atm(k) += ((i % 3) - 0.5)/double(nk)*k;
-      d.th_atm(i,k) = T_atm(k)*std::pow(Real(consts::P0/d.pres(i,k)), Real(consts::RD/consts::CP));
+      //d.th_atm(i,k) = T_atm(k)*std::pow(Real(consts::P0/d.pres(i,k)), Real(consts::RD/consts::CP));
+      d.th_atm(i,k) = PF::calculate_theta_from_T(T_atm(k),d.pres(i,k));
     }
 
     // The next section modifies inout variables to satisfy weird conditions
@@ -112,7 +116,10 @@ FortranData::Ptr make_mixed (const Int ncol) {
         d.pres(i,nk-1) + 0.5*(d.pres(i,nk-1) - d.pres(i,nk-2))/(1 - 0) :
         0.5*(d.pres(i,k) + d.pres(i,k+1));
       const auto dpres = phi - plo;
-      d.dz(i,k) = consts::RD*T_atm(k)/(g*d.pres(i,k))*dpres;
+//      d.dz(i,k) = consts::RD*T_atm(k)/(g*d.pres(i,k))*dpres;
+      T_atm(k) = 150 + 150/double(nk)*k;
+      if (i > 0) T_atm(k) += ((i % 3) - 0.5)/double(nk)*k;
+      d.dz(i,k) = PF::calculate_dz(d.dpres(i,k), d.pres(i,k), T_atm(k), d.qv(i,k));
     }
   }
 

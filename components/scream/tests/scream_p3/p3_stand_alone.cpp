@@ -15,6 +15,8 @@
 #include "physics/p3/p3_ic_cases.hpp"
 #include "physics/p3/p3_f90.hpp"
 #include "physics/p3/p3_functions_f90.hpp"
+
+#include "share/util/scream_common_physics_functions.hpp"
 namespace scream {
 
 // === A dummy physics grids for this test === //
@@ -32,7 +34,7 @@ TEST_CASE("p3-stand-alone", "") {
   using namespace scream::control;
   using namespace scream::p3;
 
-  constexpr int num_iters = 1;
+  constexpr int num_iters = 3;
   constexpr Real dt=300.0;
 
   // Load ad parameter list
@@ -103,12 +105,13 @@ TEST_CASE("p3-stand-alone", "") {
   auto inv_qc_relvar      = field_mgr.get_field("inv_qc_relvar").get_reshaped_view<Real**>();
   auto inv_exner          = field_mgr.get_field("inv_exner").get_reshaped_view<Real**>(); 
   auto th_atm             = field_mgr.get_field("th_atm").get_reshaped_view<Real**>(); 
+  auto T_mid              = field_mgr.get_field("T_mid").get_reshaped_view<Real**>(); 
   auto cld_frac_l         = field_mgr.get_field("cld_frac_l").get_reshaped_view<Real**>(); 
   auto cld_frac_i         = field_mgr.get_field("cld_frac_i").get_reshaped_view<Real**>(); 
   auto cld_frac_r         = field_mgr.get_field("cld_frac_r").get_reshaped_view<Real**>(); 
   auto dz                 = field_mgr.get_field("dz").get_reshaped_view<Real**>(); 
   {
-  const auto policy = ekat::ExeSpaceUtils<ExeSpace>::get_default_team_policy(ncol, nlev);
+//ASD  const auto policy = ekat::ExeSpaceUtils<ExeSpace>::get_default_team_policy(ncol, nlev);
 //ASD  Kokkos::parallel_for(policy, KOKKOS_LAMBDA(const MemberType& team) {
 //ASD    const int i = team.league_rank();
   Kokkos::parallel_for( ncol, [&] (const int& i) {
@@ -134,6 +137,7 @@ TEST_CASE("p3-stand-alone", "") {
       inv_qc_relvar     (i,k)  = F90_data->inv_qc_relvar(i,k) ;
       inv_exner         (i,k)  = F90_data->inv_exner(i,k) ;
       th_atm            (i,k)  = F90_data->th_atm(i,k) ;
+      T_mid             (i,k)  = F90_data->t_prev(i,k);
       cld_frac_l        (i,k)  = F90_data->cld_frac_l(i,k) ;
       cld_frac_i        (i,k)  = F90_data->cld_frac_i(i,k) ;
       cld_frac_r        (i,k)  = F90_data->cld_frac_r(i,k) ;
@@ -144,6 +148,56 @@ TEST_CASE("p3-stand-alone", "") {
   });
   Kokkos::fence();
   }
+
+  auto qv_host     = Kokkos::create_mirror_view(qv);
+  auto qc_host     = Kokkos::create_mirror_view(qc);
+  auto nc_host     = Kokkos::create_mirror_view(nc);
+  auto qr_host     = Kokkos::create_mirror_view(qr);
+  auto nr_host     = Kokkos::create_mirror_view(nr);
+  auto qi_host     = Kokkos::create_mirror_view(qi);
+  auto qm_host     = Kokkos::create_mirror_view(qm);
+  auto ni_host     = Kokkos::create_mirror_view(ni);
+  auto bm_host     = Kokkos::create_mirror_view(bm);
+  auto th_atm_host = Kokkos::create_mirror_view(th_atm);
+  Kokkos::deep_copy(qv_host    , qv);
+  Kokkos::deep_copy(qc_host    , qc);
+  Kokkos::deep_copy(nc_host    , nc);
+  Kokkos::deep_copy(qr_host    , qr);
+  Kokkos::deep_copy(nr_host    , nr);
+  Kokkos::deep_copy(qi_host    , qi);
+  Kokkos::deep_copy(qm_host    , qm);
+  Kokkos::deep_copy(ni_host    , ni);
+  Kokkos::deep_copy(bm_host    , bm);
+  Kokkos::deep_copy(th_atm_host, th_atm);
+//  auto qv_data = qv_host.data();
+  auto qv_f90     = F90_data->qv;
+  auto qc_f90     = F90_data->qc;
+  auto nc_f90     = F90_data->nc;
+  auto qr_f90     = F90_data->qr;
+  auto nr_f90     = F90_data->nr;
+  auto qi_f90     = F90_data->qi;
+  auto qm_f90     = F90_data->qm;
+  auto ni_f90     = F90_data->ni;
+  auto bm_f90     = F90_data->bm;
+  auto th_atm_f90 = F90_data->th_atm;
+//  auto qv_f90_data = qv_f90.data();
+  Real qv_sum = 0.0;
+  for (int i=0;i<ncol;i++) {
+    for (int k=0;k<nlev;k++) {
+//ASD      printf("(%2d,%2d): %e, %e, %e\n",i,k,qv_host(i,k),qv_f90(i,k),qv_host(i,k)-qv_f90(i,k));
+      qv_sum += (std::abs(qv_host(i,k)-qv_f90(i,k))
+                +std::abs(qc_host(i,k)-qc_f90(i,k))
+                +std::abs(nc_host(i,k)-nc_f90(i,k))
+                +std::abs(qr_host(i,k)-qr_f90(i,k))
+                +std::abs(nr_host(i,k)-nr_f90(i,k))
+                +std::abs(qi_host(i,k)-qi_f90(i,k))
+                +std::abs(qm_host(i,k)-qm_f90(i,k))
+                +std::abs(ni_host(i,k)-ni_f90(i,k))
+                +std::abs(bm_host(i,k)-bm_f90(i,k))
+                +std::abs(th_atm_host(i,k)-th_atm_f90(i,k)));
+    }
+  }
+  printf(" qv diff sum = %e\n",qv_sum);
   
   std::vector<Real*> scream_check;
   std::vector<Real*> F90_check;
@@ -190,22 +244,55 @@ TEST_CASE("p3-stand-alone", "") {
   printf("INIT: ...\n");
   for (int fi=0;fi<name_check.size();fi++) {
     printf("---- %s:\n",name_check[fi].c_str());
-    calculate_diff(ncol,nlev,name_check[fi],scream_check[fi],F90_check[fi]);
+//ASD    calculate_diff(ncol,nlev,name_check[fi],scream_check[fi],F90_check[fi]);
     print_sum(ncol,nlev,"scream ",scream_check[fi]);
     print_sum(ncol,nlev,"f90 ",F90_check[fi]);
   }
   // Resume running AD
+  using PF = PhysicsFunctions<DefaultDevice>;
   for (int i=0; i<num_iters; ++i) {
     ad.run(dt);
     p3_main(*F90_data, true);
     printf("-----------------\n");
     printf("Iteration: %2d...\n",i);
-    for (int fi=0;fi<name_check.size();fi++) {
-      printf("---- %s:\n",name_check[fi].c_str());
-      calculate_diff(ncol,nlev,name_check[fi],scream_check[fi],F90_check[fi]);
-      print_sum(ncol,nlev,"scream ",scream_check[fi]);
-      print_sum(ncol,nlev,"f90 ",F90_check[fi]);
+    qv_sum = 0.0;
+    Kokkos::deep_copy(qv_host    , qv);
+    Kokkos::deep_copy(qc_host    , qc);
+    Kokkos::deep_copy(nc_host    , nc);
+    Kokkos::deep_copy(qr_host    , qr);
+    Kokkos::deep_copy(nr_host    , nr);
+    Kokkos::deep_copy(qi_host    , qi);
+    Kokkos::deep_copy(qm_host    , qm);
+    Kokkos::deep_copy(ni_host    , ni);
+    Kokkos::deep_copy(bm_host    , bm);
+    Kokkos::deep_copy(th_atm_host, th_atm);
+    for (int i=0;i<ncol;i++) {
+      for (int k=0;k<nlev;k++) {
+        F90_data->qv_prev(i,k) = F90_data->qv(i,k);
+        F90_data->t_prev(i,k) = t_prev(i,k); //F90_data->th_atm(i,k)/F90_data->inv_exner(i,k);
+        F90_data->dz(i,k) = PF::calculate_dz(F90_data->dpres(i,k),F90_data->pres(i,k),t_prev(i,k),qv_prev(i,k));
+        F90_data->th_atm(i,k) = PF::calculate_theta_from_T(t_prev(i,k),F90_data->pres(i,k));
+  //ASD      printf("(%2d,%2d): %e, %e, %e\n",i,k,qv_host(i,k),qv_f90(i,k),qv_host(i,k)-qv_f90(i,k));
+        qv_sum += (std::abs(qv_host(i,k)-qv_f90(i,k))
+                  +std::abs(qc_host(i,k)-qc_f90(i,k))
+                  +std::abs(nc_host(i,k)-nc_f90(i,k))
+                  +std::abs(qr_host(i,k)-qr_f90(i,k))
+                  +std::abs(nr_host(i,k)-nr_f90(i,k))
+                  +std::abs(qi_host(i,k)-qi_f90(i,k))
+                  +std::abs(qm_host(i,k)-qm_f90(i,k))
+                  +std::abs(ni_host(i,k)-ni_f90(i,k))
+                  +std::abs(bm_host(i,k)-bm_f90(i,k))
+                  +std::abs(th_atm_host(i,k)-F90_data->th_atm(i,k))
+                  );
+      }
     }
+    printf(" qv diff sum = %e\n",qv_sum);
+//    for (int fi=0;fi<name_check.size();fi++) {
+//      printf("---- %s:\n",name_check[fi].c_str());
+//      calculate_diff(ncol,nlev,name_check[fi],scream_check[fi],F90_check[fi]);
+//      print_sum(ncol,nlev,"scream ",scream_check[fi]);
+//      print_sum(ncol,nlev,"f90 ",F90_check[fi]);
+//    }
   }
 
   // TODO: get the field repo from the driver, and go get (one of)
