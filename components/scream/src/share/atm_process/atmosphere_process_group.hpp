@@ -52,7 +52,8 @@ public:
   void final_setup ();
 
   void set_required_group (const FieldGroup<const Real>& group);
-  void set_updated_group (const FieldGroup<Real>& group);
+  void set_exclusive_group (const FieldGroup<      Real>& group);
+  void set_updated_group  (const FieldGroup<      Real>& group);
 
   // --- Methods specific to AtmosphereProcessGroup --- //
   int get_num_processes () const { return m_atm_processes.size(); }
@@ -82,6 +83,7 @@ protected:
 
   // The methods to set the fields in the process
   void set_required_field_impl (const Field<const Real>& f);
+  void set_exclusive_field_impl (const Field<      Real>& f);
   void set_computed_field_impl (const Field<      Real>& f);
 
   // The communicator that each process in this group uses

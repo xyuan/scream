@@ -140,7 +140,7 @@ public:
     set_computed_field_impl (f);
   }
 
-  // Note: for the following (unlike set_required/computed_field, we do provide an
+  // Note: for the following (unlike set_required/exclusive/computed_field, we do provide an
   //       implementation, since requiring a group is "rare".
   // Note: from the group, derived class can extract individual fields, and,
   //       if needed, they can check that the group was allocated as a bundle,
@@ -148,26 +148,47 @@ public:
   //       See field_group.hpp for more details.
   virtual void set_required_group (const FieldGroup<const Real>& /* group */) {
     EKAT_ERROR_MSG (
-      "Error! This atmosphere process does not require a group of fields, meaning\n"
-      "       that 'get_required_groups' was not overridden in this class, or that\n"
-      "       its override returns an empty set.\n"
-      "       If you override 'get_required_groups' to return a non-empty set,\n"
-      "       then you must also override 'set_required_group' in your derived class.\n"
+      "Error! This atmosphere process does not require a group of fields.\n"
+      "       However, the fact that 'set_required_groups' was called suggests\n"
+      "       that 'get_required_groups' returns a non-empty set.\n"
+      "       If that's the case, then you MUST provide an implementation of\n"
+      "       'set_required_group' in your derived class.\n"
     );
   }
   virtual void set_updated_group (const FieldGroup<Real>& /* group */) {
     EKAT_ERROR_MSG (
-      "Error! This atmosphere process does not update a group of fields, meaning\n"
-      "       that 'get_updated_groups' was not overridden in this class, or that\n"
-      "       its override returns an empty set.\n"
-      "       If you override 'get_updated_groups' to return a non-empty set,\n"
-      "       then you must also override 'set_updated_group' in your derived class.\n"
+      "Error! This atmosphere process does not update a group of fields.\n"
+      "       However, the fact that 'set_updated_groups' was called suggests\n"
+      "       that 'get_updated_groups' returns a non-empty set.\n"
+      "       If that's the case, then you MUST provide an implementation of\n"
+      "       'set_updated_group' in your derived class.\n"
+    );
+  }
+
+  // Exclusive fields/groups are also not common, so we provide a default impl
+  void set_exclusive_field (const Field<Real>& /* f */) {
+    EKAT_ERROR_MSG (
+      "Error! This atmosphere process does not use an exclusive field.\n"
+      "       However, the fact that 'set_exclusive_field' was called suggests\n"
+      "       that 'get_exclusive_fields' returns a non-empty set.\n"
+      "       If that's the case, then you MUST provide an implementation of\n"
+      "       'set_exclusive_field' in your derived class.\n"
+    );
+  }
+  virtual void set_exclusive_group (const FieldGroup<Real>& /* group */) {
+    EKAT_ERROR_MSG (
+      "Error! This atmosphere process does not use an exclusive group of fields.\n"
+      "       However, the fact that 'set_exclusive_groups' was called suggests\n"
+      "       that 'get_exclusive_groups' returns a non-empty set.\n"
+      "       If that's the case, then you MUST provide an implementation of\n"
+      "       'set_exclusive_group' in your derived class.\n"
     );
   }
 
   // These two methods allow the driver to figure out what process need
   // a given field and what process updates a given field.
   const std::set<FieldRequest>& get_required_fields () const { return m_required_fields; }
+  const std::set<FieldRequest>& get_exclusive_fields () const { return m_exclusive_fields; }
   const std::set<FieldRequest>& get_computed_fields () const { return m_computed_fields; }
 
   // If needed, an Atm Proc can claim to need/update a whole group of fields, without really knowing
@@ -175,11 +196,21 @@ public:
   // of strings, where the 1st is the group name, and the 2nd the grid name. If the same group is
   // needed on multiple grids, two separate entries are needed.
   const std::set<GroupRequest>& get_required_groups () const { return m_required_groups; }
+  const std::set<GroupRequest>& get_exclusive_groups () const { return m_exclusive_groups; }
   const std::set<GroupRequest>& get_updated_groups  () const { return m_updated_groups; }
 
-  // NOTE: C++20 will introduce the method 'contains' for std::set. Till then, use our util free function
+  // Note: resist the temptation to pass a FieldRequest, and look for it, since this atm proc might need
+  //       the same field, on the same grid, but with a different pack size.
   bool requires_field (const FieldIdentifier& id) const {
     for (const auto& it : m_required_fields) {
+      if (it.fid==id) {
+        return true;
+      }
+    }
+    return false;
+  }
+  bool is_exclusive_field (const FieldIdentifier& id) const {
+    for (const auto& it : m_exclusive_fields) {
       if (it.fid==id) {
         return true;
       }
@@ -195,8 +226,18 @@ public:
     return false;
   }
 
+  // Note: resist the temptation to pass a GroupRequest, since this atm proc might need
+  //       the same group, on the same grid, but with a different pack size.
   bool requires_group (const std::string& name, const std::string& grid) const {
     for (const auto& it : m_required_groups) {
+      if (it.name==name && it.grid==grid) {
+        return true;
+      }
+    }
+    return false;
+  }
+  bool has_exclusive_group (const std::string& name, const std::string& grid) const {
+    for (const auto& it : m_exclusive_groups) {
       if (it.name==name && it.grid==grid) {
         return true;
       }
@@ -224,6 +265,7 @@ protected:
   enum RequestType {
     Required,
     Computed,
+    Exclusive,
     Updated
   };
 
@@ -272,15 +314,23 @@ protected:
   void add_field (const FieldRequest& req)
   {
     // Since we use C-style enum, let's avoid invalid integers casts
-    static_assert(RT==Required || RT==Computed || RT==Updated,
+    static_assert(RT==Required || RT==Exclusive || RT==Computed || RT==Updated,
                   "Error! Invalid request type in call to add_field.\n");
 
-    if (RT==Updated) {
-      add_field<Required>(req);
-      add_field<Computed>(req);
-    } else {
-      auto& fields = RT==Required ? m_required_fields : m_computed_fields;
-      fields.emplace(req);
+    switch (RT) {
+      case Updated:
+        m_required_fields.emplace(req);
+        m_computed_fields.emplace(req);
+        break;
+      case Required:
+        m_required_fields.emplace(req);
+        break;
+      case Computed:
+        m_computed_fields.emplace(req);
+        break;
+      case Exclusive:
+        m_exclusive_fields.emplace(req);
+        break;
     }
   }
 
@@ -303,8 +353,19 @@ protected:
   template<RequestType RT>
   void add_group (const GroupRequest& req)
   {
-    static_assert(RT==Required || RT==Updated,
+    static_assert(RT==Required || RT==Exclusive || RT==Updated,
         "Error! Invalid request type in call to add_group.\n");
+    switch (RT) {
+      case Updated:
+        m_updated_groups.emplace(req);
+        break;
+      case Required:
+        m_required_groups.emplace(req);
+        break;
+      case Exclusive:
+        m_exclusive_groups.emplace(req);
+        break;
+    }
     auto& groups = RT==Required ? m_required_groups : m_updated_groups;
     groups.emplace(req);
   }
@@ -338,9 +399,11 @@ protected:
 private:
 
   std::set<FieldRequest>   m_required_fields;
+  std::set<FieldRequest>   m_exclusive_fields;
   std::set<FieldRequest>   m_computed_fields;
 
   std::set<GroupRequest>   m_required_groups;
+  std::set<GroupRequest>   m_exclusive_groups;
   std::set<GroupRequest>   m_updated_groups;
 
   // This process's copy of the timestamp, which is set on initialization and

@@ -100,7 +100,7 @@ void AtmosphereProcessGroup::set_grids (const std::shared_ptr<const GridsManager
       add_field<Computed>(req);
     }
     for (const auto& req : atm_proc->get_required_groups()) {
-      add_group<Required>(req);
+      process_required_group(req);
     }
     for (const auto& req : atm_proc->get_updated_groups()) {
       add_group<Updated>(req);
@@ -123,11 +123,7 @@ void AtmosphereProcessGroup::run_impl (const Real dt) {
 }
 
 void AtmosphereProcessGroup::run_sequential (const Real dt) {
-  // Get the timestamp at the beginning of the step and advance it.
-  auto ts = timestamp();
-  ts += dt;
-
-  for (auto atm_proc : m_atm_processes) {
+  for (auto& atm_proc : m_atm_processes) {
     // Run the process
     atm_proc->run(dt);
   }
@@ -146,9 +142,9 @@ void AtmosphereProcessGroup::finalize_impl (/* what inputs? */) {
 void AtmosphereProcessGroup::
 set_required_group (const FieldGroup<const Real>& group)
 {
-  for (int iproc=0; iproc<m_group_size; ++iproc) {
-    auto atm_proc = m_atm_processes[iproc];
-
+  // For each stored atm process, check if the group is required,
+  // and, if so, set the group in the process.
+  for (auto& atm_proc : m_atm_processes) {
     if (atm_proc->requires_group(group.m_info->m_group_name,group.grid_name())) {
       atm_proc->set_required_group(group);
     }
@@ -156,11 +152,23 @@ set_required_group (const FieldGroup<const Real>& group)
 }
 
 void AtmosphereProcessGroup::
+set_exclusive_group (const FieldGroup<Real>& group)
+{
+  // For each stored atm process, check if the group is exclusive,
+  // and, if so, set the group in the process.
+  for (auto& atm_proc : m_atm_processes) {
+    if (atm_proc->has_exclusive_group(group.m_info->m_group_name,group.grid_name())) {
+      atm_proc->set_exclusive_group(group);
+    }
+  }
+}
+
+void AtmosphereProcessGroup::
 set_updated_group (const FieldGroup<Real>& group)
 {
-  for (int iproc=0; iproc<m_group_size; ++iproc) {
-    auto atm_proc = m_atm_processes[iproc];
-
+  // For each stored atm process, check if the group is updated,
+  // and, if so, set the group in the process.
+  for (auto& atm_proc : m_atm_processes) {
     if (atm_proc->updates_group(group.m_info->m_group_name,group.grid_name())) {
       atm_proc->set_updated_group(group);
     }
@@ -169,6 +177,8 @@ set_updated_group (const FieldGroup<Real>& group)
 
 void AtmosphereProcessGroup::set_required_field_impl (const Field<const Real>& f) {
   const auto& fid = f.get_header().get_identifier();
+  // For each stored atm process, check if the field is required,
+  // and, if so, set the field in the process.
   for (auto atm_proc : m_atm_processes) {
     if (atm_proc->requires_field(fid)) {
       atm_proc->set_required_field(f);
@@ -176,8 +186,21 @@ void AtmosphereProcessGroup::set_required_field_impl (const Field<const Real>& f
   }
 }
 
+void AtmosphereProcessGroup::set_exclusive_field_impl (const Field<Real>& f) {
+  const auto& fid = f.get_header().get_identifier();
+  // For each stored atm process, check if the field is exclusive,
+  // and, if so, set the field in the process.
+  for (auto atm_proc : m_atm_processes) {
+    if (atm_proc->is_exclusive_field(fid)) {
+      atm_proc->set_exclusive_field(f);
+    }
+  }
+}
+
 void AtmosphereProcessGroup::set_computed_field_impl (const Field<Real>& f) {
   const auto& fid = f.get_header().get_identifier();
+  // For each stored atm process, check if the field is computed,
+  // and, if so, set the field in the process.
   for (auto atm_proc : m_atm_processes) {
     if (atm_proc->computes_field(fid)) {
       atm_proc->set_computed_field(f);
