@@ -29,12 +29,24 @@ PhysicsTestData& PhysicsTestData::assignment_impl(const PhysicsTestData& rhs)
   return *this;
 }
 
-void PhysicsTestData::randomize(const std::vector<std::pair<void*, std::pair<Real, Real> > >& ranges)
+void PhysicsTestData::randomize(
+  const std::vector<std::pair<void*, std::pair<Real, Real> > >& ranges,
+  const unsigned int* seed)
 {
   std::default_random_engine generator;
   std::uniform_real_distribution<Real> default_real_dist(0.0, 1.0);
   std::uniform_int_distribution<Int> default_int_dist(0, 1);
   std::uniform_int_distribution<Int> default_bool_dist(0, 1);
+
+  if (seed != nullptr) {
+    generator.seed(*seed);
+  }
+  else {
+    std::random_device rdev;
+    const unsigned int rseed = rdev();
+    std::cout << "JGF seed is: " << rseed << std::endl;
+    generator.seed(rseed);
+  }
 
   // generate with default vals
   m_reals.randomize(generator, default_real_dist);

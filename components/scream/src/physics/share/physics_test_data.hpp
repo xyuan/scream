@@ -255,7 +255,7 @@ class PhysicsTestData
   // the member to a range.
   // Example, to use a -1 to 1 range for wthl member:
   // d.randomize({ {d.wthl, {-1, 1}} });
-  void randomize(const std::vector<std::pair<void*, std::pair<Real, Real> > >& ranges = {});
+  void randomize(const std::vector<std::pair<void*, std::pair<Real, Real> > >& ranges = {}, const unsigned int* seed = nullptr);
 
   // Since we are also preparing index data, this function is doing more than transposing. It's shifting the
   // format of all data from one language to another
