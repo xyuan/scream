@@ -18,6 +18,8 @@ RRTMGPRadiation::RRTMGPRadiation (const ekat::Comm& comm, const ekat::ParameterL
 
 void RRTMGPRadiation::set_grids(const std::shared_ptr<const GridsManager> grids_manager) {
 
+  std::cout << "set_grids" << std::endl;
+
   using namespace ekat::units;
 
   // Gather the active gases from the rrtmgp parameter list and assign to the m_gas_names vector.
@@ -100,6 +102,8 @@ int RRTMGPRadiation::requested_buffer_size_in_bytes() const
 
 void RRTMGPRadiation::init_buffers(const ATMBufferManager &buffer_manager)
 {
+  std::cout << "init_buffers" << std::endl;
+
   EKAT_REQUIRE_MSG(buffer_manager.allocated_bytes() >= requested_buffer_size_in_bytes(), "Error! Buffers size not sufficient.\n");
 
   Real* mem = reinterpret_cast<Real*>(buffer_manager.get_memory());
@@ -171,6 +175,8 @@ void RRTMGPRadiation::init_buffers(const ATMBufferManager &buffer_manager)
 } // RRTMGPRadiation::init_buffers
 
 void RRTMGPRadiation::initialize_impl(const util::TimeStamp& /* t0 */) {
+  std::cout << "initialize_impl" << std::endl;
+
   using PC = scream::physics::Constants<Real>;
   // Names of active gases
   auto gas_names_yakl_offset = string1d("gas_names",m_ngas);
@@ -190,6 +196,8 @@ void RRTMGPRadiation::initialize_impl(const util::TimeStamp& /* t0 */) {
 }
 
 void RRTMGPRadiation::run_impl (const Real dt) {
+  std::cout << "run_impl" << std::endl;
+
   using PF = scream::PhysicsFunctions<DefaultDevice>;
   // Get data from the FieldManager
   auto d_pmid = m_rrtmgp_fields_in.at("p_mid").get_view<const Real**>();
