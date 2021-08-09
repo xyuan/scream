@@ -197,7 +197,12 @@ void RRTMGPRadiation::initialize_impl(const util::TimeStamp& /* t0 */) {
   Kokkos::deep_copy(m_gas_mol_weights,gas_mol_w_host);
   // Initialize GasConcs object to pass to RRTMGP initializer;
   gas_concs.init(gas_names_yakl_offset,m_ncol,m_nlay);
+
+  std::cout << "initialize_impl-3" << std::endl;
+
   rrtmgp::rrtmgp_initialize(gas_concs);
+
+  std::cout << "initialize_impl-4" << std::endl;
 
   std::cout << "initialize_impl-end" << std::endl;
 }
