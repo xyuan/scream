@@ -66,8 +66,6 @@ namespace scream {
                 yakl::init();
             }
 
-            std::cout << "FILE: " << coefficients_file_sw << std::endl;
-
             // Load and initialize absorption coefficient data
             load_and_init(k_dist_sw, coefficients_file_sw, gas_concs);
             load_and_init(k_dist_lw, coefficients_file_lw, gas_concs);
