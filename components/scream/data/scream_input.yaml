@@ -2,7 +2,7 @@
 ---
 Atmosphere Driver:
   Atmosphere Processes:
-    Number of Entries: 3
+    Number of Entries: 5
     Schedule Type: Sequential
     Process 0:
       Process Name: Homme
@@ -13,6 +13,13 @@ Atmosphere Driver:
     Process 2:
       Process Name: SHOC
       Grid:         Physics GLL
+    Process 3:
+      Process Name: P3
+      Grid: Physics GLL
+    Process 4:
+      Process Name: RRTMGP
+      Grid: Physics GLL
+      active_gases: ["H2O", "CO2", "O3", "N2O", "CO" , "CH4", "O2", "N2"]
   Grids Manager:
     Type: Dynamics Driven
     Reference Grid: Physics GLL
