@@ -3,7 +3,7 @@
 
 Atmosphere Driver:
   Initial Conditions:
-    Initial Conditions File: ./data/init_ne4np4.nc
+   # Initial Conditions File: ./data/init_ne4np4.nc
     # Set X_prev = X
     T_mid_prev: T_mid
     horiz_winds_prev: horiz_winds
