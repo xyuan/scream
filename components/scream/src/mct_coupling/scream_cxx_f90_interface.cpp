@@ -192,6 +192,9 @@ void scream_run (const scream::Real& dt) {
 /*===============================================================================================*/
 void scream_finalize (/* args ? */) {
   fpe_guard_wrapper([&](){
+    // Finalize YAKL
+    yakl::finalize();
+
     // Get the AD, and finalize it
     auto& ad = get_ad_nonconst();
     ad.finalize();

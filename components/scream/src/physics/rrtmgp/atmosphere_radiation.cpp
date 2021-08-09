@@ -182,12 +182,18 @@ void RRTMGPRadiation::initialize_impl(const util::TimeStamp& /* t0 */) {
   auto gas_names_yakl_offset = string1d("gas_names",m_ngas);
   m_gas_mol_weights          = view_1d_real("gas_mol_weights",m_ngas);
   /* the lookup function for getting the gas mol weights doesn't work on device. */
+
+  std::cout << "initialize_impl-1" << std::endl;
+
   auto gas_mol_w_host = Kokkos::create_mirror_view(m_gas_mol_weights);
   for (int igas = 0; igas < m_ngas; igas++) {  
     /* Note: YAKL starts the index from 1 */
     gas_names_yakl_offset(igas+1)   = m_gas_names[igas];
     gas_mol_w_host[igas]            = PC::get_gas_mol_weight(m_gas_names[igas]);
   }
+
+  std::cout << "initialize_impl-2" << std::endl;
+
   Kokkos::deep_copy(m_gas_mol_weights,gas_mol_w_host);
   // Initialize GasConcs object to pass to RRTMGP initializer;
   gas_concs.init(gas_names_yakl_offset,m_ncol,m_nlay);
