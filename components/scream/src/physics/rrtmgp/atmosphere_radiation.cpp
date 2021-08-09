@@ -175,7 +175,7 @@ void RRTMGPRadiation::init_buffers(const ATMBufferManager &buffer_manager)
 } // RRTMGPRadiation::init_buffers
 
 void RRTMGPRadiation::initialize_impl(const util::TimeStamp& /* t0 */) {
-  std::cout << "initialize_impl" << std::endl;
+  std::cout << "initialize_impl-begin" << std::endl;
 
   using PC = scream::physics::Constants<Real>;
   // Names of active gases
@@ -193,6 +193,7 @@ void RRTMGPRadiation::initialize_impl(const util::TimeStamp& /* t0 */) {
   gas_concs.init(gas_names_yakl_offset,m_ncol,m_nlay);
   rrtmgp::rrtmgp_initialize(gas_concs);
 
+  std::cout << "initialize_impl-end" << std::endl;
 }
 
 void RRTMGPRadiation::run_impl (const Real dt) {
