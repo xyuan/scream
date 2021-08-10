@@ -265,6 +265,9 @@ void SurfaceCoupling::do_import ()
 
     const auto& info = scream_imports(ifield);
 
+                         if (cpl_imports_view_d(icol,info.cpl_idx) != 0)
+                         std::cout << cpl_imports_view_d(icol,info.cpl_idx) << std::endl;
+
     auto offset = icol*info.col_stride + info.col_offset;
     info.data[offset] = cpl_imports_view_d(icol,info.cpl_idx);
   });
