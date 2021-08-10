@@ -7,7 +7,7 @@ module scream_cpl_indices
 
   ! Focus only on the ones that scream imports/exports (subsets of x2a and a2x)
   integer, parameter, public :: num_required_cpl_imports = 21
-  integer, parameter, public :: num_scream_imports       = 4
+  integer, parameter, public :: num_scream_imports       = 8
   integer, parameter, public :: num_required_exports     = 12
   integer, parameter, public :: num_optional_cpl_imports = 0
   integer, parameter, public :: num_optional_exports     = 1
