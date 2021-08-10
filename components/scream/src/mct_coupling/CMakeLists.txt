@@ -42,15 +42,6 @@ set (SCREAM_LIBS
      cld_fraction
 )
 
-CONFIGURE_FILE(${SCREAM_BASE_DIR}/../eam/src/physics/rrtmgp/external/rrtmgp/data/rrtmgp-data-sw-g224-2018-12-04.nc
-               ${CMAKE_CURRENT_BINARY_DIR}/data COPYONLY)
-CONFIGURE_FILE(${SCREAM_BASE_DIR}/../eam/src/physics/rrtmgp/external/rrtmgp/data/rrtmgp-data-lw-g256-2018-12-04.nc
-               ${CMAKE_CURRENT_BINARY_DIR}/data COPYONLY)
-CONFIGURE_FILE(${SCREAM_BASE_DIR}/../eam/src/physics/rrtmgp/external/extensions/cloud_optics/rrtmgp-cloud-optics-coeffs-sw.nc
-               ${CMAKE_CURRENT_BINARY_DIR}/data COPYONLY)
-CONFIGURE_FILE(${SCREAM_BASE_DIR}/../eam/src/physics/rrtmgp/external/extensions/cloud_optics/rrtmgp-cloud-optics-coeffs-lw.nc
-               ${CMAKE_CURRENT_BINARY_DIR}/data COPYONLY)
-
 include (tpls/Mct)
 CreateMctTarget()
 
