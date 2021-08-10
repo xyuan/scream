@@ -75,8 +75,6 @@ register_import(const std::string& fname,
     // Do nothing
   } else {
 
-    std::cout << fname << std::endl;
-
     // Check that we still have room
     EKAT_REQUIRE_MSG(m_num_scream_imports<m_scream_imports_host.extent_int(0),
                        "Error! Imports view is already full. Did you call 'set_num_fields' with the wrong arguments?\n");
