@@ -18,8 +18,6 @@ RRTMGPRadiation::RRTMGPRadiation (const ekat::Comm& comm, const ekat::ParameterL
 
 void RRTMGPRadiation::set_grids(const std::shared_ptr<const GridsManager> grids_manager) {
 
-  std::cout << "set_grids" << std::endl;
-
   using namespace ekat::units;
 
   // Gather the active gases from the rrtmgp parameter list and assign to the m_gas_names vector.
@@ -102,8 +100,6 @@ int RRTMGPRadiation::requested_buffer_size_in_bytes() const
 
 void RRTMGPRadiation::init_buffers(const ATMBufferManager &buffer_manager)
 {
-  std::cout << "init_buffers" << std::endl;
-
   EKAT_REQUIRE_MSG(buffer_manager.allocated_bytes() >= requested_buffer_size_in_bytes(), "Error! Buffers size not sufficient.\n");
 
   Real* mem = reinterpret_cast<Real*>(buffer_manager.get_memory());
@@ -175,15 +171,11 @@ void RRTMGPRadiation::init_buffers(const ATMBufferManager &buffer_manager)
 } // RRTMGPRadiation::init_buffers
 
 void RRTMGPRadiation::initialize_impl(const util::TimeStamp& /* t0 */) {
-  std::cout << "initialize_impl-begin" << std::endl;
-
   using PC = scream::physics::Constants<Real>;
   // Names of active gases
   auto gas_names_yakl_offset = string1d("gas_names",m_ngas);
   m_gas_mol_weights          = view_1d_real("gas_mol_weights",m_ngas);
   /* the lookup function for getting the gas mol weights doesn't work on device. */
-
-  std::cout << "initialize_impl-1" << std::endl;
 
   auto gas_mol_w_host = Kokkos::create_mirror_view(m_gas_mol_weights);
   for (int igas = 0; igas < m_ngas; igas++) {  
@@ -192,24 +184,14 @@ void RRTMGPRadiation::initialize_impl(const util::TimeStamp& /* t0 */) {
     gas_mol_w_host[igas]            = PC::get_gas_mol_weight(m_gas_names[igas]);
   }
 
-  std::cout << "initialize_impl-2" << std::endl;
-
   Kokkos::deep_copy(m_gas_mol_weights,gas_mol_w_host);
   // Initialize GasConcs object to pass to RRTMGP initializer;
   gas_concs.init(gas_names_yakl_offset,m_ncol,m_nlay);
 
-  std::cout << "initialize_impl-3" << std::endl;
-
   rrtmgp::rrtmgp_initialize(gas_concs);
-
-  std::cout << "initialize_impl-4" << std::endl;
-
-  std::cout << "initialize_impl-end" << std::endl;
 }
 
 void RRTMGPRadiation::run_impl (const Real dt) {
-  std::cout << "run_impl" << std::endl;
-
   using PF = scream::PhysicsFunctions<DefaultDevice>;
   // Get data from the FieldManager
   auto d_pmid = m_rrtmgp_fields_in.at("p_mid").get_view<const Real**>();
