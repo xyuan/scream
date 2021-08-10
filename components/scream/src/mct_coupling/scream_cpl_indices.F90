@@ -25,6 +25,10 @@ module scream_cpl_indices
   character(len=32,kind=c_char), public, allocatable, target :: scr_names_a2x(:)
   character(len=32,kind=c_char), public, allocatable, target :: scr_names_x2a(:)
 
+  ! Vector component of import/export fields. If not a vector field, set to -1.
+  integer(kind=c_int), public, allocatable, target :: VecComp_a2x(:)
+  integer(kind=c_int), public, allocatable, target :: VecComp_x2a(:)
+
   public :: scream_set_cpl_indices
 
 contains
@@ -49,6 +53,9 @@ contains
 
     allocate (scr_names_x2a(num_cpl_imports))
     allocate (scr_names_a2x(num_exports))
+
+    allocate (VecComp_x2a(num_cpl_imports))
+    allocate (VecComp_a2x(num_exports))
 
     ! Determine attribute vector indices
 
@@ -116,6 +123,11 @@ contains
     scr_names_x2a(20) = 'unused'
     scr_names_x2a(21) = 'unused'
 
+    ! No scream imports currently require vector component info. Set to -1.
+    do i=1,num_required_cpl_imports
+      VecComp_x2a(i) = -1
+    enddo
+
     ! List of cpl names of outputs that scream needs to pass back to cpl
 
     !Following outputs are computed in control/camsrfexch.F90 using internal SCREAM variables
@@ -178,6 +190,13 @@ contains
     scr_names_a2x(11) = 'set_zero'
     scr_names_a2x(12) = 'set_zero'
     scr_names_a2x(13) = 'set_zero'
+
+    ! Default export vector components to -1. Set horiz_winds components.
+    do i=1,num_required_cpl_imports
+      VecComp_a2x(i) = -1
+    enddo
+    VecComp_a2x(4) = 0
+    VecComp_a2x(5) = 1
 
     do i=1,num_required_cpl_imports
       index_x2a(i) = mct_avect_indexra(x2a,TRIM(cpl_names_x2a(i)))

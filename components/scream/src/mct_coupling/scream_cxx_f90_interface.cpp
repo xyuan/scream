@@ -124,9 +124,10 @@ void scream_create_atm_instance (const MPI_Fint& f_comm,
 }
 
 void scream_setup_surface_coupling (
-    const char*& x2a_names, const int*& x2a_indices, double*& cpl_x2a_ptr,
+    const char*& x2a_names, const int*& x2a_indices, double*& cpl_x2a_ptr, const int*& VecComp_x2a,
     const int& num_cpl_imports, const int& num_scream_imports,
-    const char*& a2x_names, const int*& a2x_indices, double*& cpl_a2x_ptr, const int& num_exports)
+    const char*& a2x_names, const int*& a2x_indices, double*& cpl_a2x_ptr, const int*& VecComp_a2x,
+    const int& num_exports)
 {
   fpe_guard_wrapper([&](){
     // Fortran gives a 1d array of 32char strings. So let's memcpy the input char
@@ -145,10 +146,10 @@ void scream_setup_surface_coupling (
     // Register import/export fields
     sc->set_num_fields(num_cpl_imports,num_scream_imports,num_exports);
     for (int i=0; i<num_cpl_imports; ++i) {
-      sc->register_import(names_in[i],x2a_indices[i]);
+      sc->register_import(names_in[i],x2a_indices[i],VecComp_x2a[i]);
     }
     for (int i=0; i<num_exports; ++i) {
-      sc->register_export(names_out[i],a2x_indices[i]);
+      sc->register_export(names_out[i],a2x_indices[i],VecComp_a2x[i]);
     }
 
     sc->registration_ends(cpl_x2a_ptr, cpl_a2x_ptr);
