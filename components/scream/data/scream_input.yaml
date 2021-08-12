@@ -32,7 +32,7 @@ Atmosphere Driver:
     Type: Dynamics Driven
     Reference Grid: Physics GLL
     Dynamics Driven:
-      Dynamics Namelist File Name: ./data/theta.nl
+      Dynamics Namelist File Name: ./data/theta-nmax.nl
 
 SCREAM:
 
@@ -101,41 +101,9 @@ SCREAM:
   Output Files:
     # This should be a bracketed list of all the output control yaml files
 
-# Note: HOMME settings will be translated into data/theta.nl
+# Note: HOMME settings will be translated into data/theta-nmax.nl
 HOMME:
-  ctl_nl:
-    partmethod        : 4
-    topology          : cube
-    test_case         : jw_baroclinic
-    u_perturb         : 1
-    rotate_grid       : 0
-    ne                : 2
-    qsize             : 4
-    ndays             : 1
-    statefreq         : 9999
-    mesh_file         : /dev/null
-    tstep             : 150
-    rsplit            : 2
-    qsplit            : 1
-    integration       : explicit
-    smooth            : 0
-    nu                : 7.0e+15
-    nu_div            : 1.0e+15
-    nu_p              : 7.0e+15
-    nu_q              : 7.0e+15
-    nu_s              : -1
-    nu_top            : 2.5e+5
-    se_ftype          : 0
-    limiter_option    : 9
-    vert_remap_q_alg  : 1
-    hypervis_scaling  : 0
-    hypervis_order    : 2
-    hypervis_subcycle : 2
-    hypervis_subcycle_tom : 0
-    theta_hydrostatic_mode : false
-    theta_advect_form : 0
-    tstep_type        : 10
-
+  
   vert_nl:
     vform     : ccm
     vfile_mid : ./data/scream-72m.ascii
