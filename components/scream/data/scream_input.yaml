@@ -53,28 +53,34 @@ SCREAM:
   n_rad_steps: 1
   dt_remap_factor: 2
   dt_tracer_factor:  6
+
   Tuning Parameters:
     SHOC:
       Ckh_s_def: 0.1 #using "moderate-stable"
       Ckm_s_def: 0.1 #vals here as used by
       Ck_s_min: 0.1  #DYAMOND2 SCREAMv0 run
       #there will definitely eventually be more
+
     P3:
       mu_r_constant: 1.0
       p3_qc_accret_expon: 1.15
       p3_qc_autocon_expon: 2.47
       #there will definitely eventually be more
+
   Well-Mixed Greenhouse Gases:
     co2vmr: 367.000000e-6
     ch4vmr: 1751.022e-9
     n2ovmr: 315.85e-9
     f11vmr: 676.0526e-12
     f12vmr: 537.05e-12
+
   Code Options:
     include_subgrid_variability: true
     enable_T_warnings: true
+
   Input Files:
     input_root                  : default # this will default to DIN_LOC_ROOT for the current machine
+
     # The filepaths below will be prepended with $input_root unless the path looks absolute
     atm_ic_file                 : atm/cam/inic/homme/cami_mam3_Linoz_ne4np4_L72_c160909.nc
     topog_file                  : atm/cam/topo/USGS-gtopo30_ne4np4pg2_16x_converted.c20200527.nc
@@ -86,11 +92,15 @@ SCREAM:
     rrtmgp_coefficients_file_sw : atm/cam/rad/rrtmgp_coefficients_sw_20181204.nc
     solar_data_file             : atm/cam/solar/spectral_irradiance_Lean_1976-2007_ave_c20160517.nc
     micro_p3_lookup_dir         : atm/cam/physprops
+
     solar_data_ymd : 20000101
     solar_data_forcing : constant
-    micro_p3_tableversion : 4
+
+    micro_p3_tableversion : 4.1.1
+
   Output Files:
     # This should be a bracketed list of all the output control yaml files
+
 # Note: HOMME settings will be translated into data/theta.nl
 HOMME:
   ctl_nl:
@@ -125,6 +135,7 @@ HOMME:
     theta_hydrostatic_mode : false
     theta_advect_form : 0
     tstep_type        : 10
+
   vert_nl:
     vform     : ccm
     vfile_mid : ./data/scream-72m.ascii
