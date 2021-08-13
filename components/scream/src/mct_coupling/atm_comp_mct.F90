@@ -204,6 +204,10 @@ CONTAINS
 
     ! Run scream
     dt_scream_r = dt_scream
+
+    ! HACK: To get it to work
+    dt_scream_r = 600
+
     call scream_run( dt_scream_r )
 
     ! Set time of next radiadtion computation

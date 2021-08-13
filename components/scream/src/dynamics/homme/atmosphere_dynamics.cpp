@@ -65,7 +65,6 @@ void HommeDynamics::set_grids (const std::shared_ptr<const GridsManager> grids_m
   using FL  = FieldLayout;
 
   constexpr int NGP  = HOMMEXX_NP;
-  constexpr int NVL  = HOMMEXX_NUM_PHYSICAL_LEV;
   constexpr int NTL  = HOMMEXX_NUM_TIME_LEVELS;
 
   // Some units
@@ -81,6 +80,7 @@ void HommeDynamics::set_grids (const std::shared_ptr<const GridsManager> grids_m
 
   const int ne = m_dyn_grid->get_num_local_dofs()/(NGP*NGP);
   const int ncols = m_ref_grid->get_num_local_dofs();
+  const int nlevs = m_dyn_grid->get_num_vertical_levels();
 
   // Sanity check for the grid. This should *always* pass, since Homme builds the grids
   EKAT_REQUIRE_MSG(get_num_local_elems_f90()==ne,
@@ -104,20 +104,20 @@ void HommeDynamics::set_grids (const std::shared_ptr<const GridsManager> grids_m
 
   // Note: qv is needed to make sure Q is not empty (dyn needs qv to transform T<->Theta),
   constexpr int N = sizeof(Homme::Scalar) / sizeof(Real);
-  add_field<Updated> ("horiz_winds",   FL({COL,CMP, LEV},{ncols,2,NVL}),  m/s,   rgn,N);
-  add_field<Updated> ("T_mid",         FL({COL,     LEV},{ncols,  NVL}),  K,     rgn,N);
-  add_field<Updated> ("w_int",         FL({COL,    ILEV},{ncols,  NVL+1}),m/s,   rgn,N);
-  add_field<Updated> ("phi_int",       FL({COL,    ILEV},{ncols,  NVL+1}),Pa/rho,rgn,N);
-  add_field<Updated> ("pseudo_density",FL({COL,     LEV},{ncols,  NVL}),  Pa,    rgn,N);
+  add_field<Updated> ("horiz_winds",   FL({COL,CMP, LEV},{ncols,2,nlevs}),  m/s,   rgn,N);
+  add_field<Updated> ("T_mid",         FL({COL,     LEV},{ncols,  nlevs}),  K,     rgn,N);
+  add_field<Updated> ("w_int",         FL({COL,    ILEV},{ncols,  nlevs+1}),m/s,   rgn,N);
+  add_field<Updated> ("phi_int",       FL({COL,    ILEV},{ncols,  nlevs+1}),Pa/rho,rgn,N);
+  add_field<Updated> ("pseudo_density",FL({COL,     LEV},{ncols,  nlevs}),  Pa,    rgn,N);
   add_field<Updated> ("ps",            FL({COL         },{ncols      }),  Pa,    rgn);
-  add_field<Required>("qv",            FL({COL,     LEV},{ncols,  NVL}),  Q,     rgn,"tracers",N);
-  add_field<Computed>("p_int",         FL({COL,    ILEV},{ncols,  NVL+1}),Pa,    rgn,N);
-  add_field<Computed>("p_mid",         FL({COL,     LEV},{ncols,  NVL}),  Pa,    rgn,N);
+  add_field<Required>("qv",            FL({COL,     LEV},{ncols,  nlevs}),  Q,     rgn,"tracers",N);
+  add_field<Computed>("p_int",         FL({COL,    ILEV},{ncols,  nlevs+1}),Pa,    rgn,N);
+  add_field<Computed>("p_mid",         FL({COL,     LEV},{ncols,  nlevs}),  Pa,    rgn,N);
 
   // These are used to back out tendencies
-  add_field<Updated>("T_mid_prev",      FL({COL,LEV},    {ncols,  NVL}),  K/s,    rgn,N);
-  add_field<Updated>("horiz_winds_prev",FL({COL,CMP,LEV},{ncols,2,NVL}),  m/(s*s),rgn,N);
-  add_field<Updated>("w_int_prev",      FL({COL,LEV},    {ncols,  NVL+1}),m/(s*s),rgn,N);
+  add_field<Updated>("T_mid_prev",      FL({COL,LEV},    {ncols,  nlevs}),  K/s,    rgn,N);
+  add_field<Updated>("horiz_winds_prev",FL({COL,CMP,LEV},{ncols,2,nlevs}),  m/(s*s),rgn,N);
+  add_field<Updated>("w_int_prev",      FL({COL,LEV},    {ncols,  nlevs+1}),m/(s*s),rgn,N);
 
   // Dynamics backs out tendencies from the states, and pass those to Homme.
   // After Homme completes, we remap the updates state to the ref grid.
@@ -130,21 +130,21 @@ void HommeDynamics::set_grids (const std::shared_ptr<const GridsManager> grids_m
   //       we don't care about units.
   // Note: the dyn grid names do not follow the FieldManager conventions,
   //       but rather the var names in Homme, so they can be easily found there. 
-  create_dyn_field("FM",{EL,CMP,GP,GP,LEV},{ne,3,NP,NP,NVL});
-  create_dyn_field("FT",{EL,    GP,GP,LEV},{ne,  NP,NP,NVL});
+  create_dyn_field("FM",{EL,CMP,GP,GP,LEV},{ne,3,NP,NP,nlevs});
+  create_dyn_field("FT",{EL,    GP,GP,LEV},{ne,  NP,NP,nlevs});
 
-  create_dyn_field("v",        {EL,TL,CMP,GP,GP,LEV}, {ne,NTL,2,NP,NP,NVL});
-  create_dyn_field("vtheta_dp",{EL,TL,    GP,GP,LEV}, {ne,NTL,  NP,NP,NVL});
-  create_dyn_field("dp3d",     {EL,TL,    GP,GP,LEV}, {ne,NTL,  NP,NP,NVL});
-  create_dyn_field("w_i",      {EL,TL,    GP,GP,ILEV},{ne,NTL,  NP,NP,NVL+1});
-  create_dyn_field("phinh_i",  {EL,TL,    GP,GP,ILEV},{ne,NTL,  NP,NP,NVL+1});
+  create_dyn_field("v",        {EL,TL,CMP,GP,GP,LEV}, {ne,NTL,2,NP,NP,nlevs});
+  create_dyn_field("vtheta_dp",{EL,TL,    GP,GP,LEV}, {ne,NTL,  NP,NP,nlevs});
+  create_dyn_field("dp3d",     {EL,TL,    GP,GP,LEV}, {ne,NTL,  NP,NP,nlevs});
+  create_dyn_field("w_i",      {EL,TL,    GP,GP,ILEV},{ne,NTL,  NP,NP,nlevs+1});
+  create_dyn_field("phinh_i",  {EL,TL,    GP,GP,ILEV},{ne,NTL,  NP,NP,nlevs+1});
   create_dyn_field("ps",       {EL,TL,    GP,GP},     {ne,NTL,  NP,NP});
 
   // For momentum and temperature, we back out tendencies on the ref grid,
   // and then remap them. So we need extra fields for FM and FT on the ref grid,
   // but we don't expose them, since they are internal. And we don't care about units.
-  field_type FM(FID("FM",FL({COL,CMP,LEV},{ncols,3,NVL}),nondim,rgn));
-  field_type FT(FID("FT",FL({COL,LEV},{ncols,NVL}),nondim,rgn));
+  field_type FM(FID("FM",FL({COL,CMP,LEV},{ncols,3,nlevs}),nondim,rgn));
+  field_type FT(FID("FT",FL({COL,LEV},{ncols,nlevs}),nondim,rgn));
   FM.get_header().get_alloc_properties().request_allocation<Real>(N);
   FT.get_header().get_alloc_properties().request_allocation<Real>(N);
   FM.allocate_view();
@@ -401,13 +401,13 @@ void HommeDynamics::initialize_impl (const util::TimeStamp& /* t0 */)
   using ColOps = ColumnOps<DefaultDevice,Real>;
   using PF = PhysicsFunctions<DefaultDevice>;
 
-  const auto ps   = m_dyn_grid_fields.at("ps").get_view<Real****>();
-  const auto dp3d = m_dyn_grid_fields.at("dp3d").get_view<Pack*****>();
-  const auto v    = m_dyn_grid_fields.at("v").get_view<Pack******>();
-  const auto w_i    = m_dyn_grid_fields.at("w_i").get_view<Pack*****>();
-  const auto phinh_i    = m_dyn_grid_fields.at("phinh_i").get_view<Pack*****>();
-  const auto vtheta_dp = m_dyn_grid_fields.at("vtheta_dp").get_view<Pack*****>();
-  const auto Q = m_dyn_grid_fields.at("Q").get_view<Pack*****>();
+  auto ps   = m_dyn_grid_fields.at("ps").get_view<Real****>();
+  auto dp3d = m_dyn_grid_fields.at("dp3d").get_view<Pack*****>();
+  auto v    = m_dyn_grid_fields.at("v").get_view<Pack******>();
+  auto w_i    = m_dyn_grid_fields.at("w_i").get_view<Pack*****>();
+  auto phinh_i    = m_dyn_grid_fields.at("phinh_i").get_view<Pack*****>();
+  auto vtheta_dp = m_dyn_grid_fields.at("vtheta_dp").get_view<Pack*****>();
+  auto Q = m_dyn_grid_fields.at("Q").get_view<Pack*****>();
 
   const auto num_elems = dp3d.extent_int(0);
   const auto nlevs  = m_dyn_grid->get_num_vertical_levels();

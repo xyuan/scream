@@ -54,8 +54,8 @@ kcut_fm       = 2
 /
 &vert_nl
 vform     = "ccm"
-vfile_mid = './vcoord/${HOMME_TEST_VCOORD_MID_FILE}'
-vfile_int = './vcoord/${HOMME_TEST_VCOORD_INT_FILE}'
+vfile_mid = './data/scream-72m.ascii'
+vfile_int = './data/scream-72i.ascii'
 /
 
 &prof_inparm
