@@ -15,6 +15,7 @@ namespace scream
 DynamicsDrivenGridsManager::
 DynamicsDrivenGridsManager (const ekat::Comm& comm,
                             const ekat::ParameterList& p)
+ : m_comm (comm)
 {
   if (!is_parallel_inited_f90()) {
     // While we're here, we can init homme's parallel session
@@ -139,12 +140,14 @@ build_grids (const std::set<std::string>& grid_names,
 
 void DynamicsDrivenGridsManager::build_dynamics_grid () {
   if (m_grids.find("Dynamics")==m_grids.end()) {
+    // Build the Physics GLL grid, to be used as 'unique grid' in the dyn grid
+    build_physics_grid("Physics GLL");
+    auto phys_gll = m_grids.at("Physics GLL");
 
     // Get dimensions and create "empty" grid
     const int nlelem = get_num_local_elems_f90();
-    const int ngelem = get_num_global_elems_f90();
     const int nlev   = get_nlev_f90();
-    auto dyn_grid = std::make_shared<SEGrid>("Dynamics",ngelem,nlelem,HOMMEXX_NP,nlev);
+    auto dyn_grid = std::make_shared<SEGrid>("Dynamics",nlelem,HOMMEXX_NP,nlev,phys_gll,m_comm);
 
     const int ndofs = nlelem*HOMMEXX_NP*HOMMEXX_NP;
 
