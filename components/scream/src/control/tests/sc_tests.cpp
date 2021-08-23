@@ -274,9 +274,9 @@ TEST_CASE ("recreate_mct_coupling")
   FID precip_liq_surf_id ("precip_liq_surf", scalar2d_layout, m/s,    grid_name);
 
   // NOTE: if you add fields above, you will have to modify these counters too.
-  const int num_cpl_imports    = 21;
+  const int num_cpl_imports    = 35;
   const int num_scream_imports = 8;
-  const int num_exports        = 13;
+  const int num_exports        = 35;
 
   // Register fields and tracer group in a FieldManager
   auto fm = std::make_shared<FieldManager<Real>> (grid);
@@ -356,41 +356,77 @@ TEST_CASE ("recreate_mct_coupling")
   // Register fields in the coupler. These match the scr_names_x2a/a2x from
   // scream_cpl_indices.F90. When radiation is fully implemented, RRTMGP
   // fields will be replaced with correct fields.
-  coupler.register_import("surf_latent_flux", 0);
-  coupler.register_import("surf_sens_flux",   1);
+  coupler.register_import("unused",           0);
+  coupler.register_import("unused",           1);
   coupler.register_import("unused",           2);
-  coupler.register_import("surf_mom_flux",    3, 0);
-  coupler.register_import("surf_mom_flux",    4, 1);
+  coupler.register_import("unused",           3);
+  coupler.register_import("unused",           4);
   coupler.register_import("unused",           5);
-  coupler.register_import("sfc_alb_dir_vis",  6);
-  coupler.register_import("sfc_alb_dir_nir",  7);
-  coupler.register_import("sfc_alb_dif_vis",  8);
-  coupler.register_import("sfc_alb_dif_nir",  9);
-  coupler.register_import("unused",           10);
+  coupler.register_import("unused",           6);
+  coupler.register_import("sfc_alb_dir_vis",  7);
+  coupler.register_import("sfc_alb_dir_nir",  8);
+  coupler.register_import("sfc_alb_dif_vis",  9);
+  coupler.register_import("sfc_alb_dif_nir",  10);
   coupler.register_import("unused",           11);
   coupler.register_import("unused",           12);
   coupler.register_import("unused",           13);
   coupler.register_import("unused",           14);
-  coupler.register_import("unused",           15);
-  coupler.register_import("unused",           16);
+  coupler.register_import("surf_mom_flux",    15, 0);
+  coupler.register_import("surf_mom_flux",    16, 1);
   coupler.register_import("unused",           17);
-  coupler.register_import("unused",           18);
+  coupler.register_import("surf_sens_flux",   18);
   coupler.register_import("unused",           19);
-  coupler.register_import("unused",           20);
+  coupler.register_import("surf_latent_flux", 20);
+  coupler.register_import("unused",           21);
+  coupler.register_import("unused",           22);
+  coupler.register_import("unused",           23);
+  coupler.register_import("unused",           24);
+  coupler.register_import("unused",           25);
+  coupler.register_import("unused",           26);
+  coupler.register_import("unused",           27);
+  coupler.register_import("unused",           28);
+  coupler.register_import("unused",           19);
+  coupler.register_import("unused",           30);
+  coupler.register_import("unused",           31);
+  coupler.register_import("unused",           32);
+//  coupler.register_import("unused",           33);
+//  coupler.register_import("unused",           34);
 
-  coupler.register_export("T_mid",            0);
-  coupler.register_export("Sa_ptem",          1);
-  coupler.register_export("z_mid",            2);
-  coupler.register_export("horiz_winds",      3, 0);
-  coupler.register_export("horiz_winds",      4, 1);
-  coupler.register_export("p_mid",            5);
-  coupler.register_export("Sa_dens",          6);
-  coupler.register_export("qv",               7);
-  coupler.register_export("set_zero",         8);
-  coupler.register_export("precip_liq_surf",  9);
-  coupler.register_export("set_zero",         10);
-  coupler.register_export("set_zero",         11);
-  coupler.register_export("set_zero",         12);
+  coupler.register_export("z_mid",           0);
+  coupler.register_export("horiz_winds",     1, 0);
+  coupler.register_export("horiz_winds",     2, 1);
+  coupler.register_export("T_mid",           3);
+  coupler.register_export("Sa_ptem",         4);
+  coupler.register_export("qv",              5);
+  coupler.register_export("Sa_dens",         6);
+  coupler.register_export("p_mid",           7);
+  coupler.register_export("set_zero",        8);
+  coupler.register_export("set_zero",        9);
+  coupler.register_export("set_zero",        10);
+  coupler.register_export("precip_liq_surf", 11);
+  coupler.register_export("set_zero",        12);
+  coupler.register_export("set_zero",        13);
+  coupler.register_export("set_zero",        14);
+  coupler.register_export("set_zero",        15);
+  coupler.register_export("set_zero",        16);
+  coupler.register_export("set_zero",        17);
+  coupler.register_export("set_zero",        18);
+  coupler.register_export("set_zero",        19);
+  coupler.register_export("set_zero",        20);
+  coupler.register_export("set_zero",        21);
+  coupler.register_export("set_zero",        22);
+  coupler.register_export("set_zero",        23);
+  coupler.register_export("set_zero",        24);
+  coupler.register_export("set_zero",        25);
+  coupler.register_export("set_zero",        26);
+  coupler.register_export("set_zero",        27);
+  coupler.register_export("set_zero",        28);
+  coupler.register_export("set_zero",        29);
+  coupler.register_export("set_zero",        30);
+  coupler.register_export("set_zero",        31);
+  coupler.register_export("set_zero",        32);
+  coupler.register_export("set_zero",        33);
+  coupler.register_export("set_zero",        34);
 
   // Complete setup of importer/exporter, providing raw_data
   double* import_raw_data = new double[ncols*num_cpl_imports];
@@ -453,31 +489,53 @@ TEST_CASE ("recreate_mct_coupling")
 
       // Imports
 
-      REQUIRE (surf_latent_flux_h(icol)    == import_raw_data[0 + icol*num_cpl_imports]); // 1st scream import
-      REQUIRE (surf_sens_flux_h  (icol)    == import_raw_data[1 + icol*num_cpl_imports]); // 2nd scream import
-      REQUIRE (surf_mom_flux_h   (icol, 0) == import_raw_data[3 + icol*num_cpl_imports]); // 3rd scream import (4th cpl import)
-      REQUIRE (surf_mom_flux_h   (icol, 1) == import_raw_data[4 + icol*num_cpl_imports]); // 4th scream import (5th cpl import)
-      REQUIRE (sfc_alb_dir_vis_h (icol)    == import_raw_data[6 + icol*num_cpl_imports]); // 5th scream import (7th cpl import)
-      REQUIRE (sfc_alb_dir_nir_h (icol)    == import_raw_data[7 + icol*num_cpl_imports]); // 6th scream import (8th cpl import)
-      REQUIRE (sfc_alb_dif_vis_h (icol)    == import_raw_data[8 + icol*num_cpl_imports]); // 7th scream import (9th cpl import)
-      REQUIRE (sfc_alb_dif_nir_h (icol)    == import_raw_data[9 + icol*num_cpl_imports]); // 8th scream import (10th cpl import)
+      REQUIRE (sfc_alb_dir_vis_h (icol)    == import_raw_data[7 + icol*num_cpl_imports]);  // 1st scream import (8th cpl import)
+      REQUIRE (sfc_alb_dir_nir_h (icol)    == import_raw_data[8 + icol*num_cpl_imports]);  // 2nd scream import (9th cpl import)
+      REQUIRE (sfc_alb_dif_vis_h (icol)    == import_raw_data[9 + icol*num_cpl_imports]);  // 3rd scream import (10th cpl import)
+      REQUIRE (sfc_alb_dif_nir_h (icol)    == import_raw_data[10 + icol*num_cpl_imports]); // 4th scream import (11th cpl import)
+      REQUIRE (surf_mom_flux_h   (icol, 0) == import_raw_data[15 + icol*num_cpl_imports]); // 5th scream import (16th cpl import)
+      REQUIRE (surf_mom_flux_h   (icol, 1) == import_raw_data[16 + icol*num_cpl_imports]); // 6th scream import (17th cpl import)
+      REQUIRE (surf_sens_flux_h  (icol)    == import_raw_data[18 + icol*num_cpl_imports]); // 7th scream import (18th cpl import)
+      REQUIRE (surf_latent_flux_h(icol)    == import_raw_data[20 + icol*num_cpl_imports]); // 8th scream import (20th cpl import)
 
       // Exports
 
       // These exports are direct values from a scream field
-      REQUIRE (export_raw_data[0 + icol*num_exports] == T_mid_h          (icol,    nlevs-1)); // 1st export
-      REQUIRE (export_raw_data[2 + icol*num_exports] == z_mid_h          (icol,    nlevs-1)); // 3rd export
-      REQUIRE (export_raw_data[3 + icol*num_exports] == horiz_winds_h    (icol, 0, nlevs-1)); // 4th export
-      REQUIRE (export_raw_data[4 + icol*num_exports] == horiz_winds_h    (icol, 1, nlevs-1)); // 5th export
-      REQUIRE (export_raw_data[5 + icol*num_exports] == p_mid_h          (icol,    nlevs-1)); // 6th export
-      REQUIRE (export_raw_data[7 + icol*num_exports] == qv_h             (icol,    nlevs-1)); // 8th export
-      REQUIRE (export_raw_data[9 + icol*num_exports] == precip_liq_surf_h(icol            )); // 10th export
+      REQUIRE (export_raw_data[0 + icol*num_exports]  == z_mid_h          (icol,    nlevs-1));  // 1st export
+      REQUIRE (export_raw_data[1 + icol*num_exports]  == horiz_winds_h    (icol, 0, nlevs-1));  // 2nd export
+      REQUIRE (export_raw_data[2 + icol*num_exports]  == horiz_winds_h    (icol, 1, nlevs-1));  // 3rd export
+      REQUIRE (export_raw_data[3 + icol*num_exports]  == T_mid_h          (icol,    nlevs-1));  // 4th export
+      REQUIRE (export_raw_data[5 + icol*num_exports]  == qv_h             (icol,    nlevs-1));  // 6th export
+      REQUIRE (export_raw_data[7 + icol*num_exports]  == p_mid_h          (icol,    nlevs-1));  // 8th export
+      REQUIRE (export_raw_data[11 + icol*num_exports] == precip_liq_surf_h(icol            )); // 12th export
 
       // These exports should be set to 0
       REQUIRE (export_raw_data[8  + icol*num_exports] == 0); // 9th export
+      REQUIRE (export_raw_data[9  + icol*num_exports] == 0); // 10th export
       REQUIRE (export_raw_data[10 + icol*num_exports] == 0); // 11th export
-      REQUIRE (export_raw_data[11 + icol*num_exports] == 0); // 12th export
       REQUIRE (export_raw_data[12 + icol*num_exports] == 0); // 13th export
+      REQUIRE (export_raw_data[13 + icol*num_exports] == 0);
+      REQUIRE (export_raw_data[14 + icol*num_exports] == 0);
+      REQUIRE (export_raw_data[15 + icol*num_exports] == 0);
+      REQUIRE (export_raw_data[16 + icol*num_exports] == 0);
+      REQUIRE (export_raw_data[17 + icol*num_exports] == 0);
+      REQUIRE (export_raw_data[18 + icol*num_exports] == 0);
+      REQUIRE (export_raw_data[19 + icol*num_exports] == 0);
+      REQUIRE (export_raw_data[20 + icol*num_exports] == 0);
+      REQUIRE (export_raw_data[21 + icol*num_exports] == 0);
+      REQUIRE (export_raw_data[22 + icol*num_exports] == 0);
+      REQUIRE (export_raw_data[23 + icol*num_exports] == 0);
+      REQUIRE (export_raw_data[24 + icol*num_exports] == 0);
+      REQUIRE (export_raw_data[25 + icol*num_exports] == 0);
+      REQUIRE (export_raw_data[26 + icol*num_exports] == 0);
+      REQUIRE (export_raw_data[27 + icol*num_exports] == 0);
+      REQUIRE (export_raw_data[28 + icol*num_exports] == 0);
+      REQUIRE (export_raw_data[29 + icol*num_exports] == 0);
+      REQUIRE (export_raw_data[30 + icol*num_exports] == 0);
+      REQUIRE (export_raw_data[31 + icol*num_exports] == 0);
+      REQUIRE (export_raw_data[32 + icol*num_exports] == 0);
+      REQUIRE (export_raw_data[33 + icol*num_exports] == 0);
+      REQUIRE (export_raw_data[34 + icol*num_exports] == 0); // 35th export
     }
   }
 
