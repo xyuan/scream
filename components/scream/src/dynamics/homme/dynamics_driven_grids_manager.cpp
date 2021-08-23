@@ -144,9 +144,9 @@ void DynamicsDrivenGridsManager::build_dynamics_grid () {
     const int nlelem = get_num_local_elems_f90();
     const int ngelem = get_num_global_elems_f90();
     const int nlev   = get_nlev_f90();
-    auto dyn_grid = std::make_shared<SEGrid>("Dynamics",ngelem,nlelem,NP,nlev);
+    auto dyn_grid = std::make_shared<SEGrid>("Dynamics",ngelem,nlelem,HOMMEXX_NP,nlev);
 
-    const int ndofs = nlelem*NP*NP;
+    const int ndofs = nlelem*HOMMEXX_NP*HOMMEXX_NP;
 
     // Create the gids, elgpgp, coords, area views
     AbstractGrid::dofs_list_type      dofs("dyn dofs",ndofs);
@@ -167,7 +167,8 @@ void DynamicsDrivenGridsManager::build_dynamics_grid () {
     Kokkos::deep_copy(lon,h_lon);
 
     // Set dofs and geo data in the grid
-    dyn_grid->set_dofs (dofs, elgpgp);
+    dyn_grid->set_dofs (dofs);
+    dyn_grid->set_lid_to_idx_map(elgpgp);
     dyn_grid->set_geometry_data ("lat", lat);
     dyn_grid->set_geometry_data ("lon", lon);
 
@@ -187,9 +188,8 @@ build_physics_grid (const std::string& name) {
     // Get dimensions and create "empty" grid
     const int nlev  = get_nlev_f90();
     const int nlcols = get_num_local_columns_f90 ();
-    const int ngcols = get_num_global_columns_f90 ();
 
-    auto phys_grid = std::make_shared<PointGrid>(name,ngcols,nlcols,nlev);
+    auto phys_grid = std::make_shared<PointGrid>(name,nlcols,nlev,m_comm);
 
     // Create the gids, coords, area views
     AbstractGrid::dofs_list_type dofs("phys dofs",nlcols);
