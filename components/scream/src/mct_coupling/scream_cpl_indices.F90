@@ -320,11 +320,11 @@ write(*,*) "FINISH"
     enddo
 
     do i=1,num_required_exports
-      index_a2x(i) = mct_avect_indexra(a2x,TRIM(cpl_names_a2x(i)))
+      index_a2x(i) = mct_avect_indexra(a2x,cpl_names_a2x(i))
       scr_names_a2x(i) = TRIM(scr_names_a2x(i)) // C_NULL_CHAR
     enddo
     do i=num_required_exports+1,num_exports
-      index_a2x(i) = mct_avect_indexra(a2x,TRIM(cpl_names_a2x(i)),perrWith='quiet')
+      index_a2x(i) = mct_avect_indexra(a2x,cpl_names_a2x(i),perrWith='quiet')
       scr_names_a2x(i) = TRIM(scr_names_a2x(i)) // C_NULL_CHAR
     enddo
 
