@@ -262,6 +262,47 @@ contains
     scr_names_a2x(32) = 'set_zero'
     scr_names_a2x(33) = 'set_zero'
 
+
+
+
+    write(*,*) mct_avect_indexra(a2x,'Sa_z')
+    write(*,*) mct_avect_indexra(a2x,'Sa_u')
+    write(*,*) mct_avect_indexra(a2x,'Sa_v')
+    write(*,*) mct_avect_indexra(a2x,'Sa_tbot')
+    write(*,*) mct_avect_indexra(a2x,'Sa_ptem')
+    write(*,*) mct_avect_indexra(a2x,'Sa_pbot')
+    write(*,*) mct_avect_indexra(a2x,'Sa_pslv')
+    write(*,*) mct_avect_indexra(a2x,'Sa_shum')
+    write(*,*) mct_avect_indexra(a2x,'Sa_dens')
+    write(*,*) mct_avect_indexra(a2x,'Faxa_swnet')
+    write(*,*) mct_avect_indexra(a2x,'Faxa_lwdn')
+    write(*,*) mct_avect_indexra(a2x,'Faxa_rainc')
+    write(*,*) mct_avect_indexra(a2x,'Faxa_rainl')
+    write(*,*) mct_avect_indexra(a2x,'Faxa_snowc')
+    write(*,*) mct_avect_indexra(a2x,'Faxa_snowl')
+    write(*,*) mct_avect_indexra(a2x,'Faxa_swndr')
+    write(*,*) mct_avect_indexra(a2x,'Faxa_swvdr')
+    write(*,*) mct_avect_indexra(a2x,'Faxa_swndf')
+    write(*,*) mct_avect_indexra(a2x,'Faxa_swvdf')
+    write(*,*) mct_avect_indexra(a2x,'Faxa_bcphidry')
+    write(*,*) mct_avect_indexra(a2x,'Faxa_bcphodry')
+    write(*,*) mct_avect_indexra(a2x,'Faxa_bcphiwet')
+    write(*,*) mct_avect_indexra(a2x,'Faxa_ocphidry')
+    write(*,*) mct_avect_indexra(a2x,'Faxa_ocphodry')
+    write(*,*) mct_avect_indexra(a2x,'Faxa_ocphiwet')
+    write(*,*) mct_avect_indexra(a2x,'Faxa_dstdry1')
+    write(*,*) mct_avect_indexra(a2x,'Faxa_dstdry2')
+    write(*,*) mct_avect_indexra(a2x,'Faxa_dstdry3')
+    write(*,*) mct_avect_indexra(a2x,'Faxa_dstdry4')
+    write(*,*) mct_avect_indexra(a2x,'Faxa_dstwet1')
+    write(*,*) mct_avect_indexra(a2x,'Faxa_dstwet2')
+    write(*,*) mct_avect_indexra(a2x,'Faxa_dstwet3')
+    write(*,*) mct_avect_indexra(a2x,'Faxa_dstwet4')
+    write(*,*) mct_avect_indexra(a2x,'Sa_co2prog',perrWith='quiet')
+    write(*,*) mct_avect_indexra(a2x,'Sa_co2diag',perrWith='quiet')
+
+
+
     ! Default export vector components to -1. Set horiz_winds components.
     do i=1,num_exports
       vec_comp_a2x(i) = -1
