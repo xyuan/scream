@@ -6,7 +6,7 @@ module scream_cpl_indices
   private
 
   ! Focus only on the ones that scream imports/exports (subsets of x2a and a2x)
-  integer, parameter, public :: num_required_cpl_imports = 22
+  integer, parameter, public :: num_required_cpl_imports = 29
   integer, parameter, public :: num_scream_imports       = 8
   integer, parameter, public :: num_required_exports     = 12
   integer, parameter, public :: num_optional_cpl_imports = 0
@@ -78,11 +78,13 @@ contains
     cpl_names_x2a(3)  = 'Sx_avsdf'  ! short wave difuse albedo    [no units] (cam_in%asdif)[RRTMGP]
     cpl_names_x2a(4)  = 'Sx_anidf'  ! long wave difuse albedo     [no units] (cam_in%aldif)[RRTMGP]
     cpl_names_x2a(5)  = 'Sx_t'      ! Surface temperature         [K]        (cam_in%ts)   [check_energy/output- not used anywhere else]
-
-    cpl_names_x2a(6)  = 'So_t' ! sea surface temperature
-
+    cpl_names_x2a(6)  = 'So_t'      ! sea surface temperature
     cpl_names_x2a(7)  = 'Sl_snowh'  ! Water equivalent snow depth [m]        (cam_in%snowhland) [SHOC]
     cpl_names_x2a(8)  = 'Si_snowh'  ! Snow depth over ice         [m]        (cam_in%snowhice)  [***UNUSED***]
+
+    cpl_names_x2a(9)  = 'Sl_fv'     ! friction velocity
+    cpl_names_x2a(10) = 'Sl_ram1'   ! aerodynamical resistance
+
     cpl_names_x2a(9)  = 'Sx_tref'   ! Reference height temperature[K]        (cam_in%tref)      [***UNUSED***]
     cpl_names_x2a(10)  = 'Sx_qref'   ! Reference height humidity   [kg/kg]    (cam_in%qref)      [***UNUSED***]
     cpl_names_x2a(11) = 'Sf_ifrac'  ! Fraction of sfc area covered by sea-ice [no units] (cam_in%icefrac) [RRTMGP]
@@ -101,6 +103,12 @@ contains
     cpl_names_x2a(21) = 'So_ustar'  ! Friction/shear velocity     [m/s]      (cam_in%ustar) [***UNUSED***]
     cpl_names_x2a(22) = 'So_re'     ! ???? (cam_in%re) [***UNUSED***]
 
+    cpl_names_x2a() = 'So_ssq' ! surface saturation specific humidity in ocean
+    cpl_names_x2a() = 'Fall_flxdst1' ! dust flux size bin 1
+    cpl_names_x2a() = 'Fall_flxdst2' ! dust flux size bin 2
+    cpl_names_x2a() = 'Fall_flxdst3' ! dust flux size bin 3
+    cpl_names_x2a() = 'Fall_flxdst4' ! dust flux size bin 4
+
     ! Names used by scream for the input fields above.
     ! Unused fields are marked and skipped during surface coupling.
     scr_names_x2a(1)  = 'sfc_alb_dir_vis'
@@ -112,26 +120,33 @@ contains
     scr_names_x2a(7)  = 'unused'
     scr_names_x2a(8)  = 'unused'
     scr_names_x2a(9)  = 'unused'
-    scr_names_x2a(10)  = 'unused'
+    scr_names_x2a(10) = 'unused'
     scr_names_x2a(11) = 'unused'
     scr_names_x2a(12) = 'unused'
     scr_names_x2a(13) = 'unused'
     scr_names_x2a(14) = 'unused'
-    scr_names_x2a(15) = 'surf_mom_flux'
-    scr_names_x2a(16) = 'surf_mom_flux'
-    scr_names_x2a(17) = 'unused'
-    scr_names_x2a(18) = 'surf_sens_flux'
+    scr_names_x2a(15) = 'unused'
+    scr_names_x2a(16) = 'unused'
+    scr_names_x2a(17) = 'surf_mom_flux'
+    scr_names_x2a(18) = 'surf_mom_flux'
     scr_names_x2a(19) = 'unused'
-    scr_names_x2a(20) = 'surf_latent_flux'
+    scr_names_x2a(20) = 'surf_sens_flux'
     scr_names_x2a(21) = 'unused'
-    scr_names_x2a(22) = 'unused'
+    scr_names_x2a(22) = 'surf_latent_flux'
+    scr_names_x2a(23) = 'unused'
+    scr_names_x2a(24) = 'unused'
+    scr_names_x2a(25) = 'unused'
+    scr_names_x2a(26) = 'unused'
+    scr_names_x2a(27) = 'unused'
+    scr_names_x2a(28) = 'unused'
+    scr_names_x2a(29) = 'unused'
 
     ! Default import vector components to -1. Set surf_mom_flux components.
     do i=1,num_required_cpl_imports
       vec_comp_x2a(i) = -1
     enddo
-    vec_comp_x2a(15) = 0
-    vec_comp_x2a(16) = 1
+    vec_comp_x2a(17) = 0
+    vec_comp_x2a(18) = 1
 
 
     ! List of cpl names of outputs that scream needs to pass back to cpl
