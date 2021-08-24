@@ -280,7 +280,6 @@ contains
     write(*,*) mct_avect_indexra(a2x,'Faxa_rainl')
     write(*,*) mct_avect_indexra(a2x,'Faxa_snowc')
     write(*,*) mct_avect_indexra(a2x,'Faxa_snowl')
-    write(*,*) mct_avect_indexra(a2x,'Faxa_swvdr')
     write(*,*) mct_avect_indexra(a2x,'Faxa_swndf')
     write(*,*) mct_avect_indexra(a2x,'Faxa_swvdf')
     write(*,*) mct_avect_indexra(a2x,'Faxa_bcphidry')
