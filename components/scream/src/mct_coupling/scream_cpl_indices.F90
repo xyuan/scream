@@ -9,7 +9,7 @@ module scream_cpl_indices
   integer, parameter, public :: num_required_cpl_imports = 29
   integer, parameter, public :: num_scream_imports       = 8
   integer, parameter, public :: num_required_exports     = 12
-  integer, parameter, public :: num_optional_cpl_imports = 0
+  integer, parameter, public :: num_optional_cpl_imports = 4
   integer, parameter, public :: num_optional_exports     = 1
   integer, parameter, public :: num_cpl_imports = num_required_cpl_imports + num_optional_cpl_imports
   integer, parameter, public :: num_exports     = num_required_exports + num_optional_exports
@@ -109,6 +109,11 @@ contains
     cpl_names_x2a(28) = 'Fall_flxdst3' ! dust flux size bin 3
     cpl_names_x2a(29) = 'Fall_flxdst4' ! dust flux size bin 4
 
+    cpl_names_x2a(30) = 'Sl_soilw' ! volumetric soil water
+    cpl_names_x2a(31) = 'Fall_fco2_lnd' ! co2 flux from land
+    cpl_names_x2a(32) = 'Faoo_fco2_ocn' ! co2 flux from ocean
+    cpl_names_x2a(33) = 'Faoo_fdms_ocn' ! dms flux from ocean
+
     ! Names used by scream for the input fields above.
     ! Unused fields are marked and skipped during surface coupling.
     scr_names_x2a(1)  = 'sfc_alb_dir_vis'
@@ -140,6 +145,10 @@ contains
     scr_names_x2a(27) = 'unused'
     scr_names_x2a(28) = 'unused'
     scr_names_x2a(29) = 'unused'
+    scr_names_x2a(30) = 'unused'
+    scr_names_x2a(31) = 'unused'
+    scr_names_x2a(32) = 'unused'
+    scr_names_x2a(33) = 'unused'
 
     ! Default import vector components to -1. Set surf_mom_flux components.
     do i=1,num_required_cpl_imports
@@ -226,6 +235,8 @@ contains
     do i=num_required_cpl_imports+1,num_cpl_imports
       index_x2a(i) = mct_avect_indexra(x2a,TRIM(cpl_names_x2a(i)),perrWith='quiet')
       scr_names_x2a(i) = TRIM(scr_names_x2a(i)) // C_NULL_CHAR
+
+      write(*,*) scr_names_x2a(i)
     enddo
 
     do i=1,num_required_exports
