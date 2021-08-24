@@ -6,7 +6,7 @@ module scream_cpl_indices
   private
 
   ! Focus only on the ones that scream imports/exports (subsets of x2a and a2x)
-  integer, parameter, public :: num_required_cpl_imports = 21
+  integer, parameter, public :: num_required_cpl_imports = 22
   integer, parameter, public :: num_scream_imports       = 8
   integer, parameter, public :: num_required_exports     = 12
   integer, parameter, public :: num_optional_cpl_imports = 0
@@ -78,25 +78,28 @@ contains
     cpl_names_x2a(3)  = 'Sx_avsdf'  ! short wave difuse albedo    [no units] (cam_in%asdif)[RRTMGP]
     cpl_names_x2a(4)  = 'Sx_anidf'  ! long wave difuse albedo     [no units] (cam_in%aldif)[RRTMGP]
     cpl_names_x2a(5)  = 'Sx_t'      ! Surface temperature         [K]        (cam_in%ts)   [check_energy/output- not used anywhere else]
-    cpl_names_x2a(6)  = 'Sl_snowh'  ! Water equivalent snow depth [m]        (cam_in%snowhland) [SHOC]
-    cpl_names_x2a(7)  = 'Si_snowh'  ! Snow depth over ice         [m]        (cam_in%snowhice)  [***UNUSED***]
-    cpl_names_x2a(8)  = 'Sx_tref'   ! Reference height temperature[K]        (cam_in%tref)      [***UNUSED***]
-    cpl_names_x2a(9)  = 'Sx_qref'   ! Reference height humidity   [kg/kg]    (cam_in%qref)      [***UNUSED***]
-    cpl_names_x2a(10) = 'Sf_ifrac'  ! Fraction of sfc area covered by sea-ice [no units] (cam_in%icefrac) [RRTMGP]
+
+    cpl_names_x2a(6)  = 'So_t' ! sea surface temperature
+
+    cpl_names_x2a(7)  = 'Sl_snowh'  ! Water equivalent snow depth [m]        (cam_in%snowhland) [SHOC]
+    cpl_names_x2a(8)  = 'Si_snowh'  ! Snow depth over ice         [m]        (cam_in%snowhice)  [***UNUSED***]
+    cpl_names_x2a(9)  = 'Sx_tref'   ! Reference height temperature[K]        (cam_in%tref)      [***UNUSED***]
+    cpl_names_x2a(10)  = 'Sx_qref'   ! Reference height humidity   [kg/kg]    (cam_in%qref)      [***UNUSED***]
+    cpl_names_x2a(11) = 'Sf_ifrac'  ! Fraction of sfc area covered by sea-ice [no units] (cam_in%icefrac) [RRTMGP]
     !NOTE: Sf_ofrac (or ocean frac) is being used by aqua_planet and old schemes like vertical_diffusion,
     !Park stratiform_tend and macrophysics
-    cpl_names_x2a(11) = 'Sf_ofrac'  ! Fraction of sfc area covered by ocean   [no units] (cam_in%ocnfrac) [***UNUSED***]
-    cpl_names_x2a(12) = 'Sf_lfrac'  ! Fraction of sfc area covered by land    [no units] (cam_in%landfrac)[SHOC/RRTMGP/ZM]
-    cpl_names_x2a(13) = 'Sx_u10'    ! 10m wind speed              [m/s]      (cam_in%u10)       [***UNUSED***]
-    cpl_names_x2a(14) = 'Faxx_taux' ! Surface stress in X         [N/m2] (cam_in%wsx)  [SHOC]
-    cpl_names_x2a(15) = 'Faxx_tauy' ! Surface stress in Y         [N/m2] (cam_in%wsx)  [SHOC]
-    cpl_names_x2a(16) = 'Faxx_lat'  ! Surface latent heat flux    [W/m2] (cam_in%lhf)  [energy fixer qqflx_fixer/qneg4]
-    cpl_names_x2a(17) = 'Faxx_sen'  ! Surface sensible heat flux  [W/m2] (cam_in%shf)  [SHOC/check_energy_chng]
-    cpl_names_x2a(18) = 'Faxx_lwup' ! long wave up radiation flux [W/m2] (cam_in%lwup) [RRTMGP]
-    cpl_names_x2a(19) = 'Faxx_evap' ! Surface water vapor flux    [kg/kg](cam_in%cflx(:,1)) [SHOC/check_energy_chng]
+    cpl_names_x2a(12) = 'Sf_ofrac'  ! Fraction of sfc area covered by ocean   [no units] (cam_in%ocnfrac) [***UNUSED***]
+    cpl_names_x2a(13) = 'Sf_lfrac'  ! Fraction of sfc area covered by land    [no units] (cam_in%landfrac)[SHOC/RRTMGP/ZM]
+    cpl_names_x2a(14) = 'Sx_u10'    ! 10m wind speed              [m/s]      (cam_in%u10)       [***UNUSED***]
+    cpl_names_x2a(15) = 'Faxx_taux' ! Surface stress in X         [N/m2] (cam_in%wsx)  [SHOC]
+    cpl_names_x2a(16) = 'Faxx_tauy' ! Surface stress in Y         [N/m2] (cam_in%wsx)  [SHOC]
+    cpl_names_x2a(17) = 'Faxx_lat'  ! Surface latent heat flux    [W/m2] (cam_in%lhf)  [energy fixer qqflx_fixer/qneg4]
+    cpl_names_x2a(18) = 'Faxx_sen'  ! Surface sensible heat flux  [W/m2] (cam_in%shf)  [SHOC/check_energy_chng]
+    cpl_names_x2a(19) = 'Faxx_lwup' ! long wave up radiation flux [W/m2] (cam_in%lwup) [RRTMGP]
+    cpl_names_x2a(20) = 'Faxx_evap' ! Surface water vapor flux    [kg/kg](cam_in%cflx(:,1)) [SHOC/check_energy_chng]
     !NOTE:SHOC computes So_ustar (or ustar) internally
-    cpl_names_x2a(20) = 'So_ustar'  ! Friction/shear velocity     [m/s]      (cam_in%ustar) [***UNUSED***]
-    cpl_names_x2a(21) = 'So_re'     ! ???? (cam_in%re) [***UNUSED***]
+    cpl_names_x2a(21) = 'So_ustar'  ! Friction/shear velocity     [m/s]      (cam_in%ustar) [***UNUSED***]
+    cpl_names_x2a(22) = 'So_re'     ! ???? (cam_in%re) [***UNUSED***]
 
     ! Names used by scream for the input fields above.
     ! Unused fields are marked and skipped during surface coupling.
@@ -109,25 +112,26 @@ contains
     scr_names_x2a(7)  = 'unused'
     scr_names_x2a(8)  = 'unused'
     scr_names_x2a(9)  = 'unused'
-    scr_names_x2a(10) = 'unused'
+    scr_names_x2a(10)  = 'unused'
     scr_names_x2a(11) = 'unused'
     scr_names_x2a(12) = 'unused'
     scr_names_x2a(13) = 'unused'
-    scr_names_x2a(14) = 'surf_mom_flux'
+    scr_names_x2a(14) = 'unused'
     scr_names_x2a(15) = 'surf_mom_flux'
-    scr_names_x2a(16) = 'unused'
-    scr_names_x2a(17) = 'surf_sens_flux'
-    scr_names_x2a(18) = 'unused'
-    scr_names_x2a(19) = 'surf_latent_flux'
-    scr_names_x2a(20) = 'unused'
+    scr_names_x2a(16) = 'surf_mom_flux'
+    scr_names_x2a(17) = 'unused'
+    scr_names_x2a(18) = 'surf_sens_flux'
+    scr_names_x2a(19) = 'unused'
+    scr_names_x2a(20) = 'surf_latent_flux'
     scr_names_x2a(21) = 'unused'
+    scr_names_x2a(22) = 'unused'
 
     ! Default import vector components to -1. Set surf_mom_flux components.
     do i=1,num_required_cpl_imports
       vec_comp_x2a(i) = -1
     enddo
-    vec_comp_x2a(14) = 0
-    vec_comp_x2a(15) = 1
+    vec_comp_x2a(15) = 0
+    vec_comp_x2a(16) = 1
 
 
     ! List of cpl names of outputs that scream needs to pass back to cpl
