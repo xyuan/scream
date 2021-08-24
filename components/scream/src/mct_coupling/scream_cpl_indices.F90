@@ -110,6 +110,7 @@ contains
     cpl_names_x2a(28) = 'Fall_flxdst3' ! dust flux size bin 3
     cpl_names_x2a(29) = 'Fall_flxdst4' ! dust flux size bin 4
 
+    ! The following fields are optional
     cpl_names_x2a(30) = 'Sl_soilw' ! volumetric soil water
     cpl_names_x2a(31) = 'Fall_fco2_lnd' ! co2 flux from land
     cpl_names_x2a(32) = 'Faoo_fco2_ocn' ! co2 flux from ocean
@@ -166,14 +167,15 @@ contains
     !comments after the outputs are organized as follows:
     !Long name [units] (cam_out derived type member) [optional comment about how it is computed]
 
-    cpl_names_a2x(1)  = 'Sa_tbot'     ! Lowest model level temperature [K] (cam_out%tbot)
-    cpl_names_a2x(2)  = 'Sa_ptem'     ! Potential temperature          [K] (cam_out%thbot)[Computed from temperature and exner function]
-    cpl_names_a2x(3)  = 'Sa_z'        ! Geopotential height above surface at midpoints [m] (cam_out%zbot)
-    cpl_names_a2x(4)  = 'Sa_u'        ! Zonal wind        [m/s]  (cam_out%ubot)
-    cpl_names_a2x(5)  = 'Sa_v'        ! Meridional wind   [m/s]  (cam_out%vbot)
-    cpl_names_a2x(6)  = 'Sa_pbot'     ! midpoint pressure [Pa]   (cam_out%pbot)
-    cpl_names_a2x(7)  = 'Sa_dens'     ! Density           [kg/m3](cam_out%rho) [Computed as pbot/(rair*tbot)]
-    cpl_names_a2x(8)  = 'Sa_shum'     ! Specific humidity [kg/kg](cam_out%qbot(i,1)[surface water vapor, i.e., state%q(1:ncol,pver,1)]
+    1 cpl_names_a2x(1)  = 'Sa_z'        ! Geopotential height above surface at midpoints [m] (cam_out%zbot)
+    2 cpl_names_a2x(2)  = 'Sa_u'        ! Zonal wind        [m/s]  (cam_out%ubot)
+    3 cpl_names_a2x(3)  = 'Sa_v'        ! Meridional wind   [m/s]  (cam_out%vbot)
+    4 cpl_names_a2x(4)  = 'Sa_tbot'     ! Lowest model level temperature [K] (cam_out%tbot)
+    5 cpl_names_a2x(5)  = 'Sa_ptem'     ! Potential temperature          [K] (cam_out%thbot)[Computed from temperature and exner function]
+    6 cpl_names_a2x(6)  = 'Sa_pbot'     ! midpoint pressure [Pa]   (cam_out%pbot)
+
+    8 cpl_names_a2x(7)  = 'Sa_shum'     ! Specific humidity [kg/kg](cam_out%qbot(i,1)[surface water vapor, i.e., state%q(1:ncol,pver,1)]
+    9 cpl_names_a2x(8)  = 'Sa_dens'     ! Density           [kg/m3](cam_out%rho) [Computed as pbot/(rair*tbot)]
 
     !-------------------------------------------------------------------------------------------------
     !Important notes regarding following 4 cpl_names_a2x variables (for cpl_names_a2x indexed 9 to 12):
@@ -193,33 +195,35 @@ contains
 
     !Faxa_rainc is (precc-precsc), therefore it is just the "liquid" part of the convective prec
     !cam_out variable corresponding to "Faxa_rainc" should be zero for SCREAM
-    cpl_names_a2x(9)  = 'Faxa_rainc'  ! Liquid convective precip  [mm/s] (cam_out%precc-cam_out%precsc) [Obtained from Deep conv.]
+    12 cpl_names_a2x(9)  = 'Faxa_rainc'  ! Liquid convective precip  [mm/s] (cam_out%precc-cam_out%precsc) [Obtained from Deep conv.]
 
     !Faxa_rainl is precl-precsl, therefore it is just the "liquid" part of the large scale prec
-    cpl_names_a2x(10) = 'Faxa_rainl'  ! Liquid large-scale precip [mm/s] (cam_out%precl-cam_out%precsl) [obtained from P3]
+    13 cpl_names_a2x(10) = 'Faxa_rainl'  ! Liquid large-scale precip [mm/s] (cam_out%precl-cam_out%precsl) [obtained from P3]
 
     !cam_out variable corresponding to "Faxa_snowc" should be zero for SCREAM
-    cpl_names_a2x(11) = 'Faxa_snowc'  ! Convective snow rate      [mm/s] (cam_out%precsc) [Obtained from Deep Conv.]
-    cpl_names_a2x(12) = 'Faxa_snowl'  ! Large-scale (stable) snow rate [mm/s] (cam_out%precsl) [Obtained from P3]
+    14 cpl_names_a2x(11) = 'Faxa_snowc'  ! Convective snow rate      [mm/s] (cam_out%precsc) [Obtained from Deep Conv.]
+    15 cpl_names_a2x(12) = 'Faxa_snowl'  ! Large-scale (stable) snow rate [mm/s] (cam_out%precsl) [Obtained from P3]
 
-    cpl_names_a2x(13)  = 'Sa_co2prog' ! Always 0.0_r8 as it is not computed by SCREAM (prognostic co2 is turned off)
+    34 cpl_names_a2x(13)  = 'Sa_co2prog' ! Always 0.0_r8 as it is not computed by SCREAM (prognostic co2 is turned off)
 
     ! Names used by scream for the output fields above. Some field retain
     ! their cpl_name, which will be combinations of multiple scream fields
     ! (this logic is taken car of in SurfaceCoupling). Others will be set
     ! to 0 (set_zero).
-    scr_names_a2x(1)  = 'T_mid'
-    scr_names_a2x(2)  = 'Sa_ptem'
-    scr_names_a2x(3)  = 'z_mid'
-    scr_names_a2x(4)  = 'horiz_winds'
-    scr_names_a2x(5)  = 'horiz_winds'
+    scr_names_a2x(1)  = 'z_mid'
+    scr_names_a2x(2)  = 'horiz_winds'
+    scr_names_a2x(3)  = 'horiz_winds'
+    scr_names_a2x(4)  = 'T_mid'
+    scr_names_a2x(5)  = 'Sa_ptem'
     scr_names_a2x(6)  = 'p_mid'
-    scr_names_a2x(7)  = 'Sa_dens'
-    scr_names_a2x(8)  = 'qv'
+
+    scr_names_a2x(7)  = 'qv'
+    scr_names_a2x(8)  = 'Sa_dens'
     scr_names_a2x(9)  = 'set_zero'
     scr_names_a2x(10) = 'precip_liq_surf'
     scr_names_a2x(11) = 'set_zero'
     scr_names_a2x(12) = 'set_zero'
+
     scr_names_a2x(13) = 'set_zero'
 
     ! Default export vector components to -1. Set horiz_winds components.
