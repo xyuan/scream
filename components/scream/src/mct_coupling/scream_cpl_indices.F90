@@ -301,7 +301,7 @@ contains
     write(*,*) mct_avect_indexra(a2x,'Sa_co2prog',perrWith='quiet')
     write(*,*) mct_avect_indexra(a2x,'Sa_co2diag',perrWith='quiet')
 
-
+write(*,*) "FINISH"
 
     ! Default export vector components to -1. Set horiz_winds components.
     do i=1,num_exports
