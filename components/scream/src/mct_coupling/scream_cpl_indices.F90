@@ -8,7 +8,7 @@ module scream_cpl_indices
   ! Focus only on the ones that scream imports/exports (subsets of x2a and a2x)
   integer, parameter, public :: num_required_cpl_imports = 29
   integer, parameter, public :: num_scream_imports       = 8
-  integer, parameter, public :: num_required_exports     = 31
+  integer, parameter, public :: num_required_exports     = 33
   integer, parameter, public :: num_optional_cpl_imports = 4
   integer, parameter, public :: num_optional_exports     = 2
   integer, parameter, public :: num_cpl_imports          = num_required_cpl_imports + num_optional_cpl_imports
@@ -159,6 +159,39 @@ contains
     vec_comp_x2a(17) = 0
     vec_comp_x2a(18) = 1
 
+    index_x2a(1) = mct_avect_indexra(x2a,'Sx_avsdr')
+    index_x2a(2) = mct_avect_indexra(x2a,'Sx_anidr')
+    index_x2a(3) = mct_avect_indexra(x2a,'Sx_avsdf')
+    index_x2a(4) = mct_avect_indexra(x2a,'Sx_anidf')
+    index_x2a(5) = mct_avect_indexra(x2a,'Sx_t')
+    index_x2a(6) = mct_avect_indexra(x2a,'So_t')
+    index_x2a(7) = mct_avect_indexra(x2a,'Sl_snowh')
+    index_x2a(8) = mct_avect_indexra(x2a,'Si_snowh')
+    index_x2a(9) = mct_avect_indexra(x2a,'Sl_fv')
+    index_x2a(10) = mct_avect_indexra(x2a,'Sl_ram1')
+    index_x2a(11) = mct_avect_indexra(x2a,'Sx_tref')
+    index_x2a(12) = mct_avect_indexra(x2a,'Sx_qref')
+    index_x2a(13) = mct_avect_indexra(x2a,'Sf_ifrac')
+    index_x2a(14) = mct_avect_indexra(x2a,'Sf_ofrac')
+    index_x2a(15) = mct_avect_indexra(x2a,'Sf_lfrac')
+    index_x2a(16) = mct_avect_indexra(x2a,'Sx_u10')
+    index_x2a(17) = mct_avect_indexra(x2a,'Faxx_taux')
+    index_x2a(18) = mct_avect_indexra(x2a,'Faxx_tauy')
+    index_x2a(19) = mct_avect_indexra(x2a,'Faxx_lat')
+    index_x2a(20) = mct_avect_indexra(x2a,'Faxx_sen')
+    index_x2a(21) = mct_avect_indexra(x2a,'Faxx_lwup')
+    index_x2a(22) = mct_avect_indexra(x2a,'Faxx_evap')
+    index_x2a(23) = mct_avect_indexra(x2a,'So_ustar')
+    index_x2a(24) = mct_avect_indexra(x2a,'So_re')
+    index_x2a(25) = mct_avect_indexra(x2a,'So_ssq')
+    index_x2a(26) = mct_avect_indexra(x2a,'Fall_flxdst1')
+    index_x2a(27) = mct_avect_indexra(x2a,'Fall_flxdst2')
+    index_x2a(28) = mct_avect_indexra(x2a,'Fall_flxdst3')
+    index_x2a(29) = mct_avect_indexra(x2a,'Fall_flxdst4')
+    index_x2a(30) = mct_avect_indexra(x2a,'Sl_soilw',perrWith='quiet')
+    index_x2a(31) = mct_avect_indexra(x2a,'Fall_fco2_lnd',perrWith='quiet')
+    index_x2a(32) = mct_avect_indexra(x2a,'Faoo_fco2_ocn',perrWith='quiet')
+    index_x2a(33) = mct_avect_indexra(x2a,'Faoo_fdms_ocn',perrWith='quiet')
 
     ! List of cpl names of outputs that scream needs to pass back to cpl
 
@@ -205,24 +238,26 @@ contains
     !cam_out variable corresponding to "Faxa_snowc" should be zero for SCREAM
     cpl_names_a2x(14) = 'Faxa_snowc'    ! Convective snow rate      [mm/s] (cam_out%precsc) [Obtained from Deep Conv.]
     cpl_names_a2x(15) = 'Faxa_snowl'    ! Large-scale (stable) snow rate [mm/s] (cam_out%precsl) [Obtained from P3]
-    cpl_names_x2a(16) = 'Faxa_swndf'    ! sw: nir diffuse downward
-    cpl_names_x2a(17) = 'Faxa_swvdf'    ! sw: vis diffuse downward
-    cpl_names_x2a(18) = 'Faxa_bcphidry' ! flux: Black Carbon hydrophilic dry deposition
-    cpl_names_x2a(19) = 'Faxa_bcphodry' ! flux: Black Carbon hydrophobic dry deposition
-    cpl_names_x2a(20) = 'Faxa_bcphiwet' ! flux: Black Carbon hydrophilic wet deposition
-    cpl_names_x2a(21) = 'Faxa_ocphidry' ! flux: Organic Carbon hydrophilic dry deposition
-    cpl_names_x2a(22) = 'Faxa_ocphodry' ! flux: Organic Carbon hydrophobic dry deposition
-    cpl_names_x2a(23) = 'Faxa_ocphiwet' ! flux: Organic Carbon hydrophilic dry deposition
-    cpl_names_x2a(24) = 'Faxa_dstdry1'  ! flux: Size 1 dust -- dry deposition
-    cpl_names_x2a(25) = 'Faxa_dstdry2'  ! flux: Size 2 dust -- dry deposition
-    cpl_names_x2a(26) = 'Faxa_dstdry3'  ! flux: Size 3 dust -- dry deposition
-    cpl_names_x2a(27) = 'Faxa_dstdry4'  ! flux: Size 4 dust -- dry deposition
-    cpl_names_x2a(28) = 'Faxa_dstwet1'  ! flux: Size 1 dust -- wet deposition
-    cpl_names_x2a(29) = 'Faxa_dstwet2'  ! flux: Size 2 dust -- wet deposition
-    cpl_names_x2a(30) = 'Faxa_dstwet3'  ! flux: Size 3 dust -- wet deposition
-    cpl_names_x2a(31) = 'Faxa_dstwet4'  ! flux: Size 4 dust -- wet deposition
-    cpl_names_x2a(32) = 'Sa_co2prog'    ! Always 0.0_r8 as it is not computed by SCREAM (prognostic co2 is turned off)
-    cpl_names_x2a(33) = 'Sa_co2diag'    ! bottom atm level diagnostic co2
+    cpl_names_x2a(16) = 'Faxa_swndr'    ! sw: nir direct  downward
+    cpl_names_x2a(17) = 'Faxa_swvdr'    ! sw: vis direct  downward
+    cpl_names_x2a(18) = 'Faxa_swndf'    ! sw: nir diffuse downward
+    cpl_names_x2a(19) = 'Faxa_swvdf'    ! sw: vis diffuse downward
+    cpl_names_x2a(20) = 'Faxa_bcphidry' ! flux: Black Carbon hydrophilic dry deposition
+    cpl_names_x2a(21) = 'Faxa_bcphodry' ! flux: Black Carbon hydrophobic dry deposition
+    cpl_names_x2a(22) = 'Faxa_bcphiwet' ! flux: Black Carbon hydrophilic wet deposition
+    cpl_names_x2a(23) = 'Faxa_ocphidry' ! flux: Organic Carbon hydrophilic dry deposition
+    cpl_names_x2a(24) = 'Faxa_ocphodry' ! flux: Organic Carbon hydrophobic dry deposition
+    cpl_names_x2a(25) = 'Faxa_ocphiwet' ! flux: Organic Carbon hydrophilic dry deposition
+    cpl_names_x2a(26) = 'Faxa_dstdry1'  ! flux: Size 1 dust -- dry deposition
+    cpl_names_x2a(27) = 'Faxa_dstdry2'  ! flux: Size 2 dust -- dry deposition
+    cpl_names_x2a(28) = 'Faxa_dstdry3'  ! flux: Size 3 dust -- dry deposition
+    cpl_names_x2a(29) = 'Faxa_dstdry4'  ! flux: Size 4 dust -- dry deposition
+    cpl_names_x2a(30) = 'Faxa_dstwet1'  ! flux: Size 1 dust -- wet deposition
+    cpl_names_x2a(31) = 'Faxa_dstwet2'  ! flux: Size 2 dust -- wet deposition
+    cpl_names_x2a(32) = 'Faxa_dstwet3'  ! flux: Size 3 dust -- wet deposition
+    cpl_names_x2a(33) = 'Faxa_dstwet4'  ! flux: Size 4 dust -- wet deposition
+    cpl_names_x2a(34) = 'Sa_co2prog'    ! Always 0.0_r8 as it is not computed by SCREAM (prognostic co2 is turned off)
+    cpl_names_x2a(35) = 'Sa_co2diag'    ! bottom atm level diagnostic co2
 
     ! Names used by scream for the output fields above. Some field retain
     ! their cpl_name, which will be combinations of multiple scream fields
@@ -261,47 +296,45 @@ contains
     scr_names_a2x(31) = 'set_zero'
     scr_names_a2x(32) = 'set_zero'
     scr_names_a2x(33) = 'set_zero'
+    scr_names_a2x(34) = 'set_zero'
+    scr_names_a2x(35) = 'set_zero'
 
-
-
-
-    write(*,*) mct_avect_indexra(a2x,'Sa_z')
-    write(*,*) mct_avect_indexra(a2x,'Sa_u')
-    write(*,*) mct_avect_indexra(a2x,'Sa_v')
-    write(*,*) mct_avect_indexra(a2x,'Sa_tbot')
-    write(*,*) mct_avect_indexra(a2x,'Sa_ptem')
-    write(*,*) mct_avect_indexra(a2x,'Sa_pbot')
-    write(*,*) mct_avect_indexra(a2x,'Sa_pslv')
-    write(*,*) mct_avect_indexra(a2x,'Sa_shum')
-    write(*,*) mct_avect_indexra(a2x,'Sa_dens')
-    write(*,*) mct_avect_indexra(a2x,'Faxa_swnet')
-    write(*,*) mct_avect_indexra(a2x,'Faxa_lwdn')
-    write(*,*) mct_avect_indexra(a2x,'Faxa_rainc')
-    write(*,*) mct_avect_indexra(a2x,'Faxa_rainl')
-    write(*,*) mct_avect_indexra(a2x,'Faxa_snowc')
-    write(*,*) mct_avect_indexra(a2x,'Faxa_snowl')
-    write(*,*) mct_avect_indexra(a2x,'Faxa_swndr')
-    write(*,*) mct_avect_indexra(a2x,'Faxa_swvdr')
-    write(*,*) mct_avect_indexra(a2x,'Faxa_swndf')
-    write(*,*) mct_avect_indexra(a2x,'Faxa_swvdf')
-    write(*,*) mct_avect_indexra(a2x,'Faxa_bcphidry')
-    write(*,*) mct_avect_indexra(a2x,'Faxa_bcphodry')
-    write(*,*) mct_avect_indexra(a2x,'Faxa_bcphiwet')
-    write(*,*) mct_avect_indexra(a2x,'Faxa_ocphidry')
-    write(*,*) mct_avect_indexra(a2x,'Faxa_ocphodry')
-    write(*,*) mct_avect_indexra(a2x,'Faxa_ocphiwet')
-    write(*,*) mct_avect_indexra(a2x,'Faxa_dstdry1')
-    write(*,*) mct_avect_indexra(a2x,'Faxa_dstdry2')
-    write(*,*) mct_avect_indexra(a2x,'Faxa_dstdry3')
-    write(*,*) mct_avect_indexra(a2x,'Faxa_dstdry4')
-    write(*,*) mct_avect_indexra(a2x,'Faxa_dstwet1')
-    write(*,*) mct_avect_indexra(a2x,'Faxa_dstwet2')
-    write(*,*) mct_avect_indexra(a2x,'Faxa_dstwet3')
-    write(*,*) mct_avect_indexra(a2x,'Faxa_dstwet4')
-    write(*,*) mct_avect_indexra(a2x,'Sa_co2prog',perrWith='quiet')
-    write(*,*) mct_avect_indexra(a2x,'Sa_co2diag',perrWith='quiet')
-
-write(*,*) "FINISH"
+    ! Set index
+    index_a2x(1) = mct_avect_indexra(a2x,'Sa_z')
+    index_a2x(2) = mct_avect_indexra(a2x,'Sa_u')
+    index_a2x(3) = mct_avect_indexra(a2x,'Sa_v')
+    index_a2x(4) = mct_avect_indexra(a2x,'Sa_tbot')
+    index_a2x(5) = mct_avect_indexra(a2x,'Sa_ptem')
+    index_a2x(6) = mct_avect_indexra(a2x,'Sa_pbot')
+    index_a2x(7) = mct_avect_indexra(a2x,'Sa_pslv')
+    index_a2x(8) = mct_avect_indexra(a2x,'Sa_shum')
+    index_a2x(9) = mct_avect_indexra(a2x,'Sa_dens')
+    index_a2x(10) = mct_avect_indexra(a2x,'Faxa_swnet')
+    index_a2x(11) = mct_avect_indexra(a2x,'Faxa_lwdn')
+    index_a2x(12) = mct_avect_indexra(a2x,'Faxa_rainc')
+    index_a2x(13) = mct_avect_indexra(a2x,'Faxa_rainl')
+    index_a2x(14) = mct_avect_indexra(a2x,'Faxa_snowc')
+    index_a2x(15) = mct_avect_indexra(a2x,'Faxa_snowl')
+    index_a2x(16) = mct_avect_indexra(a2x,'Faxa_swndr')
+    index_a2x(17) = mct_avect_indexra(a2x,'Faxa_swvdr')
+    index_a2x(18) = mct_avect_indexra(a2x,'Faxa_swndf')
+    index_a2x(19) = mct_avect_indexra(a2x,'Faxa_swvdf')
+    index_a2x(20) = mct_avect_indexra(a2x,'Faxa_bcphidry')
+    index_a2x(21) = mct_avect_indexra(a2x,'Faxa_bcphodry')
+    index_a2x(22) = mct_avect_indexra(a2x,'Faxa_bcphiwet')
+    index_a2x(23) = mct_avect_indexra(a2x,'Faxa_ocphidry')
+    index_a2x(24) = mct_avect_indexra(a2x,'Faxa_ocphodry')
+    index_a2x(25) = mct_avect_indexra(a2x,'Faxa_ocphiwet')
+    index_a2x(26) = mct_avect_indexra(a2x,'Faxa_dstdry1')
+    index_a2x(27) = mct_avect_indexra(a2x,'Faxa_dstdry2')
+    index_a2x(28) = mct_avect_indexra(a2x,'Faxa_dstdry3')
+    index_a2x(29) = mct_avect_indexra(a2x,'Faxa_dstdry4')
+    index_a2x(30) = mct_avect_indexra(a2x,'Faxa_dstwet1')
+    index_a2x(31) = mct_avect_indexra(a2x,'Faxa_dstwet2')
+    index_a2x(32) = mct_avect_indexra(a2x,'Faxa_dstwet3')
+    index_a2x(33) = mct_avect_indexra(a2x,'Faxa_dstwet4')
+    index_a2x(34) = mct_avect_indexra(a2x,'Sa_co2prog',perrWith='quiet')
+    index_a2x(35) = mct_avect_indexra(a2x,'Sa_co2diag',perrWith='quiet')
 
     ! Default export vector components to -1. Set horiz_winds components.
     do i=1,num_exports
@@ -310,21 +343,11 @@ write(*,*) "FINISH"
     vec_comp_a2x(2) = 0
     vec_comp_a2x(3) = 1
 
-    do i=1,num_required_cpl_imports
-      index_x2a(i) = mct_avect_indexra(x2a,TRIM(cpl_names_x2a(i)))
-      scr_names_x2a(i) = TRIM(scr_names_x2a(i)) // C_NULL_CHAR
-    enddo
-    do i=num_required_cpl_imports+1,num_cpl_imports
-      index_x2a(i) = mct_avect_indexra(x2a,TRIM(cpl_names_x2a(i)),perrWith='quiet')
+    do i=1,num_cpl_imports
       scr_names_x2a(i) = TRIM(scr_names_x2a(i)) // C_NULL_CHAR
     enddo
 
-    do i=1,num_required_exports
-      index_a2x(i) = mct_avect_indexra(a2x,cpl_names_a2x(i))
-      scr_names_a2x(i) = TRIM(scr_names_a2x(i)) // C_NULL_CHAR
-    enddo
-    do i=num_required_exports+1,num_exports
-      index_a2x(i) = mct_avect_indexra(a2x,cpl_names_a2x(i),perrWith='quiet')
+    do i=1,num_exports
       scr_names_a2x(i) = TRIM(scr_names_a2x(i)) // C_NULL_CHAR
     enddo
 
