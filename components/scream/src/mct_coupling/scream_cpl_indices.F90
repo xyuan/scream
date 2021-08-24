@@ -8,7 +8,7 @@ module scream_cpl_indices
   ! Focus only on the ones that scream imports/exports (subsets of x2a and a2x)
   integer, parameter, public :: num_required_cpl_imports = 29
   integer, parameter, public :: num_scream_imports       = 8
-  integer, parameter, public :: num_required_exports     = 32
+  integer, parameter, public :: num_required_exports     = 31
   integer, parameter, public :: num_optional_cpl_imports = 4
   integer, parameter, public :: num_optional_exports     = 2
   integer, parameter, public :: num_cpl_imports          = num_required_cpl_imports + num_optional_cpl_imports
@@ -205,25 +205,24 @@ contains
     !cam_out variable corresponding to "Faxa_snowc" should be zero for SCREAM
     cpl_names_a2x(14) = 'Faxa_snowc'    ! Convective snow rate      [mm/s] (cam_out%precsc) [Obtained from Deep Conv.]
     cpl_names_a2x(15) = 'Faxa_snowl'    ! Large-scale (stable) snow rate [mm/s] (cam_out%precsl) [Obtained from P3]
-    cpl_names_x2a(16) = 'Faxa_swvdr'    ! sw: vis direct  downward
-    cpl_names_x2a(17) = 'Faxa_swndf'    ! sw: nir diffuse downward
-    cpl_names_x2a(18) = 'Faxa_swvdf'    ! sw: vis diffuse downward
-    cpl_names_x2a(19) = 'Faxa_bcphidry' ! flux: Black Carbon hydrophilic dry deposition
-    cpl_names_x2a(20) = 'Faxa_bcphodry' ! flux: Black Carbon hydrophobic dry deposition
-    cpl_names_x2a(21) = 'Faxa_bcphiwet' ! flux: Black Carbon hydrophilic wet deposition
-    cpl_names_x2a(22) = 'Faxa_ocphidry' ! flux: Organic Carbon hydrophilic dry deposition
-    cpl_names_x2a(23) = 'Faxa_ocphodry' ! flux: Organic Carbon hydrophobic dry deposition
-    cpl_names_x2a(24) = 'Faxa_ocphiwet' ! flux: Organic Carbon hydrophilic dry deposition
-    cpl_names_x2a(25) = 'Faxa_dstdry1'  ! flux: Size 1 dust -- dry deposition
-    cpl_names_x2a(26) = 'Faxa_dstdry2'  ! flux: Size 2 dust -- dry deposition
-    cpl_names_x2a(27) = 'Faxa_dstdry3'  ! flux: Size 3 dust -- dry deposition
-    cpl_names_x2a(28) = 'Faxa_dstdry4'  ! flux: Size 4 dust -- dry deposition
-    cpl_names_x2a(29) = 'Faxa_dstwet1'  ! flux: Size 1 dust -- wet deposition
-    cpl_names_x2a(30) = 'Faxa_dstwet2'  ! flux: Size 2 dust -- wet deposition
-    cpl_names_x2a(31) = 'Faxa_dstwet3'  ! flux: Size 3 dust -- wet deposition
-    cpl_names_x2a(32) = 'Faxa_dstwet4'  ! flux: Size 4 dust -- wet deposition
-    cpl_names_x2a(33) = 'Sa_co2prog'    ! Always 0.0_r8 as it is not computed by SCREAM (prognostic co2 is turned off)
-    cpl_names_x2a(34) = 'Sa_co2diag'    ! bottom atm level diagnostic co2
+    cpl_names_x2a(16) = 'Faxa_swndf'    ! sw: nir diffuse downward
+    cpl_names_x2a(17) = 'Faxa_swvdf'    ! sw: vis diffuse downward
+    cpl_names_x2a(18) = 'Faxa_bcphidry' ! flux: Black Carbon hydrophilic dry deposition
+    cpl_names_x2a(19) = 'Faxa_bcphodry' ! flux: Black Carbon hydrophobic dry deposition
+    cpl_names_x2a(20) = 'Faxa_bcphiwet' ! flux: Black Carbon hydrophilic wet deposition
+    cpl_names_x2a(21) = 'Faxa_ocphidry' ! flux: Organic Carbon hydrophilic dry deposition
+    cpl_names_x2a(22) = 'Faxa_ocphodry' ! flux: Organic Carbon hydrophobic dry deposition
+    cpl_names_x2a(23) = 'Faxa_ocphiwet' ! flux: Organic Carbon hydrophilic dry deposition
+    cpl_names_x2a(24) = 'Faxa_dstdry1'  ! flux: Size 1 dust -- dry deposition
+    cpl_names_x2a(25) = 'Faxa_dstdry2'  ! flux: Size 2 dust -- dry deposition
+    cpl_names_x2a(26) = 'Faxa_dstdry3'  ! flux: Size 3 dust -- dry deposition
+    cpl_names_x2a(27) = 'Faxa_dstdry4'  ! flux: Size 4 dust -- dry deposition
+    cpl_names_x2a(28) = 'Faxa_dstwet1'  ! flux: Size 1 dust -- wet deposition
+    cpl_names_x2a(29) = 'Faxa_dstwet2'  ! flux: Size 2 dust -- wet deposition
+    cpl_names_x2a(30) = 'Faxa_dstwet3'  ! flux: Size 3 dust -- wet deposition
+    cpl_names_x2a(31) = 'Faxa_dstwet4'  ! flux: Size 4 dust -- wet deposition
+    cpl_names_x2a(32) = 'Sa_co2prog'    ! Always 0.0_r8 as it is not computed by SCREAM (prognostic co2 is turned off)
+    cpl_names_x2a(33) = 'Sa_co2diag'    ! bottom atm level diagnostic co2
 
     ! Names used by scream for the output fields above. Some field retain
     ! their cpl_name, which will be combinations of multiple scream fields
@@ -262,7 +261,6 @@ contains
     scr_names_a2x(31) = 'set_zero'
     scr_names_a2x(32) = 'set_zero'
     scr_names_a2x(33) = 'set_zero'
-    scr_names_a2x(34) = 'set_zero'
 
     ! Default export vector components to -1. Set horiz_winds components.
     do i=1,num_exports
