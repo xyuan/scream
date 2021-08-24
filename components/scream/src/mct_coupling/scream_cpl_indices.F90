@@ -85,29 +85,29 @@ contains
     cpl_names_x2a(9)  = 'Sl_fv'     ! friction velocity
     cpl_names_x2a(10) = 'Sl_ram1'   ! aerodynamical resistance
 
-    cpl_names_x2a(9)  = 'Sx_tref'   ! Reference height temperature[K]        (cam_in%tref)      [***UNUSED***]
-    cpl_names_x2a(10)  = 'Sx_qref'   ! Reference height humidity   [kg/kg]    (cam_in%qref)      [***UNUSED***]
-    cpl_names_x2a(11) = 'Sf_ifrac'  ! Fraction of sfc area covered by sea-ice [no units] (cam_in%icefrac) [RRTMGP]
+    cpl_names_x2a(11) = 'Sx_tref'   ! Reference height temperature[K]        (cam_in%tref)      [***UNUSED***]
+    cpl_names_x2a(12) = 'Sx_qref'   ! Reference height humidity   [kg/kg]    (cam_in%qref)      [***UNUSED***]
+    cpl_names_x2a(13) = 'Sf_ifrac'  ! Fraction of sfc area covered by sea-ice [no units] (cam_in%icefrac) [RRTMGP]
     !NOTE: Sf_ofrac (or ocean frac) is being used by aqua_planet and old schemes like vertical_diffusion,
     !Park stratiform_tend and macrophysics
-    cpl_names_x2a(12) = 'Sf_ofrac'  ! Fraction of sfc area covered by ocean   [no units] (cam_in%ocnfrac) [***UNUSED***]
-    cpl_names_x2a(13) = 'Sf_lfrac'  ! Fraction of sfc area covered by land    [no units] (cam_in%landfrac)[SHOC/RRTMGP/ZM]
-    cpl_names_x2a(14) = 'Sx_u10'    ! 10m wind speed              [m/s]      (cam_in%u10)       [***UNUSED***]
-    cpl_names_x2a(15) = 'Faxx_taux' ! Surface stress in X         [N/m2] (cam_in%wsx)  [SHOC]
-    cpl_names_x2a(16) = 'Faxx_tauy' ! Surface stress in Y         [N/m2] (cam_in%wsx)  [SHOC]
-    cpl_names_x2a(17) = 'Faxx_lat'  ! Surface latent heat flux    [W/m2] (cam_in%lhf)  [energy fixer qqflx_fixer/qneg4]
-    cpl_names_x2a(18) = 'Faxx_sen'  ! Surface sensible heat flux  [W/m2] (cam_in%shf)  [SHOC/check_energy_chng]
-    cpl_names_x2a(19) = 'Faxx_lwup' ! long wave up radiation flux [W/m2] (cam_in%lwup) [RRTMGP]
-    cpl_names_x2a(20) = 'Faxx_evap' ! Surface water vapor flux    [kg/kg](cam_in%cflx(:,1)) [SHOC/check_energy_chng]
+    cpl_names_x2a(14) = 'Sf_ofrac'  ! Fraction of sfc area covered by ocean   [no units] (cam_in%ocnfrac) [***UNUSED***]
+    cpl_names_x2a(15) = 'Sf_lfrac'  ! Fraction of sfc area covered by land    [no units] (cam_in%landfrac)[SHOC/RRTMGP/ZM]
+    cpl_names_x2a(16) = 'Sx_u10'    ! 10m wind speed              [m/s]      (cam_in%u10)       [***UNUSED***]
+    cpl_names_x2a(17) = 'Faxx_taux' ! Surface stress in X         [N/m2] (cam_in%wsx)  [SHOC]
+    cpl_names_x2a(18) = 'Faxx_tauy' ! Surface stress in Y         [N/m2] (cam_in%wsx)  [SHOC]
+    cpl_names_x2a(19) = 'Faxx_lat'  ! Surface latent heat flux    [W/m2] (cam_in%lhf)  [energy fixer qqflx_fixer/qneg4]
+    cpl_names_x2a(20) = 'Faxx_sen'  ! Surface sensible heat flux  [W/m2] (cam_in%shf)  [SHOC/check_energy_chng]
+    cpl_names_x2a(21) = 'Faxx_lwup' ! long wave up radiation flux [W/m2] (cam_in%lwup) [RRTMGP]
+    cpl_names_x2a(22) = 'Faxx_evap' ! Surface water vapor flux    [kg/kg](cam_in%cflx(:,1)) [SHOC/check_energy_chng]
     !NOTE:SHOC computes So_ustar (or ustar) internally
-    cpl_names_x2a(21) = 'So_ustar'  ! Friction/shear velocity     [m/s]      (cam_in%ustar) [***UNUSED***]
-    cpl_names_x2a(22) = 'So_re'     ! ???? (cam_in%re) [***UNUSED***]
+    cpl_names_x2a(23) = 'So_ustar'  ! Friction/shear velocity     [m/s]      (cam_in%ustar) [***UNUSED***]
+    cpl_names_x2a(24) = 'So_re'     ! ???? (cam_in%re) [***UNUSED***]
 
-    cpl_names_x2a() = 'So_ssq' ! surface saturation specific humidity in ocean
-    cpl_names_x2a() = 'Fall_flxdst1' ! dust flux size bin 1
-    cpl_names_x2a() = 'Fall_flxdst2' ! dust flux size bin 2
-    cpl_names_x2a() = 'Fall_flxdst3' ! dust flux size bin 3
-    cpl_names_x2a() = 'Fall_flxdst4' ! dust flux size bin 4
+    cpl_names_x2a(25) = 'So_ssq' ! surface saturation specific humidity in ocean
+    cpl_names_x2a(26) = 'Fall_flxdst1' ! dust flux size bin 1
+    cpl_names_x2a(27) = 'Fall_flxdst2' ! dust flux size bin 2
+    cpl_names_x2a(28) = 'Fall_flxdst3' ! dust flux size bin 3
+    cpl_names_x2a(29) = 'Fall_flxdst4' ! dust flux size bin 4
 
     ! Names used by scream for the input fields above.
     ! Unused fields are marked and skipped during surface coupling.
