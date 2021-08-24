@@ -8,11 +8,11 @@ module scream_cpl_indices
   ! Focus only on the ones that scream imports/exports (subsets of x2a and a2x)
   integer, parameter, public :: num_required_cpl_imports = 29
   integer, parameter, public :: num_scream_imports       = 8
-  integer, parameter, public :: num_required_exports     = 12
+  integer, parameter, public :: num_required_exports     = 33
   integer, parameter, public :: num_optional_cpl_imports = 4
-  integer, parameter, public :: num_optional_exports     = 1
-  integer, parameter, public :: num_cpl_imports = num_required_cpl_imports + num_optional_cpl_imports
-  integer, parameter, public :: num_exports     = num_required_exports + num_optional_exports
+  integer, parameter, public :: num_optional_exports     = 2
+  integer, parameter, public :: num_cpl_imports          = num_required_cpl_imports + num_optional_cpl_imports
+  integer, parameter, public :: num_exports              = num_required_exports + num_optional_exports
 
   integer(kind=c_int), public, allocatable, target :: index_x2a(:)
   integer(kind=c_int), public, allocatable, target :: index_a2x(:)
@@ -167,15 +167,17 @@ contains
     !comments after the outputs are organized as follows:
     !Long name [units] (cam_out derived type member) [optional comment about how it is computed]
 
-    1 cpl_names_a2x(1)  = 'Sa_z'        ! Geopotential height above surface at midpoints [m] (cam_out%zbot)
-    2 cpl_names_a2x(2)  = 'Sa_u'        ! Zonal wind        [m/s]  (cam_out%ubot)
-    3 cpl_names_a2x(3)  = 'Sa_v'        ! Meridional wind   [m/s]  (cam_out%vbot)
-    4 cpl_names_a2x(4)  = 'Sa_tbot'     ! Lowest model level temperature [K] (cam_out%tbot)
-    5 cpl_names_a2x(5)  = 'Sa_ptem'     ! Potential temperature          [K] (cam_out%thbot)[Computed from temperature and exner function]
-    6 cpl_names_a2x(6)  = 'Sa_pbot'     ! midpoint pressure [Pa]   (cam_out%pbot)
-
-    8 cpl_names_a2x(7)  = 'Sa_shum'     ! Specific humidity [kg/kg](cam_out%qbot(i,1)[surface water vapor, i.e., state%q(1:ncol,pver,1)]
-    9 cpl_names_a2x(8)  = 'Sa_dens'     ! Density           [kg/m3](cam_out%rho) [Computed as pbot/(rair*tbot)]
+    cpl_names_a2x(1)  = 'Sa_z'        ! Geopotential height above surface at midpoints [m] (cam_out%zbot)
+    cpl_names_a2x(2)  = 'Sa_u'        ! Zonal wind        [m/s]  (cam_out%ubot)
+    cpl_names_a2x(3)  = 'Sa_v'        ! Meridional wind   [m/s]  (cam_out%vbot)
+    cpl_names_a2x(4)  = 'Sa_tbot'     ! Lowest model level temperature [K] (cam_out%tbot)
+    cpl_names_a2x(5)  = 'Sa_ptem'     ! Potential temperature          [K] (cam_out%thbot)[Computed from temperature and exner function]
+    cpl_names_a2x(6)  = 'Sa_pbot'     ! midpoint pressure [Pa]   (cam_out%pbot)
+    cpl_names_a2x(7)  = 'Sa_pslv'     ! sea level atm pressure
+    cpl_names_a2x(8)  = 'Sa_shum'     ! Specific humidity [kg/kg](cam_out%qbot(i,1)[surface water vapor, i.e., state%q(1:ncol,pver,1)]
+    cpl_names_a2x(9)  = 'Sa_dens'     ! Density           [kg/m3](cam_out%rho) [Computed as pbot/(rair*tbot)]
+    cpl_names_a2x(10) = 'Faxa_swnet'  ! sw: net
+    cpl_names_a2x(11) = 'Faxa_lwdn'   ! downward lw heat flux
 
     !-------------------------------------------------------------------------------------------------
     !Important notes regarding following 4 cpl_names_a2x variables (for cpl_names_a2x indexed 9 to 12):
@@ -195,16 +197,34 @@ contains
 
     !Faxa_rainc is (precc-precsc), therefore it is just the "liquid" part of the convective prec
     !cam_out variable corresponding to "Faxa_rainc" should be zero for SCREAM
-    12 cpl_names_a2x(9)  = 'Faxa_rainc'  ! Liquid convective precip  [mm/s] (cam_out%precc-cam_out%precsc) [Obtained from Deep conv.]
+    cpl_names_a2x(12) = 'Faxa_rainc'    ! Liquid convective precip  [mm/s] (cam_out%precc-cam_out%precsc) [Obtained from Deep conv.]
 
     !Faxa_rainl is precl-precsl, therefore it is just the "liquid" part of the large scale prec
-    13 cpl_names_a2x(10) = 'Faxa_rainl'  ! Liquid large-scale precip [mm/s] (cam_out%precl-cam_out%precsl) [obtained from P3]
+    cpl_names_a2x(13) = 'Faxa_rainl'    ! Liquid large-scale precip [mm/s] (cam_out%precl-cam_out%precsl) [obtained from P3]
 
     !cam_out variable corresponding to "Faxa_snowc" should be zero for SCREAM
-    14 cpl_names_a2x(11) = 'Faxa_snowc'  ! Convective snow rate      [mm/s] (cam_out%precsc) [Obtained from Deep Conv.]
-    15 cpl_names_a2x(12) = 'Faxa_snowl'  ! Large-scale (stable) snow rate [mm/s] (cam_out%precsl) [Obtained from P3]
-
-    34 cpl_names_a2x(13)  = 'Sa_co2prog' ! Always 0.0_r8 as it is not computed by SCREAM (prognostic co2 is turned off)
+    cpl_names_a2x(14) = 'Faxa_snowc'    ! Convective snow rate      [mm/s] (cam_out%precsc) [Obtained from Deep Conv.]
+    cpl_names_a2x(15) = 'Faxa_snowl'    ! Large-scale (stable) snow rate [mm/s] (cam_out%precsl) [Obtained from P3]
+    cpl_names_x2a(16) = 'Faxa_swndr'    ! sw: nir direct  downward
+    cpl_names_x2a(17) = 'Faxa_swvdr'    ! sw: vis direct  downward
+    cpl_names_x2a(18) = 'Faxa_swndf'    ! sw: nir diffuse downward
+    cpl_names_x2a(19) = 'Faxa_swvdf'    ! sw: vis diffuse downward
+    cpl_names_x2a(20) = 'Faxa_bcphidry' ! flux: Black Carbon hydrophilic dry deposition
+    cpl_names_x2a(21) = 'Faxa_bcphodry' ! flux: Black Carbon hydrophobic dry deposition
+    cpl_names_x2a(22) = 'Faxa_bcphiwet' ! flux: Black Carbon hydrophilic wet deposition
+    cpl_names_x2a(23) = 'Faxa_ocphidry' ! flux: Organic Carbon hydrophilic dry deposition
+    cpl_names_x2a(24) = 'Faxa_ocphodry' ! flux: Organic Carbon hydrophobic dry deposition
+    cpl_names_x2a(25) = 'Faxa_ocphiwet' ! flux: Organic Carbon hydrophilic dry deposition
+    cpl_names_x2a(26) = 'Faxa_dstdry1'  ! flux: Size 1 dust -- dry deposition
+    cpl_names_x2a(27) = 'Faxa_dstdry2'  ! flux: Size 2 dust -- dry deposition
+    cpl_names_x2a(28) = 'Faxa_dstdry3'  ! flux: Size 3 dust -- dry deposition
+    cpl_names_x2a(29) = 'Faxa_dstdry4'  ! flux: Size 4 dust -- dry deposition
+    cpl_names_x2a(30) = 'Faxa_dstwet1'  ! flux: Size 1 dust -- wet deposition
+    cpl_names_x2a(31) = 'Faxa_dstwet2'  ! flux: Size 2 dust -- wet deposition
+    cpl_names_x2a(32) = 'Faxa_dstwet3'  ! flux: Size 3 dust -- wet deposition
+    cpl_names_x2a(33) = 'Faxa_dstwet4'  ! flux: Size 4 dust -- wet deposition
+    cpl_names_x2a(34) = 'Sa_co2prog'    ! Always 0.0_r8 as it is not computed by SCREAM (prognostic co2 is turned off)
+    cpl_names_x2a(35) = 'Sa_co2diag'    ! bottom atm level diagnostic co2
 
     ! Names used by scream for the output fields above. Some field retain
     ! their cpl_name, which will be combinations of multiple scream fields
@@ -216,15 +236,35 @@ contains
     scr_names_a2x(4)  = 'T_mid'
     scr_names_a2x(5)  = 'Sa_ptem'
     scr_names_a2x(6)  = 'p_mid'
-
-    scr_names_a2x(7)  = 'qv'
-    scr_names_a2x(8)  = 'Sa_dens'
-    scr_names_a2x(9)  = 'set_zero'
-    scr_names_a2x(10) = 'precip_liq_surf'
-    scr_names_a2x(11) = 'set_zero'
+    scr_names_a2x(7)  = 'set_zero'
+    scr_names_a2x(8)  = 'qv'
+    scr_names_a2x(9)  = 'Sa_dens'
+    scr_names_a2x(10) = 'set_zero'
+    scr_names_a2x(11) = 'precip_liq_surf'
     scr_names_a2x(12) = 'set_zero'
-
     scr_names_a2x(13) = 'set_zero'
+    scr_names_a2x(14) = 'set_zero'
+    scr_names_a2x(15) = 'set_zero'
+    scr_names_a2x(16) = 'set_zero'
+    scr_names_a2x(17) = 'set_zero'
+    scr_names_a2x(18) = 'set_zero'
+    scr_names_a2x(19) = 'set_zero'
+    scr_names_a2x(20) = 'set_zero'
+    scr_names_a2x(21) = 'set_zero'
+    scr_names_a2x(22) = 'set_zero'
+    scr_names_a2x(23) = 'set_zero'
+    scr_names_a2x(24) = 'set_zero'
+    scr_names_a2x(25) = 'set_zero'
+    scr_names_a2x(26) = 'set_zero'
+    scr_names_a2x(27) = 'set_zero'
+    scr_names_a2x(28) = 'set_zero'
+    scr_names_a2x(29) = 'set_zero'
+    scr_names_a2x(30) = 'set_zero'
+    scr_names_a2x(31) = 'set_zero'
+    scr_names_a2x(32) = 'set_zero'
+    scr_names_a2x(33) = 'set_zero'
+    scr_names_a2x(34) = 'set_zero'
+    scr_names_a2x(35) = 'set_zero'
 
     ! Default export vector components to -1. Set horiz_winds components.
     do i=1,num_exports
