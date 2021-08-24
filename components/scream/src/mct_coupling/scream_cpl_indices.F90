@@ -223,7 +223,7 @@ contains
     scr_names_a2x(12) = 'set_zero'
     scr_names_a2x(13) = 'set_zero'
 
-    write(*,*) "TEST:   ",shr_megan_mechcomps_n
+    write(*,*) "TEST:   ",lnd_drydep
 
     ! Default export vector components to -1. Set horiz_winds components.
     do i=1,num_exports
