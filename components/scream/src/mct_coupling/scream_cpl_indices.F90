@@ -38,8 +38,7 @@ contains
   subroutine scream_set_cpl_indices (x2a, a2x)
     use iso_c_binding,  only: C_NULL_CHAR
     use mct_mod,        only: mct_aVect, mct_avect_indexra
-    use seq_drydep_mod, only: drydep_fields_token, lnd_drydep
-    use shr_megan_mod,  only: shr_megan_fields_token, shr_megan_mechcomps_n
+
     !
     ! Input(s)
     !
@@ -222,8 +221,6 @@ contains
     scr_names_a2x(11) = 'set_zero'
     scr_names_a2x(12) = 'set_zero'
     scr_names_a2x(13) = 'set_zero'
-
-    write(*,*) "TEST:   ",lnd_drydep
 
     ! Default export vector components to -1. Set horiz_winds components.
     do i=1,num_exports
