@@ -230,8 +230,8 @@ contains
     do i=1,num_exports
       vec_comp_a2x(i) = -1
     enddo
-    vec_comp_a2x(3) = 0
-    vec_comp_a2x(4) = 1
+    vec_comp_a2x(2) = 0
+    vec_comp_a2x(3) = 1
 
     do i=1,num_required_cpl_imports
       index_x2a(i) = mct_avect_indexra(x2a,TRIM(cpl_names_x2a(i)))

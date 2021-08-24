@@ -100,7 +100,6 @@ register_import(const std::string& fname,
     info.cpl_idx = cpl_idx;
 
     // Get column offset and stride
-    std::cout << fname << "-import" << std::endl;
     get_col_info (field.get_header_ptr(), vecComp, info.col_offset, info.col_stride);
 
     // Store the identifier of this field, for debug purposes
@@ -157,7 +156,6 @@ register_export (const std::string& fname,
     info.data = field.get_internal_view_data();
 
     // Get column offset and stride
-    std::cout << fname << "-export" << std::endl;
     get_col_info (field.get_header_ptr(), vecComp, info.col_offset, info.col_stride);
 
     // Store the identifier of this field, for debug purposes
@@ -172,7 +170,6 @@ register_export (const std::string& fname,
     else                         EKAT_ERROR_MSG("Error! Unrecognized export field name \"" + fname + "\".");
 
     // Get column offset and stride
-    std::cout << fname << "-export" << std::endl;
     get_col_info (dummy_field.get_header_ptr(), vecComp, info.col_offset, info.col_stride);
 
     // Store the identifier of this field, for debug purposes
