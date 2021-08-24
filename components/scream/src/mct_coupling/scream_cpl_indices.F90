@@ -153,7 +153,7 @@ contains
     scr_names_x2a(33) = 'unused'
 
     ! Default import vector components to -1. Set surf_mom_flux components.
-    do i=1,num_required_cpl_imports
+    do i=1,num_cpl_imports
       vec_comp_x2a(i) = -1
     enddo
     vec_comp_x2a(17) = 0
