@@ -272,26 +272,26 @@ contains
     !cam_out variable corresponding to "Faxa_snowc" should be zero for SCREAM
     cpl_names_a2x(14) = 'Faxa_snowc'    ! Convective snow rate      [mm/s] (cam_out%precsc) [Obtained from Deep Conv.]
     cpl_names_a2x(15) = 'Faxa_snowl'    ! Large-scale (stable) snow rate [mm/s] (cam_out%precsl) [Obtained from P3]
-    cpl_names_x2a(16) = 'Faxa_swndr'    ! sw: nir direct  downward
-    cpl_names_x2a(17) = 'Faxa_swvdr'    ! sw: vis direct  downward
-    cpl_names_x2a(18) = 'Faxa_swndf'    ! sw: nir diffuse downward
-    cpl_names_x2a(19) = 'Faxa_swvdf'    ! sw: vis diffuse downward
-    cpl_names_x2a(20) = 'Faxa_bcphidry' ! flux: Black Carbon hydrophilic dry deposition
-    cpl_names_x2a(21) = 'Faxa_bcphodry' ! flux: Black Carbon hydrophobic dry deposition
-    cpl_names_x2a(22) = 'Faxa_bcphiwet' ! flux: Black Carbon hydrophilic wet deposition
-    cpl_names_x2a(23) = 'Faxa_ocphidry' ! flux: Organic Carbon hydrophilic dry deposition
-    cpl_names_x2a(24) = 'Faxa_ocphodry' ! flux: Organic Carbon hydrophobic dry deposition
-    cpl_names_x2a(25) = 'Faxa_ocphiwet' ! flux: Organic Carbon hydrophilic dry deposition
-    cpl_names_x2a(26) = 'Faxa_dstdry1'  ! flux: Size 1 dust -- dry deposition
-    cpl_names_x2a(27) = 'Faxa_dstdry2'  ! flux: Size 2 dust -- dry deposition
-    cpl_names_x2a(28) = 'Faxa_dstdry3'  ! flux: Size 3 dust -- dry deposition
-    cpl_names_x2a(29) = 'Faxa_dstdry4'  ! flux: Size 4 dust -- dry deposition
-    cpl_names_x2a(30) = 'Faxa_dstwet1'  ! flux: Size 1 dust -- wet deposition
-    cpl_names_x2a(31) = 'Faxa_dstwet2'  ! flux: Size 2 dust -- wet deposition
-    cpl_names_x2a(32) = 'Faxa_dstwet3'  ! flux: Size 3 dust -- wet deposition
-    cpl_names_x2a(33) = 'Faxa_dstwet4'  ! flux: Size 4 dust -- wet deposition
-    cpl_names_x2a(34) = 'Sa_co2prog'    ! Always 0.0_r8 as it is not computed by SCREAM (prognostic co2 is turned off)
-    cpl_names_x2a(35) = 'Sa_co2diag'    ! bottom atm level diagnostic co2
+    cpl_names_a2x(16) = 'Faxa_swndr'    ! sw: nir direct  downward
+    cpl_names_a2x(17) = 'Faxa_swvdr'    ! sw: vis direct  downward
+    cpl_names_a2x(18) = 'Faxa_swndf'    ! sw: nir diffuse downward
+    cpl_names_a2x(19) = 'Faxa_swvdf'    ! sw: vis diffuse downward
+    cpl_names_a2x(20) = 'Faxa_bcphidry' ! flux: Black Carbon hydrophilic dry deposition
+    cpl_names_a2x(21) = 'Faxa_bcphodry' ! flux: Black Carbon hydrophobic dry deposition
+    cpl_names_a2x(22) = 'Faxa_bcphiwet' ! flux: Black Carbon hydrophilic wet deposition
+    cpl_names_a2x(23) = 'Faxa_ocphidry' ! flux: Organic Carbon hydrophilic dry deposition
+    cpl_names_a2x(24) = 'Faxa_ocphodry' ! flux: Organic Carbon hydrophobic dry deposition
+    cpl_names_a2x(25) = 'Faxa_ocphiwet' ! flux: Organic Carbon hydrophilic dry deposition
+    cpl_names_a2x(26) = 'Faxa_dstdry1'  ! flux: Size 1 dust -- dry deposition
+    cpl_names_a2x(27) = 'Faxa_dstdry2'  ! flux: Size 2 dust -- dry deposition
+    cpl_names_a2x(28) = 'Faxa_dstdry3'  ! flux: Size 3 dust -- dry deposition
+    cpl_names_a2x(29) = 'Faxa_dstdry4'  ! flux: Size 4 dust -- dry deposition
+    cpl_names_a2x(30) = 'Faxa_dstwet1'  ! flux: Size 1 dust -- wet deposition
+    cpl_names_a2x(31) = 'Faxa_dstwet2'  ! flux: Size 2 dust -- wet deposition
+    cpl_names_a2x(32) = 'Faxa_dstwet3'  ! flux: Size 3 dust -- wet deposition
+    cpl_names_a2x(33) = 'Faxa_dstwet4'  ! flux: Size 4 dust -- wet deposition
+    cpl_names_a2x(34) = 'Sa_co2prog'    ! Always 0.0_r8 as it is not computed by SCREAM (prognostic co2 is turned off)
+    cpl_names_a2x(35) = 'Sa_co2diag'    ! bottom atm level diagnostic co2
 
     ! Names used by scream for the output fields above. Some field retain
     ! their cpl_name, which will be combinations of multiple scream fields
@@ -334,7 +334,6 @@ contains
     scr_names_a2x(35) = 'set_zero'
 
     ! Set index
-    write(*,*) "a2x_index"
     index_a2x(1) = mct_avect_indexra(a2x,'Sa_z')
     index_a2x(2) = mct_avect_indexra(a2x,'Sa_u')
     index_a2x(3) = mct_avect_indexra(a2x,'Sa_v')
@@ -372,17 +371,12 @@ contains
     index_a2x(35) = mct_avect_indexra(a2x,'Sa_co2diag',perrWith='quiet')
 
 
-    write(*,*) "moving on now.."
-
     ! Default export vector components to -1. Set horiz_winds components.
     do i=1,num_exports
       vec_comp_a2x(i) = -1
     enddo
     vec_comp_a2x(2) = 0
     vec_comp_a2x(3) = 1
-
-write(*,*) "moving on again.."
-
 
     do i=1,num_cpl_imports
       scr_names_x2a(i) = TRIM(scr_names_x2a(i)) // C_NULL_CHAR
@@ -392,17 +386,9 @@ write(*,*) "moving on again.."
       scr_names_a2x(i) = TRIM(scr_names_a2x(i)) // C_NULL_CHAR
     enddo
 
-write(*,*) "and again.."
-
     ! We no longer need the cpl names
     deallocate(cpl_names_a2x)
-
-write(*,*) "close.."
-
     deallocate(cpl_names_x2a)
-
-write(*,*) "end.."
-
 
   end subroutine scream_set_cpl_indices
 
