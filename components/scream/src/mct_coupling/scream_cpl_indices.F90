@@ -394,10 +394,12 @@ write(*,*) "moving on again.."
 
 write(*,*) "and again.."
 
-
     ! We no longer need the cpl names
     deallocate(cpl_names_a2x)
     deallocate(cpl_names_x2a)
+
+write(*,*) "end.."
+
 
   end subroutine scream_set_cpl_indices
 
