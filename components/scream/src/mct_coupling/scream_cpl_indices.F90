@@ -381,6 +381,9 @@ contains
     vec_comp_a2x(2) = 0
     vec_comp_a2x(3) = 1
 
+write(*,*) "moving on again.."
+
+
     do i=1,num_cpl_imports
       scr_names_x2a(i) = TRIM(scr_names_x2a(i)) // C_NULL_CHAR
     enddo
@@ -388,6 +391,9 @@ contains
     do i=1,num_exports
       scr_names_a2x(i) = TRIM(scr_names_a2x(i)) // C_NULL_CHAR
     enddo
+
+write(*,*) "and again.."
+
 
     ! We no longer need the cpl names
     deallocate(cpl_names_a2x)
