@@ -334,6 +334,7 @@ contains
     scr_names_a2x(35) = 'set_zero'
 
     ! Set index
+    write(*,*) "a2x_index"
     index_a2x(1) = mct_avect_indexra(a2x,'Sa_z')
     index_a2x(2) = mct_avect_indexra(a2x,'Sa_u')
     index_a2x(3) = mct_avect_indexra(a2x,'Sa_v')
@@ -369,6 +370,9 @@ contains
     index_a2x(33) = mct_avect_indexra(a2x,'Faxa_dstwet4')
     index_a2x(34) = mct_avect_indexra(a2x,'Sa_co2prog',perrWith='quiet')
     index_a2x(35) = mct_avect_indexra(a2x,'Sa_co2diag',perrWith='quiet')
+
+
+    write(*,*) "moving on now.."
 
     ! Default export vector components to -1. Set horiz_winds components.
     do i=1,num_exports
