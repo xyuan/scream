@@ -396,6 +396,9 @@ write(*,*) "and again.."
 
     ! We no longer need the cpl names
     deallocate(cpl_names_a2x)
+
+write(*,*) "close.."
+
     deallocate(cpl_names_x2a)
 
 write(*,*) "end.."
